@@ -3,11 +3,7 @@ SuMo is a mutation testing tool for Solidity Smart Contracts. It features 25 Sol
 as well as 19 traditional operators.
 
 ## Installation
-SuMo can be installed with the ```npm install sumo``` command. <br/>
-SuMo calls the ```npm compile``` and ```npm test``` commands for compiling the contracts and running the tests.
-You must make sure that the scripts are defined in your package.json file.
 
-## Usage
 To run SuMo you must: 
 1. Install the required dependencies with ```npm install```.
 1. Specify the path to your project directory and the path to your ```contracts``` directory in the ```sumo\src\operator.config.json``` file. 
@@ -16,6 +12,8 @@ To run SuMo you must:
 
 You can exclude a specific contract from the mutation process by specifying its path in the
 ```sumo\src\operator.config.json``` file.
+
+## Usage
 
 Before starting the mutation process you can choose which mutation operators must be applied:
 * ```sumo list``` shows the currently enabled mutation operators
