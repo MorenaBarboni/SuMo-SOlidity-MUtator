@@ -8,29 +8,28 @@ SuMo calls the ```npm compile``` and ```npm test``` commands for compiling the c
 You must make sure that the scripts are defined in your package.json file.
 
 ## Usage
-Once SuMo is installed, it is possible to launch a new mutation testing campaign. <br/>
-However, you must: 
-1. Specify the path to your project directory and to your ```contracts``` directory in the ```sumo\src\operator.config.json``` file. 
-2. Make sure that the ```test``` and ```compile``` scripts are defined in your ```package.json``` file.
-2. Make sure that the contracts to be mutated pass all the tests. If at least one of the tests fails, the mutation testing process cannot be run.
+To run SuMo you must: 
+1. Install the required dependencies with ```npm install```.
+1. Specify the path to your project directory and the path to your ```contracts``` directory in the ```sumo\src\operator.config.json``` file. 
+2. Specify the ```test``` and ```compile``` scripts in your ```package.json``` file.
+3. Make sure that the contracts to be mutated pass all the tests. If at least one of the tests fails, the mutation testing process cannot be run.
 
-To exclude specific contracts from the mutation process, you must specify the path to the contract file in the
+You can exclude a specific contract from the mutation process by specifying its path in the
 ```sumo\src\operator.config.json``` file.
 
-Before starting the mutation testing, you can choose which mutation operators must be applied:
+Before starting the mutation process you can choose which mutation operators must be applied:
 * ```sumo list``` shows the currently enabled mutation operators
 * ```sumo enable``` enables all the mutation operators
 * ```sumo enable ID``` enables the mutation operator ID
 * ```sumo disable``` disables all the mutation operators
 * ```sumo disable ID``` disables the mutation operator ID
 
-
-Once everything is set up, you can use:
+Once everything is set up you can use:
 * ```sumo preflight``` To view all the available mutations
 * ```sumo test``` To launch the mutation testing process
 
 ## Results
-SuMo automatically creates a ```.sumo``` folder in the root directory of your project. <br/>
+SuMo automatically creates a ```.sumo``` folder in the root directory of the project. <br/>
 At the end of the mutation testing process the folder will contain:
 * ```report.txt``` Test report
 * ```\alive``` Mutants that survived testing
