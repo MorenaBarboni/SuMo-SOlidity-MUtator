@@ -39,7 +39,7 @@ VUROperator.prototype.getMutations = function(file, source, visit) {
               replacement = replacement.replace('days','weeks')
               break;
             case 'weeks':
-              replacement = replacement.replace('weeks', 'years')
+              replacement = replacement.replace('weeks', 'seconds')
               break;
             case 'years':
                replacement = replacement.replace('years', 'seconds')
