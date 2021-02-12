@@ -16,7 +16,7 @@ OLFDOperator.prototype.getMutations = function(file, source, visit) {
     /*Visit and save all contract functions */
     visit({
       FunctionDefinition: (node) => {
-        if(!node.isConstructor){
+        if(!node.isConstructor && !node.isReceiveEther && !node.isFallback){
           contractFunctions.push(node);
         }
       }
