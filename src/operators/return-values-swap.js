@@ -39,7 +39,7 @@ RVSOperator.prototype.getMutations = function (file, source, visit) {
             var exprEnd;
             var original;
             var tokens;
-
+            var replacement;
             //If the function has an explicit return structure
             if(returnNode){
               if(returnNode.expression.components){
@@ -63,6 +63,7 @@ RVSOperator.prototype.getMutations = function (file, source, visit) {
             
             for (var i = 0; i < size; i++) {
               for (var j = i +1; j < size; j++) {
+                if(returnTypes[i] && returnTypes[j]){
                   //check if the values have the same return type
                     if( (returnTypes[i] == returnTypes[j]) ||
                     (returnTypes[i].startsWith("uint") && returnTypes[j].startsWith("uint")) ||
@@ -74,14 +75,22 @@ RVSOperator.prototype.getMutations = function (file, source, visit) {
                                                                                                             
                       //Check for equal tokens
                       if(r1 !== r2){
-                        var replacement = original.replace(r1, "*").replace(r2, r1).replace("*", r2);
-                        mutations.push(new Mutation(file, exprStart, exprEnd+1, replacement))                        
+                        if(replacement){
+                          replacement = replacement.replace(r1, "*").replace(r2, r1).replace("*", r2);
+                        }else{
+                          replacement = original.replace(r1, "*").replace(r2, r1).replace("*", r2);
+                        }                                             
                       }                        
                       break;                          
-                    }                     
+                    }  
+                  }                   
               }
-            }           
+            }  
+            if(replacement){
+            mutations.push(new Mutation(file, exprStart, exprEnd+1, replacement))                      
+            }
           }
+          
       }
     })
   return mutations
