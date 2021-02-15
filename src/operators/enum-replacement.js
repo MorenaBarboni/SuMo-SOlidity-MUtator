@@ -7,10 +7,13 @@ EROperator.prototype.name = 'enum-replacement'
 
 EROperator.prototype.getMutations = function(file, source, visit) {
   const mutations = []
-
+  var ranges = [] //Visited node ranges
+  
   visit({
     EnumDefinition: (node) => {
+      
       var thisEnum = node;
+      
       //ERd - Enum Replacement - Default value
       if(node.members.length>1){
 
@@ -26,18 +29,31 @@ EROperator.prototype.getMutations = function(file, source, visit) {
       //ERm - Enum Replacement - Member
     visit({
      MemberAccess: (node) => {
+      if(!ranges.includes(node.range)){
+        ranges.push(node.range);
        if(node.expression.name === thisEnum.name){
           var text = source.slice(node.range[0], node.range[1]+1 )
-          thisEnum.members.forEach(m => {
+          //Replace a member with each existing member
+         /* thisEnum.members.forEach(m => {
             if(m.name !== node.memberName){
               var replacement = text.replace(node.memberName, m.name);
               mutations.push(new Mutation(file, node.range[0], node.range[1] + 1, replacement))
             }
-          });
+          });*/
+          //Replace a member with a single existing member
+          for (let i = 0; i < thisEnum.members.length; i++) {
+            if(thisEnum.members[i].name !== node.memberName){
+              var replacement = text.replace(node.memberName, thisEnum.members[i].name);
+              mutations.push(new Mutation(file, node.range[0], node.range[1] + 1, replacement))
+              break
+            }            
+          }
        }
       }
+    }
     })
     }
+    
   })
   return mutations
 }
