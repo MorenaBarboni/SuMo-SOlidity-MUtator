@@ -8,19 +8,50 @@ ILROperator.prototype.name = 'integer-literal-replacement'
 ILROperator.prototype.getMutations = function(file, source, visit) {
   const mutations = []
   var prevRange;
+  var ranges = [] //Visited node ranges
 
+  //Visit arrays
   visit({
-     NumberLiteral: (node) => {
-      //Avoid duplicate mutants
-      if(prevRange != node.range){ 
-        if(node.number % 1 == 0){
+    TupleExpression: (node) => {     
+      if(node.isArray){
+        if(node.components[0] && node.components[0].type == "NumberLiteral"){
+          if(!ranges.includes(node.range)){ 
+            //Array range
+            ranges.push(node.range) 
+            //Mutate the first component and exclude subsequent components
+            mutateIntegerLiteral(node.components[0])
+            node.components.forEach(e => {
+             //Component range
+             ranges.push(e.range) 
+            });
+        }
+      }
+    }
+    }
+  })
+
+  //Visit number literals
+  visit({
+    NumberLiteral: (node) => {
+       if(!ranges.includes(node.range)){ 
+          ranges.push(node.range)
+          mutateIntegerLiteral(node)
+      }
+     prevRange = node.range;
+    }
+  })
+
+
+    //Apply mutations
+    function mutateIntegerLiteral(node) {
+      if(node.number % 1 == 0){
         var subdenomination ="";
         if (node.subdenomination){
           subdenomination = " "+node.subdenomination;
         }
         if (node.number == 1) {
           var sliced = source.slice(node.range[0]-1, node.range[0])
-          if(sliced === '-')
+           if(sliced === '-')
           mutations.push(new Mutation(file, node.range[0]-1, node.range[1] + 1, '0'+subdenomination))
           else
           mutations.push(new Mutation(file, node.range[0], node.range[1] + 1, '0'+subdenomination))
@@ -42,12 +73,10 @@ ILROperator.prototype.getMutations = function(file, source, visit) {
           }
           mutations.push(new Mutation(file, node.range[0], node.range[1] + 1, dec + subdenomination))
           mutations.push(new Mutation(file, node.range[0], node.range[1] + 1, inc+ subdenomination))
-      }
+      }}
     }
-    }
-     prevRange = node.range;
-    }
-  })
+  
+
   return mutations
 }
 
