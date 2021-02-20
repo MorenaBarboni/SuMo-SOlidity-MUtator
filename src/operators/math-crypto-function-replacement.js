@@ -8,10 +8,13 @@ MCROperator.prototype.name = 'math-and-crypto-function-replacement'
 MCROperator.prototype.getMutations = function(file, source, visit) {
   const mutations = []
   const functions = ['addmod','mulmod', 'keccak256', 'sha256', 'ripemd160']
+  var ranges = [] //Visited node ranges
 
   visit({
     FunctionCall: (node) => {
+      if(!ranges.includes(node.range)){
        if(functions.includes(node.expression.name)){
+        ranges.push(node.range);
         const start = node.expression.range[0];
         const end = node.expression.range[1];
         var m;
@@ -34,6 +37,7 @@ MCROperator.prototype.getMutations = function(file, source, visit) {
             break;
           }
       }  
+    }
     }      
   })
   return mutations
