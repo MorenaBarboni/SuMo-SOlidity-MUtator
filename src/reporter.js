@@ -49,6 +49,7 @@ Reporter.prototype.mutantStillborn = function(mutant) {
   this.stillborn.push(mutant)
 }
 
+//Prints summary to console 
 Reporter.prototype.summary = function() {
   console.log('\n--- Summary ---')
   console.log(
@@ -66,34 +67,26 @@ Reporter.prototype.summary = function() {
   }
 }
 
-
-/*Appends stillborn mutants information to report */
-Reporter.prototype.printStillbornReport = function() {
-  var printString;
-  var stillbornNumber = this.stillborn.length;
-  if(stillbornNumber == 0){
-    printString = '\n --------- STILLBORN MUTANTS --------- \n\n No stillborn mutants generated.\n'
-  }else{
-    printString = '\n --------- STILLBORN MUTANTS --------- \n\n '
-    +stillbornNumber+' stillborn mutants generated.\n'+
-     ' --- Stillborn: ' + JSON.stringify(this.stillborn.map(m => m.hash()).join(', ')) +'\n';
-  }
-  fs.appendFileSync(".sumo/report.txt", printString,  {'flags': 'a'}, function (err) {
-    if (err) return console.log(err);
-  })
-}
-
-/*Writes test report to file */
-Reporter.prototype.printTestReport = function() {
-  const totalMutants = this.survived.length + this.killed.length;
+Reporter.prototype.printTestReport = function(time) {
+  const validMutants = this.survived.length + this.killed.length;
+  const stillbornMutants = this.stillborn.length;
+  const totalMutants = validMutants + stillbornMutants
   const mutationScore = ((this.killed.length / totalMutants)*100).toFixed(2);
-  var printString = '\n --------- TEST REPORT --------- \n\n - Valid mutants: ' + totalMutants+ '\n - Alive mutants: '+
-  this.survived.length;
+  var printString = '\n ---------------------- TEST REPORT --------------------- \n\n  '
+   +totalMutants + ' mutant(s) tested in '  + time +' minutes.'  
+   +'\n\n - Total mutants: '  + totalMutants  
+   + '\n\n - Valid mutants: '+  validMutants 
+   +'\n\n - Stillborn mutants:'  + stillbornMutants;
+
+   if(this.stillborn.length > 0)
+   printString = printString + '\n --- Stillborn: ' +  JSON.stringify(this.stillborn.map(m => m.hash()).join(', '));
+
+   printString = printString + '\n\n - Live mutants: ' + this.survived.length;
 
   if(this.survived.length > 0)
-    printString = printString + '\n --- Alive: ' + JSON.stringify(this.survived.map(m => m.hash()).join(', '));
+    printString = printString + '\n --- Live: ' + JSON.stringify(this.survived.map(m => m.hash()).join(', '));
 
-  printString = printString + '\n - Killed mutants: ' + this.killed.length;
+  printString = printString + '\n\n - Killed mutants: ' + this.killed.length;
 
   if(this.killed.length > 0)
      printString = printString + '\n --- Killed: ' +  JSON.stringify(this.killed.map(m => m.hash()).join(', '));
@@ -104,5 +97,6 @@ Reporter.prototype.printTestReport = function() {
     if (err) return console.log(err);
   })  
 }
+
 
 module.exports = Reporter

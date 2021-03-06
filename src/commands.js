@@ -76,10 +76,11 @@ function prepare(callback) {
 
 function generateAllMutations(files) {
   let mutations = []
-
-   fs.writeFileSync(".sumo/report.txt", "##### REPORT #####\n\n --------- GENERATED MUTANTS --------- \n", function (err) {
-      if (err) return console.log(err);
-    }) 
+  //Write generated mutants to report
+  fs.writeFileSync(".sumo/report.txt", "########################### REPORT ###########################\n\n---------------------- MUTANTS --------------------- \n", function (err) {
+    if (err) return console.log(err);
+  }) 
+  var startTime = Date.now()
   for (const file of files) { 
     if(!config.ignore.includes(file)) {
       const source = fs.readFileSync(file, 'utf8')
@@ -88,7 +89,10 @@ function generateAllMutations(files) {
       mutations = mutations.concat(operator.getMutations(file, source, visit))
     }
   }
-
+  var generationTime = (Date.now() - startTime) / 1000
+  fs.appendFileSync(".sumo/report.txt", "\n"+ mutations.length + " mutant(s) found in " +generationTime+ " seconds. \n", function (err) {
+    if (err) return console.log(err);
+  }) 
   return mutations
 }
 
@@ -99,13 +103,13 @@ function mutationsByHash(mutations) {
   }, {})
 }
 
-function preflight(argv) {
+function preflight() {
    prepare(() =>
     glob(contractsDir + contractsGlob, (err, files) => {
       const mutations = generateAllMutations(files)
-
-      console.log(mutations.length + ' possible mutations found.')
-      console.log('---')
+      console.log('----------------------')
+      console.log(' '+mutations.length + ' mutation(s) found. ')
+      console.log('----------------------')
 
       for (const mutation of mutations) {
         console.log(mutation.file + ':' + mutation.hash() + ':')
@@ -156,10 +160,11 @@ function test(argv) {
       }
       //Generate mutations
       const mutations = generateAllMutations(files)
-      
+
       //Compile and test each mutant
+      var startTime = Date.now()
       for (const mutation of mutations) {
-        var isCompiled = compile(mutation, reporter)
+       var isCompiled = compile(mutation, reporter)
        if(isCompiled){
          reporter.beginMutant(mutation)     
               const result = runTests()
@@ -170,11 +175,11 @@ function test(argv) {
             reporter.mutantKilled(mutation)
           }
         }
-        mutation.restore()
+        mutation.restore()      
       }
+      var testTime = ((Date.now() - startTime) / 60000).toFixed(2)
       reporter.summary()
-      reporter.printStillbornReport()
-      reporter.printTestReport() 
+      reporter.printTestReport(testTime) 
     })
   )
 }
