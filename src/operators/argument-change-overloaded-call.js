@@ -10,16 +10,22 @@ ACMOperator.prototype.getMutations = function(file, source, visit) {
   var functions = []
   var overloadedFunctions = []
   var calls = []
+  var ranges = [] //Visited node ranges
  
 
   visitFunctionDefinition(mutate);
 
   function visitFunctionDefinition(callback) {
+    //Save defined functions
     visit({
       FunctionDefinition: (node) => {
-        if(node.name)
-        functions.push(node.name);
+        if(!ranges.includes(node.range)){
+          ranges.push(node.range)
+            if(node.name){
+            functions.push(node.name);
+          }
       }
+    }
     })
 
     //Filter overloaded functions
@@ -28,44 +34,49 @@ ACMOperator.prototype.getMutations = function(file, source, visit) {
       return a;
     }, {});
     overloadedFunctions = functions.filter(e => lookup[e]);
-
     if(overloadedFunctions.length > 0){
       callback();      
     }
   }
 
   function mutate (){
+    //Visit each function call and check if it is overloaded
     visit({
       FunctionCall: (node) => {
         if(overloadedFunctions.includes(node.expression.name)){
           calls.push(node);
         }       
-      }
+      }     
     })
-    calls.forEach(f => {
-      loop1: for(var i = 0; i < calls.length; i++){
-         var r = calls[i];
+    if(calls.length > 0){
+   
+      calls.forEach(f => {
+        loop1: for(var i = 0; i < calls.length; i++){
+   
+          var r = calls[i];
+         
+          if(f !== r && f.expression.name === r.expression.name){
 
-         if(f !== r && f.expression.name === r.expression.name){
-
-             //If the calls have a different number of arguments
-             if(f.arguments.length !== r.arguments.length){
-               apply(f.range[0], f.range[1], r.range[0], r.range[1]);
-               break;
-             }
-              //If the calls have the same number of arguments but different order
-             else{
-               for(var i = 0; i < f.arguments.length; i++){
-                 if(f.arguments[i].type !== r.arguments[i].type){
-                   apply(f.range[0], f.range[1], r.range[0], r.range[1]);
-                   break loop1;
-                 }
-               }
-             }
-         }
-       }
-     })      
-  }
+              //If the calls have a different number of arguments
+              if(f.arguments.length !== r.arguments.length){
+                apply(f.range[0], f.range[1], r.range[0], r.range[1]);
+                break loop1;
+              }
+                //If the calls have the same number of arguments but different order
+              else{
+                for(var i = 0; i < f.arguments.length; i++){
+                  if(f.arguments[i].type !== r.arguments[i].type){
+                    apply(f.range[0], f.range[1], r.range[0], r.range[1]);
+                      break;
+                  }
+                }
+                break loop1;
+              }
+          }
+        }
+      })    
+      }
+    }
       
    function apply(originalStart, originalEnd, replacementStart, replacementEnd){
       var text = source.slice(replacementStart, replacementEnd+1);
