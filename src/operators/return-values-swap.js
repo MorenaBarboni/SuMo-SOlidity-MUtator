@@ -26,13 +26,15 @@ RVSOperator.prototype.getMutations = function (file, source, visit) {
             });
 
             //Check if the function has an explicit return statement
+            if(node.body && node.body.statements){
             var functionStatements = node.body.statements;
             for (let i = 0; i < functionStatements.length; i++) {
               if(functionStatements[i].type === "ReturnStatement"){
                 returnNode = functionStatements[i];
                 break;      
               }        
-            }            
+            }         
+          }   
 
             var size;
             var exprStart;
