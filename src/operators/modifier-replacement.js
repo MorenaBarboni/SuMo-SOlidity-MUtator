@@ -7,55 +7,120 @@ MOROperator.prototype.name = 'modifier-replacement'
 
 MOROperator.prototype.getMutations = function(file, source, visit) {
   const mutations = []
-  const allModifiers = [] //Declared modifiers
-  const usedModifiers = [] //Modifiers attached to functions
+  const modifiers = [] //Modifiers attached to functions
+  const modifiersNodes = [] //Modifiers nodes attached to functions
 
-  visitFunctions(mutate);  
-  
+
+  visitModifiers(visitFunctions);  
+
   /*Save attached modifiers */
-  function visitFunctions(callback) {
+  function visitModifiers(callback) {
     visit({
-      FunctionDefinition: (node) => {
-        if(node.modifiers.length > 0) {  
-          node.modifiers.forEach(m => {
-            var mod = source.slice(m.range[0], m.range[1]+1)
-            if(!usedModifiers.includes(mod))
-            usedModifiers.push(mod);              
-           }); 
-        }
+      ModifierInvocation: (node) => {
+        var m = source.slice(node.range[0], node.range[1]+1)        
+        if(!modifiers.includes(m)){
+              modifiers.push(m);     
+          if(!modifiersNodes.includes(node)){
+            modifiersNodes.push(node); 
+          }           
+        }     
       }
     })
-    callback();
+    if(modifiers.length > 0){
+      callback();
+    }
   }
 
-   /*Mutate function modifiers */
-   function mutate() {
-    visit({
-        FunctionDefinition: (node) => {        
-        /*If the function is decorated */
-        if(node.modifiers.length > 0) {  
+    /*Visit decorated functions */
+    function visitFunctions() {
+      visit({
+          FunctionDefinition: (node) => {        
 
-          var thisFunctionModifiers = []
-            node.modifiers.forEach(m => {
-            thisFunctionModifiers.push(m.name);
-          });
+          /*If the function is decorated */
+          if(node.modifiers.length > 0) {
+          /*If the function is not special */
+           if(node.body && !node.isConstructor && !node.isReceiveEther && !node.isFallback){
+  
+            //Cycle the available modifiers nodes
+            for (let i = 0; i < modifiersNodes.length; i++) {
+               const m = modifiersNodes[i];
 
-          for(var i = 0; i < thisFunctionModifiers.length; i++)  {
-            var start = node.modifiers[i].range[0]
-            var end = node.modifiers[i].range[1]+1
-            var thisModifier = source.slice(start, end)
-            
-            usedModifiers.forEach(m => {
+             //If the modifier has parameters, they must be compatible with the function parameters
+              if(m.arguments){
 
-            /*If the replacement is valid*/
-            if(m !== thisModifier && !thisFunctionModifiers.includes(m) ){
-              mutations.push(new Mutation(file, start, end, m))
-            }
-            });
-          }           
+                //If the function has parameters
+                if(node && node.parameters){
+                  
+                  var modArguments = []
+                  var funcArguments = []
+
+                  //Save modifier parameters
+                  m.arguments.forEach(e => {
+                    if(e.name)
+                      modArguments.push(e.name)
+                     //the argument passed to the modifier are excluded
+                      // else if (e.value)
+                      //modArguments.push(e.value)
+                  });
+              
+                  //Save function parameters
+                    node.parameters.forEach(e => {
+                       funcArguments.push(e.name)
+                   });
+
+                    //If the parameters of the modifier are included in the parameters of the function
+                    if(modArguments.length >0){
+                        var is_included = modArguments.every(function(element, index) {
+                            return element === funcArguments[index]; 
+                        });                
+                        if(is_included ){                         
+                          mutate(node, m)
+                        }
+                    }                    
+                  }
+                  //If the function does not have arguments, skip the mutation
+                  else{
+                    break;
+                  }
+              }
+              //If the modifier does not have arguments
+              else{
+                mutate(node, m)
+              }
+          }                                           
+          }}
         }
-      }
-    })
+      })
+     }  
+  
+
+	/**
+	 * Applies a mutation to the function
+	 * @param functionNode the function node to be mutated
+	 * @param modifierNode the potential replacement node
+	 * 
+	 */
+   function mutate(functionNode, modifierNode) {
+            
+    /*retrieve modifier nodes attached to the current function node*/
+    var funcModifiers = []
+    functionNode.modifiers.forEach(m => {
+      funcModifiers.push(source.slice(m.range[0],  m.range[1]+1))
+    });
+
+    /*cycle the modifiers attached to the current function node*/
+    for(var i = 0; i < funcModifiers.length; i++)  {
+      var start = functionNode.modifiers[i].range[0]
+      var end = functionNode.modifiers[i].range[1]+1
+      var funcModifier = source.slice(start, end)
+      
+      var replacement = source.slice(modifierNode.range[0], modifierNode.range[1]+1)    
+
+      /*the replacement is valid if it does not match any of the attached modifiers*/
+      if(replacement !== funcModifier && !funcModifiers.includes(replacement)){
+        mutations.push(new Mutation(file, start, end, replacement))
+      }     
+    }        
    }  
   
   return mutations
