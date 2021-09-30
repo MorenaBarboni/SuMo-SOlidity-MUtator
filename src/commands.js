@@ -1,5 +1,6 @@
 const copy = require('recursive-copy')
 const fs = require('fs')
+var util = require('util');
 const glob = require('glob')
 const mkdirp = require('mkdirp')
 const parser = require('@solidity-parser/parser')
@@ -7,13 +8,16 @@ const operators = require('./operators')
 const config = require('./config')
 const Reporter = require('./reporter')
 const { spawnSync } = require('child_process');
+const { Console } = require('console');
 
 const baselineDir = config.baselineDir
 const projectDir = config.projectDir
+const logDir = config.logDir
 const contractsDir = config.contractsDir
 const contractsGlob = config.contractsGlob
 const aliveDir = config.aliveDir
 const killedDir = config.killedDir
+var testFiles = []
 
 const operator = new operators.CompositeOperator([
   new operators.ACMOperator(),
@@ -72,6 +76,16 @@ function prepare(callback) {
   )
   mkdirp(aliveDir);
   mkdirp(killedDir);
+  mkdirp(logDir);
+
+  glob( projectDir+'/test/**/*', function( err, files ) {
+    for(var i = 0; i < files.length; i++){
+     var testFilePath = files[i]
+     var testFile = testFilePath.match(/\/test\/.*/)
+     var testPath = ".".concat(testFile[0]);
+     testFiles.push(testPath)
+    }
+   }); 
 }
 
 function generateAllMutations(files) {
@@ -167,7 +181,7 @@ function test(argv) {
        var isCompiled = compile(mutation, reporter)
        if(isCompiled){
          reporter.beginMutant(mutation)     
-              const result = runTests()
+              const result = runTests(mutation)
           if (result) {
             reporter.mutantSurvived(mutation)
             if (argv.failfast) process.exit(1)
@@ -184,10 +198,30 @@ function test(argv) {
   )
 }
 
-function runTests() {
-  const child = spawnSync('npm.cmd', ["run-script", "test"], {cwd: projectDir});        
-  return child.status === 0
+function runTests(mutation) {
+
+  var testStatus = true;
+  var killers = [];
+  const mutantID = mutation.hash();
+
+  for(const testPath of testFiles){  
+    
+     const child = spawnSync('npm.cmd', ["run-script", "test", testPath], {cwd: projectDir}, { stdio: 'inherit'}); 
+  
+     //If the mutant was killed
+     if(!(child.status === 0)){
+       killers.push(testPath);
+       testStatus = false;
+     }  
+   }
+ 
+   fs.appendFileSync(logDir+"/log.txt", mutantID + " : " +killers +"\n", 'utf8', function (err) {
+     if (err) return console.log(err);
+   });
+    
+  return testStatus;
 }
+
 
 //Compiles each mutant
 function compileMutants() {
