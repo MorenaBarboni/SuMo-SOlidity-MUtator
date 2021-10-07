@@ -185,7 +185,7 @@ function test(argv) {
 }
 
 function runTests() {
-  const child = spawnSync('npm.cmd', ["run-script", "test"], {cwd: projectDir});        
+  const child = spawnSync('npm.cmd', ["run-script", "test"], {cwd: projectDir, timeout:300000});        
   return child.status === 0
 }
 
