@@ -14,6 +14,7 @@ const contractsDir = config.contractsDir
 const contractsGlob = config.contractsGlob
 const aliveDir = config.aliveDir
 const killedDir = config.killedDir
+var testFiles = []
 
 const operator = new operators.CompositeOperator([
   new operators.ACMOperator(),
@@ -72,6 +73,15 @@ function prepare(callback) {
   )
   mkdirp(aliveDir);
   mkdirp(killedDir);
+
+  glob( projectDir+'/test/**/*', function( err, files ) {
+    for(var i = 0; i < files.length; i++){
+     var testFilePath = files[i]
+     var testFile = testFilePath.match(/\/test\/.*/)
+     var testPath = ".".concat(testFile[0]);
+     testFiles.push(testPath)
+    }
+   }); 
 }
 
 function generateAllMutations(files) {
@@ -167,7 +177,7 @@ function test(argv) {
        var isCompiled = compile(mutation, reporter)
        if(isCompiled){
          reporter.beginMutant(mutation)     
-              const result = runTests()
+              const result = runTests(mutation)
           if (result) {
             reporter.mutantSurvived(mutation)
             if (argv.failfast) process.exit(1)
@@ -187,6 +197,24 @@ function test(argv) {
 function runTests() {
   const child = spawnSync('npm.cmd', ["run-script", "test"], {cwd: projectDir, timeout:300000});        
   return child.status === 0
+}
+
+
+function runTests(mutation) {
+
+  var testStatus = true;
+  const mutantID = mutation.hash();
+
+  for(const testPath of testFiles){  
+
+     const child = spawnSync('npm.cmd', ["run-script", "test", testPath], {cwd: projectDir, timeout:600000}); 
+
+     if(!(child.status === 0)){
+       testStatus = false;
+     }  
+   }
+
+  return testStatus;
 }
 
 //Compiles each mutant
