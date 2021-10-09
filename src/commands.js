@@ -1,5 +1,6 @@
 const copy = require('recursive-copy')
 const fs = require('fs')
+const path = require('path')
 var util = require('util');
 const glob = require('glob')
 const mkdirp = require('mkdirp')
@@ -78,7 +79,7 @@ function prepare(callback) {
   mkdirp(killedDir);
   mkdirp(logDir);
 
-  glob( projectDir+'/test/**/*', function( err, files ) {
+  glob( projectDir+'/test/**/*.js', function( err, files ) {
     for(var i = 0; i < files.length; i++){
      var testFilePath = files[i]
      var testFile = testFilePath.match(/\/test\/.*/)
@@ -202,30 +203,35 @@ function runTests(mutation) {
 
   var testStatus = true;
   var killers = [];
+  var saviors = [];
   const mutantID = mutation.hash();
 
   for(const testPath of testFiles){  
     
-     const child = spawnSync('npm.cmd', ["run-script", "test", testPath], {cwd: projectDir}, { stdio: 'inherit'}); 
+     const child = spawnSync('npm', ["run-script", "test", testPath], {cwd: projectDir, timeout: 600000}, { stdio: 'inherit'}); 
   
      //If the mutant was killed
      if(!(child.status === 0)){
        killers.push(testPath);
        testStatus = false;
-     }  
+       console.log(testPath +" killed "+ mutantID); 
+     } else {saviors.push(testPath);
+    console.log(testPath +" didn't kill "+ mutantID); 
+    }
+
+
    }
  
-   fs.appendFileSync(logDir+"/log.txt", mutantID + " : " +killers +"\n", 'utf8', function (err) {
+   fs.appendFileSync(logDir+"/log.txt", path.basename(mutation.file)+":"+mutantID+":"+killers +":"+saviors+ "\n", 'utf8', function (err) {
      if (err) return console.log(err);
    });
     
   return testStatus;
 }
 
-
 //Compiles each mutant
 function compileMutants() {
-  const child = spawnSync('npm.cmd', ["run-script", "compile"], {cwd: projectDir });
+  const child = spawnSync('npm', ["run-script", "compile"], {cwd: projectDir });
   return child.status === 0
 }
 

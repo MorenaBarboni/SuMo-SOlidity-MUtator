@@ -1,6 +1,7 @@
 const chalk = require('chalk')
 const jsdiff = require('diff')
 const fs = require('fs')
+const path = require('path')
 const sha1 = require('sha1')
 const config = require('./config')
 
@@ -19,7 +20,7 @@ function Mutation(file, start, end, replace) {
 }
 
 Mutation.prototype.hash = function() {
-  const input = [this.file, this.start, this.end, this.replace].join(':')
+  const input = [path.basename(this.file), this.start, this.end, this.replace].join(':')
   return sha1(input).slice(0, 8)
 }
 
