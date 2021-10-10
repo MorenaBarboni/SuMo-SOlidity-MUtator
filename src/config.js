@@ -6,8 +6,7 @@ module.exports = {
   aliveDir: '.sumo/alive',
   ignore: [
     ''
-  ],
+     ],
   contractsGlob: '/**/*.sol',
-  testGlob: ['/test/**/*.js', '/test/**/*.sol'
-  ]
+  testGlob: ['/test/**/*.js', '/test/**/*.sol,', '/test/**/*.ts']
 }
