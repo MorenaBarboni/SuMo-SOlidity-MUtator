@@ -103,11 +103,9 @@ dist
 # TernJS port file
 .tern-port
 
-# sol-mutator
-.sol-mutator
+# sumo files
+.sumo
 
-# truffle
-contracts
-migrations
-test
-truffle-config.js
+#config files
+src/config.js
+src/operators.config.js
