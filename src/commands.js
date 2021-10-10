@@ -161,6 +161,7 @@ function compile(mutation, thisReporter){
       console.log("Mutant successfully compiled.")
     }  else {
       console.log("Mutant could not be compiled.")    
+      reporter.mutantStillborn(mutation)
     }      
     return result
 }
@@ -230,7 +231,7 @@ function runTests() {
 //Compiles each mutant
 function compileMutants() {
   const child = spawnSync('npm.cmd', ["run-script", "compile"], {cwd: projectDir});  
-//  const child = spawnSync('yarn.cmd', ["compile"], {cwd: projectDir });
+  //const child = spawnSync('yarn.cmd', ["compile"], {cwd: projectDir });
   return child.status === 0
 }
 
