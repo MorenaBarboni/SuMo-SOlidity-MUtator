@@ -89,6 +89,7 @@ AVROperator.prototype.getMutations = function(file, source, visit) {
                 literalAddress.push(node.initialValue.number);}
           }      
           else if(node.initialValue && node.initialValue.type == 'FunctionCall'){
+            if(node.initialValue.arguments[0]){
             if(node.initialValue.arguments[0].type =='NumberLiteral'){
               var addrValue = parseInt(node.initialValue.arguments[0].number);
               var sliced = source.slice(node.initialValue.range[0], node.initialValue.range[1]+1)
@@ -96,6 +97,7 @@ AVROperator.prototype.getMutations = function(file, source, visit) {
                 literalAddress.push(sliced);
               }              
             }
+          }
              functiondAddressNode.push(node.initialValue);   
           }    
         }
