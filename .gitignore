@@ -108,4 +108,4 @@ dist
 
 #config files
 src/config.js
-src/operators.config.js
+src/operators.config.json
