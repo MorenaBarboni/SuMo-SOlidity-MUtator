@@ -16,7 +16,8 @@ const contractsGlob = config.contractsGlob
 const testGlob = config.testGlob
 const aliveDir = config.aliveDir
 const killedDir = config.killedDir
-var testFiles = []
+
+//var testFiles = []
 
 const operator = new operators.CompositeOperator([
   new operators.ACMOperator(),
@@ -76,16 +77,18 @@ function prepare(callback) {
   mkdirp(aliveDir);
   mkdirp(killedDir);
 
-  testGlob.forEach(e => {
-    glob( projectDir+ e, function( err, files ) {
-      for(var i = 0; i < files.length; i++){
-       var testFilePath = files[i]
-       var testFile = testFilePath.match(/\/test\/.*/)
-       var testPath = ".".concat(testFile[0]);
-       testFiles.push(testPath)
-      }
-     }); 
-  });
+  // testGlob.forEach(e => {
+  //   glob( projectDir+ e, function( err, files ) {
+  //     for(var i = 0; i < files.length; i++){
+
+  //      var testFilePath = files[i]
+
+  //      var testFile = testFilePath.match(/\/test\/.*/)
+  //      var testPath = ".".concat(testFile[0]);
+  //      testFiles.push(testPath)
+  //     }
+  //    }); 
+  // });
 }
 
 function generateAllMutations(files) {
@@ -156,10 +159,9 @@ function compile(mutation, thisReporter){
     const result = compileMutants()
     if (result) {
       console.log("Mutant successfully compiled.")
-    } else {
-      console.log("Mutant could not be compiled.")
-      reporter.mutantStillborn(mutation)
-    }    
+    }  else {
+      console.log("Mutant could not be compiled.")    
+    }      
     return result
 }
 
@@ -199,30 +201,36 @@ function test(argv) {
 }
 
 function runTests() {
-  const child = spawnSync('npm.cmd', ["run-script", "test"], {cwd: projectDir, timeout:300000});        
+  const child = spawnSync('npm.cmd', ["run-script", "test"], {cwd: projectDir, timeout:300000});   
+  //const child = spawnSync('yarn.cmd', ["test"], {cwd: projectDir, timeout:300000});        
   return child.status === 0
 }
 
-
-function runTests() {
+/*function runTests() {
 
   var testStatus = true;
 
   for(const testPath of testFiles){  
-
-     const child = spawnSync('npm.cmd', ["run-script", "test", testPath], {cwd: projectDir, timeout:600000}); 
+    console.log("Now running " +testPath + " ...")
+     const child = spawnSync('yarn.cmd', ["test", testPath], {cwd: projectDir, timeout:2000000}); 
 
      if(!(child.status === 0)){
-       testStatus = false;
-     }  
+      console.log("status " +child.status === 0 )
+      console.log("Mutant was killed by " +testPath + " ...")
+      testStatus = false;
+     }  else{
+      console.log("status " +child.status === 0 )
+      console.log("Mutant survived " +testPath + " ...")
+     }
    }
 
   return testStatus;
-}
+}*/
 
 //Compiles each mutant
 function compileMutants() {
-  const child = spawnSync('npm.cmd', ["run-script", "compile"], {cwd: projectDir });
+  const child = spawnSync('npm.cmd', ["run-script", "compile"], {cwd: projectDir});  
+//  const child = spawnSync('yarn.cmd', ["compile"], {cwd: projectDir });
   return child.status === 0
 }
 
