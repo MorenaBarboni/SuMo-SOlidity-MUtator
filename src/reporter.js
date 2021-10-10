@@ -46,7 +46,7 @@ Reporter.prototype.mutantKilled = function(mutant) {
 }
 
 Reporter.prototype.mutantStillborn = function(mutant) {
-  this.stillborn.push(mutant)
+  this.stillborn.push(mutant)  
 }
 
 //Prints summary to console 
@@ -71,7 +71,7 @@ Reporter.prototype.printTestReport = function(time) {
   const validMutants = this.survived.length + this.killed.length;
   const stillbornMutants = this.stillborn.length;
   const totalMutants = validMutants + stillbornMutants
-  const mutationScore = ((this.killed.length / totalMutants)*100).toFixed(2);
+  const mutationScore = ((this.killed.length / validMutants)*100).toFixed(2);
   var printString = '\n ---------------------- TEST REPORT --------------------- \n\n  '
    +totalMutants + ' mutant(s) tested in '  + time +' minutes.'  
    +'\n\n - Total mutants: '  + totalMutants  
