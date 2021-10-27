@@ -13,11 +13,16 @@ const baselineDir = config.baselineDir
 const projectDir = config.projectDir
 const contractsDir = config.contractsDir
 const contractsGlob = config.contractsGlob
-const testGlob = config.testGlob
+//const testGlob = config.testGlob
 const aliveDir = config.aliveDir
 const killedDir = config.killedDir
+const OS = config.OS
+const packageManager = config.packageManager
+
 
 //var testFiles = []
+
+const reporter = new Reporter()
 
 const operator = new operators.CompositeOperator([
   new operators.ACMOperator(),
@@ -66,6 +71,9 @@ const operator = new operators.CompositeOperator([
   new operators.VVROperator()
 ])
 
+
+
+
 function prepare(callback) {
   if(contractsDir === '' || projectDir === ''){
     console.error('Project directory is missing.')
@@ -92,11 +100,8 @@ function prepare(callback) {
 }
 
 function generateAllMutations(files) {
+  reporter.setupReport()
   let mutations = []
-  //Write generated mutants to report
-  fs.writeFileSync(".sumo/report.txt", "########################### REPORT ###########################\n\n---------------------- MUTANTS --------------------- \n", function (err) {
-    if (err) return console.log(err);
-  }) 
   var startTime = Date.now()
   for (const file of files) { 
     if(!config.ignore.includes(file)) {
@@ -107,9 +112,7 @@ function generateAllMutations(files) {
     }
   }
   var generationTime = (Date.now() - startTime) / 1000
-  fs.appendFileSync(".sumo/report.txt", "\n"+ mutations.length + " mutant(s) found in " +generationTime+ " seconds. \n", function (err) {
-    if (err) return console.log(err);
-  }) 
+  reporter.saveGenerationTime(mutations.length, generationTime)
   return mutations
 }
 
@@ -124,14 +127,7 @@ function preflight() {
    prepare(() =>
     glob(contractsDir + contractsGlob, (err, files) => {
       const mutations = generateAllMutations(files)
-      console.log('----------------------')
-      console.log(' '+mutations.length + ' mutation(s) found. ')
-      console.log('----------------------')
-
-      for (const mutation of mutations) {
-        console.log(mutation.file + ':' + mutation.hash() + ':')
-        process.stdout.write(mutation.diff())
-      }
+      reporter.preflightSummary(mutations)
     })
   )
 }
@@ -155,8 +151,8 @@ function compile(mutation, thisReporter){
  const reporter = thisReporter
  
     mutation.apply()
-    reporter.beginCompile(mutation)     
-    const result = compileMutants()
+    reporter.beginCompile(mutation)    
+     const result = compileMutants()
     if (result) {
       console.log("Mutant successfully compiled.")
     }  else {
@@ -168,7 +164,6 @@ function compile(mutation, thisReporter){
 
 function test(argv) {
 
-  const reporter = new Reporter()
   prepare(() =>
     glob(contractsDir + contractsGlob, (err, files) => {
       if (err) {
@@ -185,7 +180,7 @@ function test(argv) {
        if(isCompiled){
          reporter.beginMutant(mutation)     
               const result = runTests()
-          if (result) {
+           if (result) {
             reporter.mutantSurvived(mutation)
             if (argv.failfast) process.exit(1)
           } else {
@@ -195,16 +190,27 @@ function test(argv) {
         mutation.restore()      
       }
       var testTime = ((Date.now() - startTime) / 60000).toFixed(2)
-      reporter.summary()
+      reporter.testSummary()
       reporter.printTestReport(testTime) 
     })
   )
 }
 
 function runTests() {
-  const child = spawnSync('npm.cmd', ["run-script", "test"], {cwd: projectDir, timeout:300000});   
-  //const child = spawnSync('yarn.cmd', ["test"], {cwd: projectDir, timeout:300000});        
-  return child.status === 0
+  var status
+  if(OS === 'Windows'){
+    const child = spawnSync(packageManager+'.cmd', ["test"], {cwd: projectDir, timeout:300000});     
+    status = child.status === 0;   
+
+  }else if (OS === 'Linux'){
+    const child = spawnSync(packageManager ["test"], {cwd: projectDir, timeout:300000});  
+    status = child.status === 0;   
+
+  }else{
+    console.error('Project configuration is wrong or missing.')
+    process.exit(1)
+  }
+  return status
 }
 
 /*function runTests() {
@@ -213,7 +219,7 @@ function runTests() {
 
   for(const testPath of testFiles){  
     console.log("Now running " +testPath + " ...")
-     const child = spawnSync('yarn.cmd', ["test", testPath], {cwd: projectDir, timeout:2000000}); 
+     const child = spawnSync('npm.cmd', ["run-script","test", testPath], {cwd: projectDir, timeout:2000000}); 
 
      if(!(child.status === 0)){
       console.log("status " +child.status === 0 )
@@ -230,9 +236,18 @@ function runTests() {
 
 //Compiles each mutant
 function compileMutants() {
-  const child = spawnSync('npm.cmd', ["run-script", "compile"], {cwd: projectDir});  
-  //const child = spawnSync('yarn.cmd', ["compile"], {cwd: projectDir });
-  return child.status === 0
+  var status
+  if(OS === 'Windows'){
+    const child = spawnSync(packageManager+'.cmd', ["compile"], {cwd: projectDir});     
+    status = child.status === 0;   
+  }else if (OS === 'Linux'){
+    const child = spawnSync(packageManager ["compile"], {cwd: projectDir});  
+    status = child.status === 0;   
+  }else{
+    console.error('Project configuration is wrong or missing.')
+    process.exit(1)
+  }  
+  return status
 }
 
 //Checks which operators are currently enabled

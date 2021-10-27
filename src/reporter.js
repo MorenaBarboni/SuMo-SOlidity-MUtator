@@ -49,8 +49,20 @@ Reporter.prototype.mutantStillborn = function(mutant) {
   this.stillborn.push(mutant)  
 }
 
-//Prints summary to console 
-Reporter.prototype.summary = function() {
+//Prints preflight summary to console 
+Reporter.prototype.preflightSummary = function(mutations) {
+  console.log('----------------------')
+  console.log(' '+mutations.length + ' mutation(s) found. ')
+  console.log('----------------------')
+
+  for (const mutation of mutations) {
+    console.log(mutation.file + ':' + mutation.hash() + ':')
+    process.stdout.write(mutation.diff())
+  }
+}
+
+//Prints test summary to console 
+Reporter.prototype.testSummary = function() {
   console.log('\n--- Summary ---')
   console.log(
     this.survived.length +
@@ -67,6 +79,29 @@ Reporter.prototype.summary = function() {
   }
 }
 
+//Setup test report
+Reporter.prototype.setupReport = function(mutationsLength, generationTime) { 
+  fs.writeFileSync(".sumo/report.txt", "################################################ REPORT ################################################\n\n------------------------------------------- GENERATED MUTANTS ------------------------------------------ \n", function (err) {
+    if (err) return console.log(err);
+  }) 
+}
+
+//Save generated mutations to report
+Reporter.prototype.saveGeneratedMutants = function(fileString, mutantString) {
+  
+  fs.appendFileSync(".sumo/report.txt", fileString + mutantString, {'flags': 'a'}, function (err) {
+    if (err) return console.log(err);
+  })  
+}
+
+//Save mutants generation time to report
+Reporter.prototype.saveGenerationTime = function(mutationsLength, generationTime) { 
+  fs.appendFileSync(".sumo/report.txt", "\n"+ mutationsLength + " mutant(s) found in " +generationTime+ " seconds. \n", function (err) {
+    if (err) return console.log(err);
+  }) 
+}
+
+//Save test results to report
 Reporter.prototype.printTestReport = function(time) {
   const validMutants = this.survived.length + this.killed.length;
   const stillbornMutants = this.stillborn.length;

@@ -1,6 +1,10 @@
 const fs = require('fs')
 const configFileName = '../operators.config.json'
 const configFile = require(configFileName)
+
+const Reporter = require('.././reporter')
+const reporter = new Reporter()
+
 const ACMOperator = require('./argument-change-overloaded-call')
 const AOROperator = require('./assignment-replacement')
 const AVROperator = require('./address-value-replacement')
@@ -68,10 +72,9 @@ CompositeOperator.prototype.getMutations = function(file, source, visit) {
       mutations = mutations.concat(opMutations)
     }
   }
+
   if(mutantString != ""){
-      fs.appendFileSync(".sumo/report.txt", fileString + mutantString, {'flags': 'a'}, function (err) {
-        if (err) return console.log(err);
-      })  
+    reporter.saveGeneratedMutants(fileString, mutantString)    
   } 
   return mutations
 }
