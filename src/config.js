@@ -1,4 +1,6 @@
 module.exports = {
+  OS: 'Windows',
+  packageManager: 'npm',
   projectDir: '',
   contractsDir: '',
   baselineDir: '.sumo/baseline',
@@ -6,7 +8,8 @@ module.exports = {
   aliveDir: '.sumo/alive',
   ignore: [
     ''
-     ],
+   ],
   contractsGlob: '/**/*.sol',
   testGlob: ['/test/**/*.js', '/test/**/*.sol,', '/test/**/*.ts']
 }
+
