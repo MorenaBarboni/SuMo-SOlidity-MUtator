@@ -1,16 +1,45 @@
 const fs = require('fs')
 const configFileName = '../operators.config.json'
 const configFile = require(configFileName)
+const config = require('../config')
 
 const Reporter = require('.././reporter')
 const reporter = new Reporter()
 
+//Init operator version
+var AOROperator
+var BOROperator
+var EROperator
+var GVROperator
+var MCROperator
+var RVSOperator
+var SFROperator
+var VUROperator
+
+if(config.optimized){
+  AOROperator = require('./assignment-replacement')
+  BOROperator = require('./binary-replacement')
+  EROperator = require('./enum-replacement')
+  GVROperator = require('./global-variable-replacement')
+  MCROperator = require('./math-crypto-function-replacement')
+  RVSOperator = require('./return-values-swap')
+  SFROperator = require('./safemath-function-replacement')
+  VUROperator = require('./variable-unit-replacement')
+}else{
+  AOROperator = require('../operators-redundant/assignment-replacement')
+  BOROperator = require('../operators-redundant/binary-replacement')
+  EROperator = require('../operators-redundant/enum-replacement')
+  GVROperator = require('../operators-redundant/global-variable-replacement')
+  MCROperator = require('../operators-redundant/math-crypto-function-replacement')
+  RVSOperator = require('../operators-redundant/return-values-swap')
+  SFROperator = require('../operators-redundant/safemath-function-replacement')
+  VUROperator = require('../operators-redundant/variable-unit-replacement')
+}
+
 const ACMOperator = require('./argument-change-overloaded-call')
-const AOROperator = require('./assignment-replacement')
 const AVROperator = require('./address-value-replacement')
 const BCRDOperator = require('./break-continue-replacement')
 const BLROperator = require('./boolean-literal-replacement')
-const BOROperator = require('./binary-replacement')
 const CBDOperator = require('./catch-block-deletion')
 const CCDOperator =  require('./constructor-deletion')
 const CSCOperator =  require('./conditional-statement-change')
@@ -19,15 +48,12 @@ const DODOperator = require('./delete-operator-deletion')
 const ECSOperator = require('./explicit-conversion-smaller')
 const EEDOperator = require('./event-emission-deletion')
 const EHCOperator = require('./exception-handling-change')
-const EROperator = require('./enum-replacement')
 const ETROperator = require('./ether-transfer-function-replacement')
 const FVROperator = require('./function-visibility-replacement')
-const GVROperator = require('./global-variable-replacement')
 const ICMOperator = require('./increments-mirror')
 const ILROperator = require('./integer-literal-replacement')
 const LSCOperator = require('./loop-statement-change')
 const HLROperator = require('./hex-literal-replacement')
-const MCROperator = require('./math-crypto-function-replacement')
 const MOCOperator = require('./modifier-order-change')
 const MODOperator = require('./modifier-deletion')
 const MOIOperator = require('./modifier-insertion')
@@ -37,17 +63,14 @@ const OMDOperator = require('./overridden-modifier-deletion')
 const ORFDOperator = require('./overridden-function-deletion')
 const PKDOperator = require('./payable-deletion')
 const RSDOperator = require('./return-statement-deletion')
-const RVSOperator = require('./return-values-swap')
 const SCECOperator = require('./switch-call-expression-casting')
 const SFDOperator = require('./selfdestruct-deletion')
 const SFIOperator = require('./selfdestruct-insertion')
-const SFROperator = require('./safemath-function-replacement')
 const SKDOperator = require('./super-keyword-deletion')
 const SKIOperator = require('./super-keyword-insertion')
 const SLROperator = require('./string-literal-replacement')
 const TOROperator = require('./transaction-origin-replacement')
 const UORDOperator = require('./unary-replacement')
-const VUROperator = require('./variable-unit-replacement')
 const VVROperator = require('./variable-visibility-replacement')
 
 function CompositeOperator(operators) {

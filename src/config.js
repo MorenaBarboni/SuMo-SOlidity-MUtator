@@ -7,9 +7,9 @@ module.exports = {
   killedDir: '.sumo/killed',
   aliveDir: '.sumo/alive',
   ignore: [
-    ''
-   ],
+     ],
   contractsGlob: '/**/*.sol',
-  testGlob: ['/test/**/*.js', '/test/**/*.sol,', '/test/**/*.ts']
+  testGlob: ['/test/**/*.js', '/test/**/*.sol,', '/test/**/*.ts'],
+  optimized: true
 }
 
