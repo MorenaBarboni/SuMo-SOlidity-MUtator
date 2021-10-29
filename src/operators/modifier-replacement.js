@@ -46,7 +46,7 @@ MOROperator.prototype.getMutations = function(file, source, visit) {
                const m = modifiersNodes[i];
 
              //If the modifier has parameters, they must be compatible with the function parameters
-              if(m.arguments){
+              if(m.arguments && m.arguments.length > 0){
 
                 //If the function has parameters
                 if(node && node.parameters){
