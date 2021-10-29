@@ -26,14 +26,14 @@ if(config.optimized){
   SFROperator = require('./safemath-function-replacement')
   VUROperator = require('./variable-unit-replacement')
 }else{
-  AOROperator = require('../operators-redundant/assignment-replacement')
-  BOROperator = require('../operators-redundant/binary-replacement')
-  EROperator = require('../operators-redundant/enum-replacement')
-  GVROperator = require('../operators-redundant/global-variable-replacement')
-  MCROperator = require('../operators-redundant/math-crypto-function-replacement')
-  RVSOperator = require('../operators-redundant/return-values-swap')
-  SFROperator = require('../operators-redundant/safemath-function-replacement')
-  VUROperator = require('../operators-redundant/variable-unit-replacement')
+  AOROperator = require('../operators-extended/assignment-replacement')
+  BOROperator = require('../operators-extended/binary-replacement')
+  EROperator = require('../operators-extended/enum-replacement')
+  GVROperator = require('../operators-extended/global-variable-replacement')
+  MCROperator = require('../operators-extended/math-crypto-function-replacement')
+  RVSOperator = require('../operators-extended/return-values-swap')
+  SFROperator = require('../operators-extended/safemath-function-replacement')
+  VUROperator = require('../operators-extended/variable-unit-replacement')
 }
 
 const ACMOperator = require('./argument-change-overloaded-call')
