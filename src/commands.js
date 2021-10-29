@@ -5,6 +5,8 @@ const mkdirp = require('mkdirp')
 const parser = require('@solidity-parser/parser')
 const operators = require('./operators')
 const config = require('./config')
+const mutationsConfig = require('./mutations.config')
+
 const Reporter = require('./reporter')
 const { spawnSync } = require('child_process');
 
@@ -13,11 +15,11 @@ const baselineDir = config.baselineDir
 const projectDir = config.projectDir
 const contractsDir = config.contractsDir
 const contractsGlob = config.contractsGlob
-//const testGlob = config.testGlob
 const aliveDir = config.aliveDir
 const killedDir = config.killedDir
 const OS = config.OS
 const packageManager = config.packageManager
+const ignoreList = mutationsConfig.ignore;
 
 
 //var testFiles = []
@@ -71,9 +73,6 @@ const operator = new operators.CompositeOperator([
   new operators.VVROperator()
 ])
 
-
-
-
 function prepare(callback) {
   if(contractsDir === '' || projectDir === ''){
     console.error('Project directory is missing.')
@@ -84,19 +83,6 @@ function prepare(callback) {
   )
   mkdirp(aliveDir);
   mkdirp(killedDir);
-
-  // testGlob.forEach(e => {
-  //   glob( projectDir+ e, function( err, files ) {
-  //     for(var i = 0; i < files.length; i++){
-
-  //      var testFilePath = files[i]
-
-  //      var testFile = testFilePath.match(/\/test\/.*/)
-  //      var testPath = ".".concat(testFile[0]);
-  //      testFiles.push(testPath)
-  //     }
-  //    }); 
-  // });
 }
 
 function generateAllMutations(files) {
@@ -176,22 +162,28 @@ function test(argv) {
       //Compile and test each mutant
       var startTime = Date.now()
       for (const mutation of mutations) {
-       var isCompiled = compile(mutation, reporter)
-       if(isCompiled){
-         reporter.beginMutant(mutation)     
-              const result = runTests()
-           if (result) {
-            reporter.mutantSurvived(mutation)
-            if (argv.failfast) process.exit(1)
-          } else {
-            reporter.mutantKilled(mutation)
+       if (!ignoreList.includes(mutation.hash())) {
+
+          var isCompiled = compile(mutation, reporter)
+          if (isCompiled) {
+            reporter.beginMutant(mutation)
+            const result = runTests()
+            if (result) {
+              reporter.mutantSurvived(mutation)
+              if (argv.failfast) process.exit(1)
+            } else {
+              reporter.mutantKilled(mutation)
+            }
           }
+          mutation.restore()
         }
-        mutation.restore()      
+        else{
+          console.log("Mutant " +mutation.hash() + ' ... skipped.')
+        }
       }
       var testTime = ((Date.now() - startTime) / 60000).toFixed(2)
       reporter.testSummary()
-      reporter.printTestReport(testTime) 
+      reporter.printTestReport(testTime)
     })
   )
 }
@@ -212,27 +204,6 @@ function runTests() {
   }
   return status
 }
-
-/*function runTests() {
-
-  var testStatus = true;
-
-  for(const testPath of testFiles){  
-    console.log("Now running " +testPath + " ...")
-     const child = spawnSync('npm.cmd', ["run-script","test", testPath], {cwd: projectDir, timeout:2000000}); 
-
-     if(!(child.status === 0)){
-      console.log("status " +child.status === 0 )
-      console.log("Mutant was killed by " +testPath + " ...")
-      testStatus = false;
-     }  else{
-      console.log("status " +child.status === 0 )
-      console.log("Mutant survived " +testPath + " ...")
-     }
-   }
-
-  return testStatus;
-}*/
 
 //Compiles each mutant
 function compileMutants() {
