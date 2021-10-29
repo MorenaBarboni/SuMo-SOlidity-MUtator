@@ -2,6 +2,7 @@ const chalk = require('chalk')
 const jsdiff = require('diff')
 const fs = require('fs')
 const sha1 = require('sha1')
+const path = require('path')
 const config = require('./config')
 
 const baselineDir = config.baselineDir
@@ -19,14 +20,13 @@ function Mutation(file, start, end, replace) {
 }
 
 Mutation.prototype.hash = function() {
-  const input = [this.file, this.start, this.end, this.replace].join(':')
+  const input = [path.basename(this.file), this.start, this.end, this.replace].join(':')
   return sha1(input).slice(0, 8)
 }
 
 Mutation.prototype.apply = function() {
   const original = fs.readFileSync(this.file, 'utf8')
   const mutated = this.applyToString(original)
-
   fs.writeFileSync(this.file, mutated, 'utf8')
 }
 
