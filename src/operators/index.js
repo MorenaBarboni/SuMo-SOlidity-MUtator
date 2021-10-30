@@ -11,7 +11,6 @@ var AOROperator
 var BOROperator
 var EROperator
 var GVROperator
-var MCROperator
 var RVSOperator
 var SFROperator
 var VUROperator
@@ -21,7 +20,6 @@ if(config.optimized){
   BOROperator = require('./binary-replacement')
   EROperator = require('./enum-replacement')
   GVROperator = require('./global-variable-replacement')
-  MCROperator = require('./math-crypto-function-replacement')
   RVSOperator = require('./return-values-swap')
   SFROperator = require('./safemath-function-replacement')
   VUROperator = require('./variable-unit-replacement')
@@ -30,7 +28,6 @@ if(config.optimized){
   BOROperator = require('../operators-extended/binary-replacement')
   EROperator = require('../operators-extended/enum-replacement')
   GVROperator = require('../operators-extended/global-variable-replacement')
-  MCROperator = require('../operators-extended/math-crypto-function-replacement')
   RVSOperator = require('../operators-extended/return-values-swap')
   SFROperator = require('../operators-extended/safemath-function-replacement')
   VUROperator = require('../operators-extended/variable-unit-replacement')
@@ -54,6 +51,7 @@ const ICMOperator = require('./increments-mirror')
 const ILROperator = require('./integer-literal-replacement')
 const LSCOperator = require('./loop-statement-change')
 const HLROperator = require('./hex-literal-replacement')
+const MCROperator = require('./math-crypto-function-replacement')
 const MOCOperator = require('./modifier-order-change')
 const MODOperator = require('./modifier-deletion')
 const MOIOperator = require('./modifier-insertion')
