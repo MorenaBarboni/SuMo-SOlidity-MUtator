@@ -10,7 +10,6 @@ const mutationsConfig = require('./mutations.config')
 const Reporter = require('./reporter')
 const { spawnSync } = require('child_process');
 
-
 const baselineDir = config.baselineDir
 const projectDir = config.projectDir
 const contractsDir = config.contractsDir
@@ -145,7 +144,7 @@ function compile(mutation, thisReporter){
       console.log("Mutant could not be compiled.")    
       reporter.mutantStillborn(mutation)
     }      
-    return result
+    return result 
 }
 
 function test(argv) {
@@ -176,7 +175,7 @@ function test(argv) {
             }
           }
           mutation.restore()
-        }
+       }
         else{
           console.log("Mutant " +mutation.hash() + ' ... skipped.')
         }
@@ -189,36 +188,73 @@ function test(argv) {
 }
 
 function runTests() {
+
   var status
+
   if(OS === 'Windows'){
-    const child = spawnSync(packageManager+'.cmd', ["test"], {cwd: projectDir, timeout:300000});     
-    status = child.status === 0;   
-
+    if(packageManager === 'npm'){
+      const child = spawnSync('npm.cmd', ["run-script", "test"], {cwd: projectDir, timeout:300000});   
+       status = child.status;
+    }else if(packageManager === 'yarn'){
+         const child = spawnSync('yarn.cmd', ["test"], {cwd: projectDir, timeout:300000});    
+         status = child.status; 
+    }
+    else{
+      console.error('Project configuration is wrong or missing.')
+      process.exit(1)
+    } 
   }else if (OS === 'Linux'){
-    const child = spawnSync(packageManager ["test"], {cwd: projectDir, timeout:300000});  
-    status = child.status === 0;   
-
+    if(packageManager === 'npm'){
+      const child = spawnSync('npm', ["run-script", "test"], {cwd: projectDir, timeout:300000});   
+       status = child.status;
+    }else if(packageManager === 'yarn'){
+         const child = spawnSync('yarn', ["test"], {cwd: projectDir, timeout:300000});    
+         status = child.status; 
+    }
+    else{
+      console.error('Project configuration is wrong or missing.')
+      process.exit(1)
+    } 
   }else{
     console.error('Project configuration is wrong or missing.')
     process.exit(1)
-  }
-  return status
+  }  
+  return status === 0;   
 }
 
 //Compiles each mutant
 function compileMutants() {
   var status
+
   if(OS === 'Windows'){
-    const child = spawnSync(packageManager+'.cmd', ["compile"], {cwd: projectDir});     
-    status = child.status === 0;   
+    if(packageManager === 'npm'){
+      const child = spawnSync('npm.cmd', ["run-script", "compile"], {cwd: projectDir});   
+       status = child.status;
+    }else if(packageManager === 'yarn'){
+         const child = spawnSync('yarn.cmd', ["compile"], {cwd: projectDir});    
+         status = child.status; 
+    }
+    else{
+      console.error('Project configuration is wrong or missing.')
+      process.exit(1)
+    } 
   }else if (OS === 'Linux'){
-    const child = spawnSync(packageManager ["compile"], {cwd: projectDir});  
-    status = child.status === 0;   
+    if(packageManager === 'npm'){
+      const child = spawnSync('npm', ["run-script", "compile"], {cwd: projectDir});   
+       status = child.status;
+    }else if(packageManager === 'yarn'){
+         const child = spawnSync('yarn', ["compile"], {cwd: projectDir});    
+         status = child.status; 
+    }
+    else{
+      console.error('Project configuration is wrong or missing.')
+      process.exit(1)
+    } 
   }else{
     console.error('Project configuration is wrong or missing.')
     process.exit(1)
   }  
-  return status
+  return status === 0;   
 }
 
 //Checks which operators are currently enabled
