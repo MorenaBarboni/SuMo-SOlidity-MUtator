@@ -3,6 +3,7 @@ const jsdiff = require('diff')
 const fs = require('fs')
 const sha1 = require('sha1')
 const path = require('path')
+const { mutantsDir, saveMutants } = require('./config')
 const config = require('./config')
 
 const baselineDir = config.baselineDir
@@ -27,7 +28,24 @@ Mutation.prototype.hash = function() {
 Mutation.prototype.apply = function() {
   const original = fs.readFileSync(this.file, 'utf8')
   const mutated = this.applyToString(original)
-  fs.writeFileSync(this.file, mutated, 'utf8')
+ 
+   fs.writeFileSync(this.file, mutated, 'utf8')
+}
+
+
+Mutation.prototype.applyAndSave = function() {
+  const original = fs.readFileSync(this.file, 'utf8')
+  const mutated = this.applyToString(original)
+
+    var contractName = path.basename(this.file)
+    contractName = contractName.replace(".sol", "");  
+   
+    var mutantName =  path.basename(this.file) + ":" +this.hash()
+    console.log('Saving mutant ' + chalk['yellow'](mutantName))
+
+    fs.writeFileSync(mutantsDir+"/" +contractName + "-" +this.hash()+".sol", mutated, function (err) {
+      if (err) return console.log(err);
+    });  
 }
 
 Mutation.prototype.applyToString = function(original) {
@@ -38,7 +56,7 @@ Mutation.prototype.restore = function() {
   const baseline = this.baseline()
 
   console.log('Restoring ' + this.file)
-
+  
   const original = fs.readFileSync(baseline, 'utf8')
   fs.writeFileSync(this.file, original, 'utf8')
 }
