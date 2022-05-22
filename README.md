@@ -1,6 +1,10 @@
-# SuMO
-SuMo is a mutation testing tool for Solidity Smart Contracts. It features 25 Solidity-specific mutation operators,
-as well as 19 traditional operators.
+# SuMo
+SuMo is a mutation testing tool for Solidity Smart Contracts. It features 25 Solidity-specific mutation operators, as well as 19 traditional operators.
+
+Note that [ReSuMo](https://github.com/MorenaBarboni/ReSuMo/tree/main/src) advances the functionalities of SuMo through:
+1. a static, file-level regression testing mechanism for evolving projects
+2. the usage of the Trivial Compiler Equivalence (TCE) for automatically detecting and discarding mutant equivalencies
+
 
 ## Installation
 
@@ -86,3 +90,18 @@ At the end of the mutation testing process the folder will contain:
 | TOR | Transaction Origin Replacement |
 | VUR | Variable Unit Replacement |
 | VVR | Variable Visibility Replacement |
+
+
+### Publications
+
+To cite SuMo, please use the following:
+
+```
+@inproceedings{9463055,
+  author={Barboni, Morena and Morichetta, Andrea and Polini, Andrea},
+  booktitle={2021 IEEE/ACM International Conference on Automation of Software Test (AST)}, 
+  title={SuMo: A Mutation Testing Strategy for Solidity Smart Contracts}, 
+  year={2021},
+  pages={50-59}
+  } 
+```
