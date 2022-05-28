@@ -31,7 +31,6 @@ These fields allow to set up the mutation testing process
 * ```ganache```: automatically spawn Ganache instances during the testing process (true by default)
 * ```customTestScript```: use a custom compile and test script specified in the package.json of the SUT, instead of relying on the Truffle    interface (false by default)
 * ```testingTimeOutInSec```: number of seconds after which a mutant is marked as timed-out during testing (300 by default)
-* ```saveMutants```: save a copy of each mutant contract to file (false by default)
 
 Note that by setting ```customTestScript``` to true you must specify a ```test``` and ```compile``` script in your ```package.json``` file.
 
@@ -49,6 +48,7 @@ Before starting the mutation process you can choose which mutation operators to 
 #### Viewing the available mutations
 Once everything is set up you can use:
 * ```npm run sumo preflight``` To view the available mutations and save a preliminary report  to ./sumo/report.txt
+* ```npm run sumo mutate``` To view the available mutations, save a preliminary report  to ./sumo/report.txt, and save a copy of each mutant to ./sumo/mutants
 
 #### Running Mutation Testing
 Use:

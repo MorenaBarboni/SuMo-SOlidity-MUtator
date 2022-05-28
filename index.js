@@ -20,6 +20,7 @@ yargs
       describe: 'hash of mutant'
     })
   }, commands.diff)
+  .command('mutate', 'save mutants to file', commands.mutate)
   .command('list', 'print list of enabled mutation operators', commands.list)
   .command('enable [ID]', 'enable a mutation operator', (yargs) => {
     yargs

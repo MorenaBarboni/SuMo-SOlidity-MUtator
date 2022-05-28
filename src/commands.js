@@ -24,7 +24,6 @@ var packageManager;
 var runScript;
 const aliveDir = config.aliveDir
 const killedDir = config.killedDir
-const OS = config.OS
 const ignoreList = mutationsConfig.ignore;
 
 const reporter = new Reporter()
@@ -108,26 +107,38 @@ function prepare(callback) {
   )
   mkdirp(aliveDir);
   mkdirp(killedDir);
-  if (config.saveMutants) {
-    mkdirp(mutantsDir);
-  }
+  mkdirp(mutantsDir);  
 }
 
-//Generates the mutants without starting the testing process.
-//If saveMutants is enabled, it saves a copy of each mutant to file.
-function preflight() {
+/**
+ * Shows a summary of the available mutants without starting the testing process.
+ */
+ function preflight() {
   prepare(() =>
     glob(contractsDir + contractsGlob, (err, files) => {
+      if (err) throw err;
       const mutations = generateAllMutations(files)
-      if (config.saveMutants) {
-        for (const mutation of mutations) {
-          mutation.applyAndSave()
-          mutation.restore()
-        }
-      }
       reporter.preflightSummary(mutations)
     })
-  )
+  );
+}
+
+/**
+ * Shows a summary of the available mutants without starting the testing process and
+ * saves the mutants to file.
+ */
+ function preflightAndSave() {
+  prepare(() =>
+    glob(contractsDir + contractsGlob, (err, files) => {
+      if (err) throw err;
+      const mutations = generateAllMutations(files);
+      for (const mutation of mutations) {
+        mutation.save();
+      }
+      reporter.preflightSummary(mutations);
+      console.log("Mutants saved to file");
+    })
+  );
 }
 
 function generateAllMutations(files) {
@@ -262,7 +273,7 @@ function disableOperator(ID) {
 }
 
 module.exports = {
-  test: test, preflight, preflight, diff: diff, list: enabledOperators,
+  test: test, preflight, preflight, mutate: preflightAndSave, diff: diff, list: enabledOperators,
   enable: enableOperator, disable: disableOperator
 }
 
