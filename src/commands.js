@@ -8,7 +8,10 @@ const config = require('./config')
 const mutationsConfig = require('./mutations.config')
 
 const Reporter = require('./reporter')
-const { spawnSync } = require('child_process');
+const testingInterface = require("./testingInterface");
+const utils = require("./utils");
+
+
 const { mutantsDir } = require('./config')
 
 
@@ -16,13 +19,12 @@ const baselineDir = config.baselineDir
 const projectDir = config.projectDir
 const contractsDir = config.contractsDir
 const contractsGlob = config.contractsGlob
+const packageManagerGlob = config.packageManagerGlob;
+var packageManager;
+var runScript;
 const aliveDir = config.aliveDir
 const killedDir = config.killedDir
-const OS = config.OS
-const packageManager = config.packageManager
 const ignoreList = mutationsConfig.ignore;
-
-//var testFiles = []
 
 const reporter = new Reporter()
 
@@ -43,15 +45,15 @@ const operator = new operators.CompositeOperator([
   new operators.EHCOperator(),
   new operators.EROperator(),
   new operators.ETROperator(),
-  new operators.FVROperator(), 
+  new operators.FVROperator(),
   new operators.GVROperator(),
   new operators.HLROperator(),
   new operators.ILROperator(),
   new operators.ICMOperator(),
-  new operators.LSCOperator(), 
+  new operators.LSCOperator(),
   new operators.PKDOperator(),
   new operators.MCROperator(),
-  new operators.MOCOperator(),    
+  new operators.MOCOperator(),
   new operators.MODOperator(),
   new operators.MOIOperator(),
   new operators.MOROperator(),
@@ -74,43 +76,77 @@ const operator = new operators.CompositeOperator([
 ])
 
 function prepare(callback) {
-  if(contractsDir === '' || projectDir === ''){
+  if (contractsDir === '' || projectDir === '') {
     console.error('Project directory is missing.')
     process.exit(1)
   }
+
+  //Checks the package manager used by the SUT
+  let packageManagerFile;
+  for (const lockFile of packageManagerGlob) {
+    if (fs.existsSync(projectDir + lockFile)) {
+      packageManagerFile = lockFile;
+      if (lockFile.includes("yarn")) {
+        packageManager = "yarn";
+        runScript = "run";
+      } else {
+        packageManager = "npm";
+        runScript = "run-script";
+      }
+      break;
+    }
+  }
+
+  if (!packageManagerFile) {
+    console.error("Target project does not contain a suitable lock file.");
+    process.exit(1);
+  }
+
   mkdirp(baselineDir, () =>
     copy(contractsDir, baselineDir, { dot: true }, callback)
   )
   mkdirp(aliveDir);
   mkdirp(killedDir);
-  if(config.saveMutants){
-      mkdirp(mutantsDir);
-  }
+  mkdirp(mutantsDir);  
 }
 
-//Generates the mutants without starting the testing process.
-//If saveMutants is enabled, it saves a copy of each mutant to file.
-function preflight() {
+/**
+ * Shows a summary of the available mutants without starting the testing process.
+ */
+ function preflight() {
   prepare(() =>
-   glob(contractsDir + contractsGlob, (err, files) => {
-     const mutations = generateAllMutations(files)
-     if(config.saveMutants){
-       for (const mutation of mutations) {
-            mutation.applyAndSave()  
-            mutation.restore()
-         }
-     }
-     reporter.preflightSummary(mutations)
-   })
- )
+    glob(contractsDir + contractsGlob, (err, files) => {
+      if (err) throw err;
+      const mutations = generateAllMutations(files)
+      reporter.preflightSummary(mutations)
+    })
+  );
+}
+
+/**
+ * Shows a summary of the available mutants without starting the testing process and
+ * saves the mutants to file.
+ */
+ function preflightAndSave() {
+  prepare(() =>
+    glob(contractsDir + contractsGlob, (err, files) => {
+      if (err) throw err;
+      const mutations = generateAllMutations(files);
+      for (const mutation of mutations) {
+        mutation.save();
+      }
+      reporter.preflightSummary(mutations);
+      console.log("Mutants saved to file");
+    })
+  );
 }
 
 function generateAllMutations(files) {
   reporter.setupReport()
   let mutations = []
   var startTime = Date.now()
-  for (const file of files) { 
-    if(!config.ignore.includes(file)) {
+  for (const file of files) {
+    if (!config.ignore.includes(file)) {
       const source = fs.readFileSync(file, 'utf8')
       const ast = parser.parse(source, { range: true })
       const visit = parser.visit.bind(parser, ast)
@@ -157,23 +193,32 @@ function test(argv) {
       //Compile and test each mutant
       var startTime = Date.now()
       for (const mutation of mutations) {
-       if (!ignoreList.includes(mutation.hash())) {
 
-          var isCompiled = compile(mutation, reporter)
+        if (!ignoreList.includes(mutation.hash())) {
+          if (config.ganache) {
+            ganacheChild = testingInterface.spawnGanache();
+          }
+          mutation.apply();
+          const isCompiled = testingInterface.spawnCompile(packageManager, runScript);
+
           if (isCompiled) {
             reporter.beginMutant(mutation)
-            const result = runTests()
-            if (result) {
+            const result = testingInterface.spawnTest(packageManager, runScript)
+            if (result === 0) {
               reporter.mutantSurvived(mutation)
               if (argv.failfast) process.exit(1)
             } else {
               reporter.mutantKilled(mutation)
             }
           }
+          if (config.ganache) {
+            testingInterface.killGanache();
+            utils.cleanTmp();
+          }
           mutation.restore()
-       }
-        else{
-          console.log("Mutant " +mutation.hash() + ' ... skipped.')
+        }
+        else {
+          console.log("Mutant " + mutation.hash() + ' ... skipped.')
         }
       }
       var testTime = ((Date.now() - startTime) / 60000).toFixed(2)
@@ -183,94 +228,6 @@ function test(argv) {
   )
 }
 
-//Applies the mutation and compiles the mutant
-function compile(mutation, thisReporter){
-  const reporter = thisReporter
-  
-     mutation.apply()
-     reporter.beginCompile(mutation)    
-      const result = compileMutants()
-     if (result) {
-       console.log("Mutant successfully compiled.")
-     }  else {
-       console.log("Mutant could not be compiled.")    
-       reporter.mutantStillborn(mutation)
-     }      
-     return result 
- }
-
- //Compiles each mutant
-function compileMutants() {
-  var status
-
-  if(OS === 'Windows'){
-    if(packageManager === 'npm'){
-      const child = spawnSync('npm.cmd', ["run-script", "compile"], {cwd: projectDir});   
-       status = child.status;
-    }else if(packageManager === 'yarn'){
-         const child = spawnSync('yarn.cmd', ["compile"], {cwd: projectDir});    
-         status = child.status; 
-    }
-    else{
-      console.error('Project configuration is wrong or missing.')
-      process.exit(1)
-    } 
-  }else if (OS === 'Linux'){
-    if(packageManager === 'npm'){
-      const child = spawnSync('npm', ["run-script", "compile"], {cwd: projectDir});   
-       status = child.status;
-    }else if(packageManager === 'yarn'){
-         const child = spawnSync('yarn', ["compile"], {cwd: projectDir});    
-         status = child.status; 
-    }
-    else{
-      console.error('Project configuration is wrong or missing.')
-      process.exit(1)
-    } 
-  }else{
-    console.error('Project configuration is wrong or missing.')
-    process.exit(1)
-  }  
-  return status === 0;   
-}
-
-
-function runTests() {
-
-  var status
-
-  if(OS === 'Windows'){
-    if(packageManager === 'npm'){
-      const child = spawnSync('npm.cmd', ["run-script", "test"], {cwd: projectDir, timeout:300000});   
-       status = child.status;
-    }else if(packageManager === 'yarn'){
-         const child = spawnSync('yarn.cmd', ["test"], {cwd: projectDir, timeout:300000});    
-         status = child.status; 
-    }
-    else{
-      console.error('Project configuration is wrong or missing.')
-      process.exit(1)
-    } 
-  }else if (OS === 'Linux'){
-    if(packageManager === 'npm'){
-      const child = spawnSync('npm', ["run-script", "test"], {cwd: projectDir, timeout:300000});   
-       status = child.status;
-    }else if(packageManager === 'yarn'){
-         const child = spawnSync('yarn', ["test"], {cwd: projectDir, timeout:300000});    
-         status = child.status; 
-    }
-    else{
-      console.error('Project configuration is wrong or missing.')
-      process.exit(1)
-    } 
-  }else{
-    console.error('Project configuration is wrong or missing.')
-    process.exit(1)
-  }  
-  return status === 0;   
-}
-
-
 
 //Checks which operators are currently enabled
 function enabledOperators() {
@@ -279,15 +236,15 @@ function enabledOperators() {
 
 //Enables a mutation operator
 function enableOperator(ID) {
-   //Enable all operators
-  if(!ID){
+  //Enable all operators
+  if (!ID) {
     var success = operator.enableAll();
     if (success)
       console.log("All mutation operators enabled.");
     else
       console.log("Error");
-  }else{
-     //Enable operator ID
+  } else {
+    //Enable operator ID
     var success = operator.enable(ID);
     if (success)
       console.log(ID + " enabled.");
@@ -299,14 +256,14 @@ function enableOperator(ID) {
 //Disables a mutation operator 
 function disableOperator(ID) {
   //Disable all operators
-  if(!ID){
+  if (!ID) {
     var success = operator.disableAll();
     if (success)
       console.log("All mutation operators disabled.");
     else
       console.log("Error");
-  }else{
-  //Disable operator ID
+  } else {
+    //Disable operator ID
     var success = operator.disable(ID);
     if (success)
       console.log(ID + " disabled.");
@@ -315,6 +272,8 @@ function disableOperator(ID) {
   }
 }
 
-module.exports = {test: test, preflight, preflight, diff: diff, list:enabledOperators,
-  enable:enableOperator, disable:disableOperator }
+module.exports = {
+  test: test, preflight, preflight, mutate: preflightAndSave, diff: diff, list: enabledOperators,
+  enable: enableOperator, disable: disableOperator
+}
 

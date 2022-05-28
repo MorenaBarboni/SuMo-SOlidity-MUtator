@@ -33,20 +33,24 @@ Mutation.prototype.apply = function() {
 }
 
 
-Mutation.prototype.applyAndSave = function() {
-  const original = fs.readFileSync(this.file, 'utf8')
-  const mutated = this.applyToString(original)
+//Saves a mutant to file (apply and restore)
+Mutation.prototype.save = function() {
+  const original = fs.readFileSync(this.file, "utf8");
+  const mutated = this.applyToString(original);
 
-    var contractName = path.basename(this.file)
-    contractName = contractName.replace(".sol", "");  
-   
-    var mutantName =  path.basename(this.file) + ":" +this.hash()
-    console.log('Saving mutant ' + chalk['yellow'](mutantName))
+  var contractName = path.basename(this.file);
+  contractName = contractName.replace(".sol", "");
 
-    fs.writeFileSync(mutantsDir+"/" +contractName + "-" +this.hash()+".sol", mutated, function (err) {
-      if (err) return console.log(err);
-    });  
-}
+  // var mutantName =  path.basename(this.file) + ":" +this.hash()
+  //console.log('\nSaving mutant ' + chalk['yellow'](mutantName))
+
+  fs.writeFileSync(mutantsDir + "/" + contractName + "-" + this.hash() + ".sol", mutated, function(err) {
+    if (err) return console.log(err);
+  });
+
+  //console.log('Restoring ' + this.file)
+  fs.writeFileSync(this.file, original, "utf8");
+};
 
 Mutation.prototype.applyToString = function(original) {
   return splice(original, this.start, this.end - this.start, this.replace)

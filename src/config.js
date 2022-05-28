@@ -1,16 +1,17 @@
 module.exports = {
-  OS: 'Windows',
-  packageManager: 'npm',
+  sumoDir: '.sumo',
   projectDir: '',
   contractsDir: '',
   baselineDir: '.sumo/baseline',
   killedDir: '.sumo/killed',
   aliveDir: '.sumo/alive',
   mutantsDir: '.sumo/mutants',
-  ignore: [
-   ],
+  testingTimeOutInSec: 3000,
+  ganache: true,
+  customTestScript: false,
+  ignore: [],    
   contractsGlob: '/**/*.sol',
-  testGlob: ['/test/**/*.js', '/test/**/*.sol,', '/test/**/*.ts'],
-  optimized: false,
-  saveMutants: false  
+  packageManagerGlob: ['/package-lock.json', '/yarn.lock'],
+  testGlob: ['/test/**/*.js', '/test/**/*.sol,', '/test/**/*.ts'
+  ]
 }
