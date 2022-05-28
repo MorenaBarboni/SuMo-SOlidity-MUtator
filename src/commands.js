@@ -191,7 +191,9 @@ function test(argv) {
       const mutations = generateAllMutations(files)
 
       //Compile and test each mutant
-      var startTime = Date.now()
+      reporter.beginMutationTesting();
+      var startTime = Date.now();
+
       for (const mutation of mutations) {
 
         if (!ignoreList.includes(mutation.hash())) {
@@ -202,22 +204,25 @@ function test(argv) {
           const isCompiled = testingInterface.spawnCompile(packageManager, runScript);
 
           if (isCompiled) {
-            reporter.beginMutant(mutation)
+            reporter.beginTest(mutation)
             const result = testingInterface.spawnTest(packageManager, runScript)
             if (result === 0) {
-              reporter.mutantSurvived(mutation)
-              if (argv.failfast) process.exit(1)
+              mutation.status = "live";
+            } else if (result === 999) {
+              mutation.status = "timedout";
             } else {
-              reporter.mutantKilled(mutation)
+              mutation.status = "killed";
             }
           }
           if (config.ganache) {
             testingInterface.killGanache();
             utils.cleanTmp();
           }
-          mutation.restore()
+          reporter.mutantStatus(mutation);
+          mutation.restore();
         }
         else {
+          mutation.status = "equivalent";
           console.log("Mutant " + mutation.hash() + ' ... skipped.')
         }
       }
