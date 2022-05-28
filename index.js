@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
 const yargs = require('yargs')
-const commands = require('./src/commands')
+const commands = require('./src/commands.js')
+const utils = require('./src/utils')
 
 yargs
   .usage('$0 <cmd> [args]')
@@ -38,5 +39,11 @@ yargs
   }, (argv) => {
     commands.disable(argv.ID)
   }) 
+  .command('cleanSumo', 'clean .sumo directory', (argv) => {
+    utils.cleanSumo()
+  })
+  .command('restore', 'restore SUT files', (argv) => {
+    utils.restore()
+  })
   .help()
   .argv

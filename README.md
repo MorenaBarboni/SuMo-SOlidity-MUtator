@@ -5,39 +5,68 @@ Note that [ReSuMo](https://github.com/MorenaBarboni/ReSuMo/tree/main/src) advanc
 1. a static, file-level regression testing mechanism for evolving projects
 2. the usage of the Trivial Compiler Equivalence (TCE) for automatically detecting and discarding mutant equivalencies
 
-
 ## Installation
+To install SuMo run ```npm install```.
 
-To run SuMo you must: 
-1. Install the required dependencies with ```npm install```.
-1. Specify the path to your project directory and the path to your ```contracts``` directory in the ```sumo\src\operator.config.json``` file. 
-2. Specify the ```test``` and ```compile``` scripts in your ```package.json``` file.
-3. Make sure that the contracts to be mutated pass all the tests. If at least one of the tests fails, the mutation testing process cannot be run.
+## Configuration
+Before using SuMo you must specify your desired configuration in the [config.js](https://github.com/MorenaBarboni/SuMo-SOlidity-MUtator/blob/master/src/config.js) file.
 
-You can exclude a specific contract from the mutation process by specifying its path in the
-```sumo\src\operator.config.json``` file.
+##### 1) SuMo directories
+These fields determine where SuMo stores data during the mutation testing process. Most paths are already set by default:
+* ```sumoDir```: path of the directory where SuMo must save the mutation testing artifacts (.sumo by default)
+* ```baselineDir```: path of the directory where SuMo must save the baseline of the SUT (.sumo/baseline by default)
+* ```killedDir```: path of the directory where SuMo must save the killed mutations (.sumo/killed by default)
+* ```aliveDir```: path of the directory where SuMo must save the live mutations (.sumo/alive by default)
+* ```mutantsDir```: path of the directory where SuMo must (optionally) save a copy of each mutated contract (.sumo/mutants by default)
 
-## Usage
+##### 2) SUT directories
+These fields specify the path to different artefacts of the System Under Test:
+* ```projectDir```: path of the root directory of the SUT where the package.json is located
+* ```contractsDir```: path of the directory where the contracts to be mutated are located
+ 
+##### 3) Mutation Process
+These fields allow to set up the mutation testing process
 
-Before starting the mutation process you can choose which mutation operators must be applied:
-* ```sumo list``` shows the currently enabled mutation operators
-* ```sumo enable``` enables all the mutation operators
-* ```sumo enable ID``` enables the mutation operator ID
-* ```sumo disable``` disables all the mutation operators
-* ```sumo disable ID``` disables the mutation operator ID
+* ```ignore```:  array of paths to contract files that must be ignored by SuMo during mutation testing
+* ```ganache```: automatically spawn Ganache instances during the testing process (true by default)
+* ```customTestScript```: use a custom compile and test script specified in the package.json of the SUT, instead of relying on the Truffle    interface (false by default)
+* ```testingTimeOutInSec```: number of seconds after which a mutant is marked as timed-out during testing (300 by default)
+* ```saveMutants```: save a copy of each mutant contract to file (false by default)
 
+Note that by setting ```customTestScript``` to true you must specify a ```test``` and ```compile``` script in your ```package.json``` file.
+
+
+## CLI Usage
+
+#### Selecting Mutation Operators
+Before starting the mutation process you can choose which mutation operators to use:
+* ```npm run sumo list``` shows the currently enabled mutation operators
+* ```npm run sumo enable``` enables all the mutation operators
+* ```npm run sumo enable ID``` enables the mutation operator ID
+* ```npm run sumo disable``` disables all the mutation operators
+* ```npm run sumo disable ID``` disables the mutation operator ID
+
+#### Viewing the available mutations
 Once everything is set up you can use:
-* ```sumo preflight``` To view all the available mutations
-* ```sumo test``` To launch the mutation testing process
+* ```npm run sumo preflight``` To view the available mutations and save a preliminary report  to ./sumo/report.txt
 
-## Results
+#### Running Mutation Testing
+Use:
+* ```npm run sumo test``` To launch the mutation testing process;
+* ```npm run sumo restore``` To restore the SUT files to a clean version if you suddenly interrupt the mutation process
+
+### Results
 SuMo automatically creates a ```.sumo``` folder in the root directory of the project. <br/>
 At the end of the mutation testing process the folder will contain:
 * ```report.txt``` Test report
 * ```\alive``` Mutants that survived testing
 * ```\killed``` Mutants killed by tests
+* ```\mutants``` Mutated contracts
 
-## Mutation Operators
+Use:
+* ```npm run sumo cleanSumo``` to delete the ```.sumo``` folder;
+
+## Mutation Operators 👾
 
 ### Traditional Operators
 | Operator | Description |
