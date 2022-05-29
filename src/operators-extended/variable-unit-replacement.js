@@ -27,48 +27,48 @@ VUROperator.prototype.getMutations = function(file, source, visit) {
               break;
             //VURt - Time Units Replacement
             case 'seconds':
-              mutations.push(new Mutation(file, start, end + 1, 'minutes'))  
-            mutations.push(new Mutation(file, start, end + 1, 'hours'))
-              mutations.push(new Mutation(file, start, end + 1, 'days'))
-              mutations.push(new Mutation(file, start, end + 1, 'weeks'))
-              mutations.push(new Mutation(file, start, end + 1, 'years'))
+              mutations.push(new Mutation(file, start, end + 1, 'minutes', this.ID))
+              mutations.push(new Mutation(file, start, end + 1, 'hours', this.ID))
+              mutations.push(new Mutation(file, start, end + 1, 'days', this.ID))
+              mutations.push(new Mutation(file, start, end + 1, 'weeks', this.ID))
+              mutations.push(new Mutation(file, start, end + 1, 'years', this.ID))
               break;
             case 'minutes':
-              mutations.push(new Mutation(file, start, end + 1, 'seconds'))
-              mutations.push(new Mutation(file, start, end + 1, 'hours'))
-              mutations.push(new Mutation(file, start, end + 1, 'days'))
-              mutations.push(new Mutation(file, start, end + 1, 'weeks'))
-              mutations.push(new Mutation(file, start, end + 1, 'years'))
+              mutations.push(new Mutation(file, start, end + 1, 'seconds', this.ID))
+              mutations.push(new Mutation(file, start, end + 1, 'hours', this.ID))
+              mutations.push(new Mutation(file, start, end + 1, 'days', this.ID))
+              mutations.push(new Mutation(file, start, end + 1, 'weeks', this.ID))
+              mutations.push(new Mutation(file, start, end + 1, 'years', this.ID))
               break;
             case 'hours':
-              mutations.push(new Mutation(file, start, end + 1, 'seconds'))
-               mutations.push(new Mutation(file, start, end + 1, 'minutes'))
-               mutations.push(new Mutation(file, start, end + 1, 'days'))
-               mutations.push(new Mutation(file, start, end + 1, 'weeks'))
-               mutations.push(new Mutation(file, start, end + 1, 'years'))
+              mutations.push(new Mutation(file, start, end + 1, 'seconds', this.ID))
+               mutations.push(new Mutation(file, start, end + 1, 'minutes', this.ID))
+               mutations.push(new Mutation(file, start, end + 1, 'days', this.ID))
+               mutations.push(new Mutation(file, start, end + 1, 'weeks', this.ID))
+               mutations.push(new Mutation(file, start, end + 1, 'years', this.ID))
               break;
             case 'days':
-              mutations.push(new Mutation(file, start, end + 1, 'seconds'))
-               mutations.push(new Mutation(file, start, end + 1, 'minutes'))
-               mutations.push(new Mutation(file, start, end + 1, 'hours'))
-               mutations.push(new Mutation(file, start, end + 1, 'weeks'))
-               mutations.push(new Mutation(file, start, end + 1, 'years'))
+              mutations.push(new Mutation(file, start, end + 1, 'seconds', this.ID))
+               mutations.push(new Mutation(file, start, end + 1, 'minutes', this.ID))
+               mutations.push(new Mutation(file, start, end + 1, 'hours', this.ID))
+               mutations.push(new Mutation(file, start, end + 1, 'weeks', this.ID))
+               mutations.push(new Mutation(file, start, end + 1, 'years', this.ID))
               break;
             case 'weeks':
-              mutations.push(new Mutation(file, start, end + 1, replacement = replacement.replace('weeks','seconds')))  
-              mutations.push(new Mutation(file, start, end + 1, replacement = replacement.replace('weeks','minutes')))  
-              mutations.push(new Mutation(file, start, end + 1, replacement = replacement.replace('weeks','hours')))  
-              mutations.push(new Mutation(file, start, end + 1, replacement = replacement.replace('weeks','days')))  
-              mutations.push(new Mutation(file, start, end + 1, replacement = replacement.replace('weeks','years')))  
+              mutations.push(new Mutation(file, start, end + 1, replacement = replacement.replace('weeks','seconds', this.ID)))
+              mutations.push(new Mutation(file, start, end + 1, replacement = replacement.replace('weeks','minutes', this.ID)))
+              mutations.push(new Mutation(file, start, end + 1, replacement = replacement.replace('weeks','hours', this.ID)))
+              mutations.push(new Mutation(file, start, end + 1, replacement = replacement.replace('weeks','days', this.ID)))
+              mutations.push(new Mutation(file, start, end + 1, replacement = replacement.replace('weeks','years', this.ID)))
               break;
             case 'years':
-               mutations.push(new Mutation(file, start, end + 1, 'seconds'))
-               mutations.push(new Mutation(file, start, end + 1, 'minutes'))
-               mutations.push(new Mutation(file, start, end + 1, 'hours'))
-               mutations.push(new Mutation(file, start, end + 1, 'days'))
-               mutations.push(new Mutation(file, start, end + 1, 'weeks'))
+               mutations.push(new Mutation(file, start, end + 1, 'seconds', this.ID))
+               mutations.push(new Mutation(file, start, end + 1, 'minutes', this.ID))
+               mutations.push(new Mutation(file, start, end + 1, 'hours', this.ID))
+               mutations.push(new Mutation(file, start, end + 1, 'days', this.ID))
+               mutations.push(new Mutation(file, start, end + 1, 'weeks', this.ID))
             }
-        
+
         }
         prevRange = node.range;
       }

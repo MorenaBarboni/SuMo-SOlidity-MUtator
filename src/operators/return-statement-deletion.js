@@ -1,26 +1,27 @@
-const Mutation = require('../mutation')
+const Mutation = require("../mutation");
 
-function RSDoperator() {}
+function RSDoperator() {
+}
 
-RSDoperator.prototype.ID = 'RSD'
-RSDoperator.prototype.name = 'return-statement-deletion'
+RSDoperator.prototype.ID = "RSD";
+RSDoperator.prototype.name = "return-statement-deletion";
 
 RSDoperator.prototype.getMutations = function(file, source, visit) {
-  const mutations = []
+  const mutations = [];
 
   visit({
     ReturnStatement: (node) => {
-      const start = node.range[0]
-      const end = node.range[1]
+      const start = node.range[0];
+      const end = node.range[1];
 
-      const text = source.slice(start, end + 1)
-      const replacement = '/* ' + text + ' */'
+      const text = source.slice(start, end + 1);
+      const replacement = "/* " + text + " */";
 
-      mutations.push(new Mutation(file, start, end + 1, replacement))
+      mutations.push(new Mutation(file, start, end + 1, replacement, this.ID));
     }
-  })
+  });
 
-  return mutations
-}
+  return mutations;
+};
 
-module.exports = RSDoperator
+module.exports = RSDoperator;

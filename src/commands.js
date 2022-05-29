@@ -141,6 +141,10 @@ function prepare(callback) {
   );
 }
 
+/**
+ * Generates  the mutations for each target contract
+ *  @param files The smart contracts under test
+ */
 function generateAllMutations(files) {
   reporter.setupReport()
   let mutations = []
@@ -179,7 +183,10 @@ function diff(argv) {
   )
 }
 
-function test(argv) {
+/**
+ * Starts the mutation testing process
+ */
+function test() {
 
   prepare(() =>
     glob(contractsDir + contractsGlob, (err, files) => {
@@ -226,9 +233,10 @@ function test(argv) {
           console.log("Mutant " + mutation.hash() + ' ... skipped.')
         }
       }
-      var testTime = ((Date.now() - startTime) / 60000).toFixed(2)
-      reporter.testSummary()
-      reporter.printTestReport(testTime)
+      var testTime = ((Date.now() - startTime) / 60000).toFixed(2);
+      reporter.testSummary();
+      reporter.printTestReport(testTime);
+      reporter.saveOperatorsResults();
     })
   )
 }

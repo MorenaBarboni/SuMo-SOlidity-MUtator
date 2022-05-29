@@ -79,24 +79,24 @@ AOROperator.prototype.getMutations = function(file, source, visit) {
           replacement = text.replace('^=', '&=')
           replacement2 = text.replace('^=', ' =')
           replacement3 = text.replace('^=', '|=')
-          break;    
+          break;
         }
 
         if (replacement) {
-          mutations.push(new Mutation(file, start, end, replacement))
+          mutations.push(new Mutation(file, start, end, replacement, this.ID))
         }
         if(replacement2){
-          mutations.push(new Mutation(file, start, end, replacement2))
+          mutations.push(new Mutation(file, start, end, replacement2, this.ID))
         }
         if (replacement3) {
-          mutations.push(new Mutation(file, start, end, replacement3))
+          mutations.push(new Mutation(file, start, end, replacement3, this.ID))
         }
         if(replacement4){
-          mutations.push(new Mutation(file, start, end, replacement4))
-        }  
+          mutations.push(new Mutation(file, start, end, replacement4, this.ID))
+        }
         if (replacement5) {
-          mutations.push(new Mutation(file, start, end, replacement5))
-        }      
+          mutations.push(new Mutation(file, start, end, replacement5, this.ID))
+        }
     },
   })
 
