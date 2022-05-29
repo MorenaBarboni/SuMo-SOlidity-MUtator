@@ -8,12 +8,14 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@solidity-parser/parser": "^0.7.0",
+    "@solidity-parser/parser": "^0.14.0",
     "chalk": "2.4.1",
     "diff": "^5.0.0",
     "fs-extra": "^10.1.0",
+    "ganache-cli": "^6.12.0",
     "recursive-copy": "^2.0.14",
     "sha1": "^1.1.1",
+    "truffle": "^5.4.0",
     "yargs": "^17.5.1",
     "excel4node": "^1.7.2"
   }

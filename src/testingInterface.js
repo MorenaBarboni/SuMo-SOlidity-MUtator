@@ -38,16 +38,10 @@ function spawnCompile(packageManager, runScript) {
 * Spawns a new test process through the interface provided by the connected testing framework 
 * @param packageManager The package manager used within the SUT
 * @param runScript the run script command of the packageManager
-* @param bail bail after the first test failure (only if customTestScript = false)
 */
-function spawnTest(packageManager, runScript, bail) {
+function spawnTest(packageManager, runScript) {
 
   var testChild;
-  let bailTest = "";
-
-  if(bail){
-    bailTest = "-b";
-  }
 
   //Run a custom test script
   if (config.customTestScript) {
@@ -68,11 +62,19 @@ function spawnTest(packageManager, runScript, bail) {
   }
   //Spawn a default truffle test command
   else {
-    if (process.platform === "win32") {
-      testChild = spawnSync("truffle.cmd", ["test", bailTest], { stdio: "inherit", cwd: targetDir, timeout: (testingTimeOutInSec * 1000) });
-    } else if (process.platform === "linux" || process.platform === "darwin") {
-      testChild = spawnSync("truffle", ["test", bailTest], { stdio: "inherit", cwd: targetDir, timeout: (testingTimeOutInSec * 1000) });
-    }
+    if(config.bail){
+      if (process.platform === "win32") {
+        testChild = spawnSync("truffle.cmd", ["test", "-b"], { stdio: "inherit", cwd: targetDir, timeout: (testingTimeOutInSec * 1000) });
+      } else if (process.platform === "linux" || process.platform === "darwin") {
+        testChild = spawnSync("truffle", ["test", "-b"], { stdio: "inherit", cwd: targetDir, timeout: (testingTimeOutInSec * 1000) });
+      }
+    }else{
+      if (process.platform === "win32") {
+        testChild = spawnSync("truffle.cmd", ["test"], { stdio: "inherit", cwd: targetDir, timeout: (testingTimeOutInSec * 1000) });
+      } else if (process.platform === "linux" || process.platform === "darwin") {
+        testChild = spawnSync("truffle", ["test"], { stdio: "inherit", cwd: targetDir, timeout: (testingTimeOutInSec * 1000) });
+      }
+    }    
   }
   let status;
   if (testChild.error && testChild.error.code === "ETIMEDOUT") {
@@ -112,7 +114,7 @@ function spawnGanache() {
 /**
  * Kills a spawned Ganache instance
  */
-function killGanache() {
+function killGanache(ganacheChild) {
   if (config.ganache) {
     if (process.platform === "win32") {
       spawn("taskkill", ["/pid", ganacheChild.pid, "/f", "/t"]);

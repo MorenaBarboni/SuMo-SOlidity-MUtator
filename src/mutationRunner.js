@@ -152,7 +152,14 @@ function generateAllMutations(files) {
   let mutations = []
   var startTime = Date.now()
   for (const file of files) {
-    if (!config.ignore.includes(file)) {
+    let skipContract = false;
+    for (const path of config.skipContracts) {
+      if (file.startsWith(path)) {
+        skipContract = true;
+        break;
+      }
+    }
+    if (!skipContract) {
       const source = fs.readFileSync(file, 'utf8')
       const ast = parser.parse(source, { range: true })
       const visit = parser.visit.bind(parser, ast)
@@ -169,22 +176,17 @@ function generateAllMutations(files) {
  */
 function preTest() {
   reporter.beginPretest();
-  if (config.ganache) {
-    ganacheChild = testingInterface.spawnGanache();
-  }
+  let ganacheChild = testingInterface.spawnGanache();
+
   const status = testingInterface.spawnTest(packageManager, runScript, true);
   if (status === 0) {
     console.log("Pre-test OK.");
   } else {
-    if (config.ganache) {
-      testingInterface.killGanache();
-    }
-    console.error(chalk.red("Error: Original tests should pass."));  
+    testingInterface.killGanache(ganacheChild);
+    console.error(chalk.red("Error: Original tests should pass."));
     process.exit(1);
   }
-  if (config.ganache) {
-    testingInterface.killGanache();
-  }
+  testingInterface.killGanache(ganacheChild);
   utils.cleanTmp();
 }
 
@@ -214,16 +216,16 @@ function test() {
       for (const mutation of mutations) {
 
         if (!ignoreList.includes(mutation.hash())) {
-          if (config.ganache) {
-            ganacheChild = testingInterface.spawnGanache();
-          }
+
+          let ganacheChild = testingInterface.spawnGanache();
+
           mutation.apply();
           const isCompiled = testingInterface.spawnCompile(packageManager, runScript);
 
           if (isCompiled) {
             reporter.beginTest(mutation)
             let startTestTime = Date.now();
-            const result = testingInterface.spawnTest(packageManager, runScript, config.bail)
+            const result = testingInterface.spawnTest(packageManager, runScript)
             mutation.testingTime = Date.now() - startTestTime;
             if (result === 0) {
               mutation.status = "live";
@@ -233,10 +235,9 @@ function test() {
               mutation.status = "killed";
             }
           }
-          if (config.ganache) {
-            testingInterface.killGanache();
-            utils.cleanTmp();
-          }
+          testingInterface.killGanache(ganacheChild);
+          utils.cleanTmp();
+
           reporter.mutantStatus(mutation);
           mutation.restore();
         }
