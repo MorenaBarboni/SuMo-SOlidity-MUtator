@@ -13,11 +13,14 @@ function splice(str, start, length, replacement) {
   return str.substring(0, start) + replacement + str.substring(start + length)
 }
 
-function Mutation(file, start, end, replace) {
-  this.file = file
-  this.start = start
-  this.end = end
-  this.replace = replace
+function Mutation(file, start, end, replace, operator, status = null, testingTime=null) {
+  this.file = file;
+  this.start = start;
+  this.end = end;
+  this.replace = replace;
+  this.operator = operator;
+  this.status = status;
+  this.testingTime = testingTime;
 }
 
 Mutation.prototype.hash = function() {
@@ -41,14 +44,10 @@ Mutation.prototype.save = function() {
   var contractName = path.basename(this.file);
   contractName = contractName.replace(".sol", "");
 
-  // var mutantName =  path.basename(this.file) + ":" +this.hash()
-  //console.log('\nSaving mutant ' + chalk['yellow'](mutantName))
-
   fs.writeFileSync(mutantsDir + "/" + contractName + "-" + this.hash() + ".sol", mutated, function(err) {
     if (err) return console.log(err);
   });
 
-  //console.log('Restoring ' + this.file)
   fs.writeFileSync(this.file, original, "utf8");
 };
 

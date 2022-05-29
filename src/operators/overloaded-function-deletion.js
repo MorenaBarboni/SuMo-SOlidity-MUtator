@@ -1,14 +1,18 @@
-const Mutation = require('../mutation')
+const Mutation = require("../mutation");
 
-function OLFDOperator() {}
+function OLFDOperator() {
+}
 
-OLFDOperator.prototype.ID = 'OLFD'
-OLFDOperator.prototype.name = 'overloaded-function-deletion'
+OLFDOperator.prototype.ID = "OLFD";
+OLFDOperator.prototype.name = "overloaded-function-deletion";
 
 OLFDOperator.prototype.getMutations = function(file, source, visit) {
-  const mutations = []
-  var contractFunctions = []
-  var overloadedFunctions = []
+
+  const ID = this.ID;
+  const mutations = [];
+  var ranges = [];
+  var contractFunctions = [];
+  var overloadedFunctions = [];
 
   visitFunctions(mutate);
 
@@ -16,30 +20,37 @@ OLFDOperator.prototype.getMutations = function(file, source, visit) {
     /*Visit and save all contract functions */
     visit({
       FunctionDefinition: (node) => {
-        if(!node.isConstructor && !node.isReceiveEther && !node.isFallback){
-          contractFunctions.push(node);
+        if (!ranges.includes(node.range)) {
+          if (!node.isConstructor && !node.isReceiveEther && !node.isFallback) {
+            contractFunctions.push(node);
+          }
         }
+        ranges.push(node.range);
       }
-    })
+    });
     callback();
   }
 
-   /*Mutate overloaded functions */
-   function mutate() {
+  /*Mutate overloaded functions */
+  function mutate() {
     const lookup = contractFunctions.reduce((a, e) => {
       a[e.name] = ++a[e.name] || 0;
       return a;
     }, {});
-    overloadedFunctions = contractFunctions.filter(e => lookup[e.name])
+    overloadedFunctions = contractFunctions.filter(e => lookup[e.name]);
     overloadedFunctions.forEach(node => {
-      var start = node.range[0]
-      var end = node.range[1]
-      var text = source.slice(start, end+1)
-      replacement = '/*' + text + '*/';
-      mutations.push(new Mutation(file, start, end+1, replacement))
-    });        
-   }  
-  return mutations
-}
+      //Overridden functions are mutated by ORFD
+      if (!node.override) {
+        var start = node.range[0];
+        var end = node.range[1];
+        var text = source.slice(start, end + 1);
+        replacement = "/*" + text + "*/";
+        mutations.push(new Mutation(file, start, end + 1, replacement, ID));
+      }
+    });
+  }
 
-module.exports = OLFDOperator
+  return mutations;
+};
+
+module.exports = OLFDOperator;

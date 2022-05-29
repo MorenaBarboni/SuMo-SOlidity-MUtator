@@ -1,4 +1,4 @@
-const Mutation = require('../mutation')
+const Mutation = require('../../mutation')
 
 function RVSOperator() { }
 
@@ -10,14 +10,14 @@ RVSOperator.prototype.getMutations = function (file, source, visit) {
 
   visit({
       FunctionDefinition: (node) => {
-      
+
           //Ensure that the function has multiple return parameters
           if (node.returnParameters && node.returnParameters.length > 1) {
-           
+
             var returnTypes = []; //Return parameter types
             var returnNode = null;
 
-            node.returnParameters.forEach(e => {  
+            node.returnParameters.forEach(e => {
               if(e.typeName.name){
                 returnTypes.push(e.typeName.name)
               } else if(e.typeName.type && e.typeName.type === "ArrayTypeName" && e.typeName.baseTypeName.name){
@@ -26,13 +26,15 @@ RVSOperator.prototype.getMutations = function (file, source, visit) {
             });
 
             //Check if the function has an explicit return statement
+            if(node.body && node.body.statements){
             var functionStatements = node.body.statements;
             for (let i = 0; i < functionStatements.length; i++) {
               if(functionStatements[i].type === "ReturnStatement"){
                 returnNode = functionStatements[i];
-                break;      
-              }        
-            }            
+                break;
+              }
+            }
+          }
 
             var size;
             var exprStart;
@@ -45,22 +47,22 @@ RVSOperator.prototype.getMutations = function (file, source, visit) {
               if(returnNode.expression.components){
                 var returnValues = returnNode.expression.components; // return values nodes
                 size = returnValues.length // number of return values
-              
+
                 exprStart = returnValues[0].range[0]
                 exprEnd = returnValues[size-1].range[1]
                 original = source.substring(exprStart, exprEnd+1); //return statement substring
-                tokens = original.split(","); //tokenized return values                                                                                           
+                tokens = original.split(","); //tokenized return values
               }
-            } 
+            }
             //If the function has an implicit return structure
-            else{           
+            else{
               size = node.returnParameters.length // number of return parameters
               exprStart = node.returnParameters[0].range[0]
               exprEnd = node.returnParameters[size-1].range[1]
               original = source.substring(exprStart, exprEnd+1); //return statement substring
-              tokens = original.split(","); //tokenized return values                
-            }                 
-            
+              tokens = original.split(","); //tokenized return values
+            }
+
             for (var i = 0; i < size; i++) {
               for (var j = i +1; j < size; j++) {
                 if(returnTypes[i] && returnTypes[j]){
@@ -71,26 +73,26 @@ RVSOperator.prototype.getMutations = function (file, source, visit) {
                     ){
                       //values to be swapped
                       var r1 = tokens[i].trim();
-                      var r2 = tokens[j].trim();                                             
-                                                                                                            
+                      var r2 = tokens[j].trim();
+
                       //Check for equal tokens
                       if(r1 !== r2){
                         if(replacement){
                           replacement = replacement.replace(r1, "*").replace(r2, r1).replace("*", r2);
                         }else{
                           replacement = original.replace(r1, "*").replace(r2, r1).replace("*", r2);
-                        }                                             
-                      }                        
-                      break;                          
-                    }  
-                  }                   
+                        }
+                      }
+                      break;
+                    }
+                  }
               }
-            }  
+            }
             if(replacement){
-            mutations.push(new Mutation(file, exprStart, exprEnd+1, replacement))                      
+            mutations.push(new Mutation(file, exprStart, exprEnd+1, replacement, this.ID))
             }
           }
-          
+
       }
     })
   return mutations
