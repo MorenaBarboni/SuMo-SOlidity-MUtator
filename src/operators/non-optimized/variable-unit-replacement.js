@@ -1,4 +1,4 @@
-const Mutation = require('../mutation')
+const Mutation = require('../../mutation')
 
 function VUROperator() {}
 

@@ -3,7 +3,7 @@ const configFileName = '../operators.config.json'
 const configFile = require(configFileName)
 const config = require('../config')
 
-const Reporter = require('.././reporter')
+const Reporter = require('../reporter')
 const reporter = new Reporter()
 
 //Init operator version
@@ -29,15 +29,15 @@ if(config.optimized){
   VVROperator = require('./variable-visibility-replacement')
 
 }else{
-  AOROperator = require('../operators-extended/assignment-replacement')
-  BOROperator = require('../operators-extended/binary-replacement')
-  EROperator = require('../operators-extended/enum-replacement')
-  FVROperator = require('../operators-extended/function-visibility-replacement')
-  GVROperator = require('../operators-extended/global-variable-replacement')
-  RVSOperator = require('../operators-extended/return-values-swap')
-  SFROperator = require('../operators-extended/safemath-function-replacement')
-  VUROperator = require('../operators-extended/variable-unit-replacement')
-  VVROperator = require('../operators-extended/variable-visibility-replacement')
+  AOROperator = require('./non-optimized/assignment-replacement')
+  BOROperator = require('./non-optimized/binary-replacement')
+  EROperator = require('./non-optimized/enum-replacement')
+  FVROperator = require('./non-optimized/function-visibility-replacement')
+  GVROperator = require('./non-optimized/global-variable-replacement')
+  RVSOperator = require('./non-optimized/return-values-swap')
+  SFROperator = require('./non-optimized/safemath-function-replacement')
+  VUROperator = require('./non-optimized/variable-unit-replacement')
+  VVROperator = require('./non-optimized/variable-visibility-replacement')
 
 }
 

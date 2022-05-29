@@ -3,12 +3,12 @@ const fs = require('fs')
 const glob = require('glob')
 const mkdirp = require('mkdirp')
 const parser = require('@solidity-parser/parser')
-const operators = require('./operators')
 const config = require('./config')
 const mutationsConfig = require('./mutations.config')
 
 const Reporter = require('./reporter')
 const testingInterface = require("./testingInterface");
+const mutationGenerator = require("./operators/mutationGenerator");
 const utils = require("./utils");
 
 
@@ -28,51 +28,51 @@ const ignoreList = mutationsConfig.ignore;
 
 const reporter = new Reporter()
 
-const operator = new operators.CompositeOperator([
-  new operators.ACMOperator(),
-  new operators.AOROperator(),
-  new operators.AVROperator(),
-  new operators.BCRDOperator(),
-  new operators.BLROperator(),
-  new operators.BOROperator(),
-  new operators.CBDOperator(),
-  new operators.CCDOperator(),
-  new operators.CSCOperator(),
-  new operators.DLROperator(),
-  new operators.DODOperator(),
-  new operators.ECSOperator(),
-  new operators.EEDOperator(),
-  new operators.EHCOperator(),
-  new operators.EROperator(),
-  new operators.ETROperator(),
-  new operators.FVROperator(),
-  new operators.GVROperator(),
-  new operators.HLROperator(),
-  new operators.ILROperator(),
-  new operators.ICMOperator(),
-  new operators.LSCOperator(),
-  new operators.PKDOperator(),
-  new operators.MCROperator(),
-  new operators.MOCOperator(),
-  new operators.MODOperator(),
-  new operators.MOIOperator(),
-  new operators.MOROperator(),
-  new operators.OLFDOperator(),
-  new operators.OMDOperator(),
-  new operators.ORFDOperator(),
-  new operators.RSDOperator(),
-  new operators.RVSOperator(),
-  new operators.SCECOperator(),
-  new operators.SFIOperator(),
-  new operators.SFDOperator(),
-  new operators.SFROperator(),
-  new operators.SKDOperator(),
-  new operators.SKIOperator(),
-  new operators.SLROperator(),
-  new operators.TOROperator(),
-  new operators.UORDOperator(),
-  new operators.VUROperator(),
-  new operators.VVROperator()
+const mutGen = new mutationGenerator.CompositeOperator([
+  new mutationGenerator.ACMOperator(),
+  new mutationGenerator.AOROperator(),
+  new mutationGenerator.AVROperator(),
+  new mutationGenerator.BCRDOperator(),
+  new mutationGenerator.BLROperator(),
+  new mutationGenerator.BOROperator(),
+  new mutationGenerator.CBDOperator(),
+  new mutationGenerator.CCDOperator(),
+  new mutationGenerator.CSCOperator(),
+  new mutationGenerator.DLROperator(),
+  new mutationGenerator.DODOperator(),
+  new mutationGenerator.ECSOperator(),
+  new mutationGenerator.EEDOperator(),
+  new mutationGenerator.EHCOperator(),
+  new mutationGenerator.EROperator(),
+  new mutationGenerator.ETROperator(),
+  new mutationGenerator.FVROperator(),
+  new mutationGenerator.GVROperator(),
+  new mutationGenerator.HLROperator(),
+  new mutationGenerator.ILROperator(),
+  new mutationGenerator.ICMOperator(),
+  new mutationGenerator.LSCOperator(),
+  new mutationGenerator.PKDOperator(),
+  new mutationGenerator.MCROperator(),
+  new mutationGenerator.MOCOperator(),
+  new mutationGenerator.MODOperator(),
+  new mutationGenerator.MOIOperator(),
+  new mutationGenerator.MOROperator(),
+  new mutationGenerator.OLFDOperator(),
+  new mutationGenerator.OMDOperator(),
+  new mutationGenerator.ORFDOperator(),
+  new mutationGenerator.RSDOperator(),
+  new mutationGenerator.RVSOperator(),
+  new mutationGenerator.SCECOperator(),
+  new mutationGenerator.SFIOperator(),
+  new mutationGenerator.SFDOperator(),
+  new mutationGenerator.SFROperator(),
+  new mutationGenerator.SKDOperator(),
+  new mutationGenerator.SKIOperator(),
+  new mutationGenerator.SLROperator(),
+  new mutationGenerator.TOROperator(),
+  new mutationGenerator.UORDOperator(),
+  new mutationGenerator.VUROperator(),
+  new mutationGenerator.VVROperator()
 ])
 
 function prepare(callback) {
@@ -154,7 +154,7 @@ function generateAllMutations(files) {
       const source = fs.readFileSync(file, 'utf8')
       const ast = parser.parse(source, { range: true })
       const visit = parser.visit.bind(parser, ast)
-      mutations = mutations.concat(operator.getMutations(file, source, visit))
+      mutations = mutations.concat(mutGen.getMutations(file, source, visit))
     }
   }
   var generationTime = (Date.now() - startTime) / 1000
@@ -246,21 +246,21 @@ function test() {
 
 //Checks which operators are currently enabled
 function enabledOperators() {
-  console.log(operator.getEnabledOperators());
+  console.log(mutGen.getEnabledOperators());
 }
 
 //Enables a mutation operator
 function enableOperator(ID) {
   //Enable all operators
   if (!ID) {
-    var success = operator.enableAll();
+    var success = mutGen.enableAll();
     if (success)
       console.log("All mutation operators enabled.");
     else
       console.log("Error");
   } else {
     //Enable operator ID
-    var success = operator.enable(ID);
+    var success = mutGen.enable(ID);
     if (success)
       console.log(ID + " enabled.");
     else
@@ -272,14 +272,14 @@ function enableOperator(ID) {
 function disableOperator(ID) {
   //Disable all operators
   if (!ID) {
-    var success = operator.disableAll();
+    var success = mutGen.disableAll();
     if (success)
       console.log("All mutation operators disabled.");
     else
       console.log("Error");
   } else {
     //Disable operator ID
-    var success = operator.disable(ID);
+    var success = mutGen.disable(ID);
     if (success)
       console.log(ID + " disabled.");
     else
