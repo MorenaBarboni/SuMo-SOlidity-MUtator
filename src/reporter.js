@@ -28,6 +28,12 @@ Reporter.prototype.beginMutationTesting = function( mutations) {
   console.log("=====================================");
 };
 
+Reporter.prototype.beginPretest = function(mutant) {
+  console.log("=================");
+  console.log(chalk.yellow.bold("Running pre-test"));
+  console.log("=================");
+};
+
 Reporter.prototype.beginTest = function(mutant) {
 
   console.log("Mutant successfully compiled.");

@@ -5,6 +5,8 @@ const mkdirp = require('mkdirp')
 const parser = require('@solidity-parser/parser')
 const config = require('./config')
 const mutationsConfig = require('./mutations.config')
+const chalk = require('chalk')
+
 
 const Reporter = require('./reporter')
 const testingInterface = require("./testingInterface");
@@ -107,13 +109,13 @@ function prepare(callback) {
   )
   mkdirp(aliveDir);
   mkdirp(killedDir);
-  mkdirp(mutantsDir);  
+  mkdirp(mutantsDir);
 }
 
 /**
  * Shows a summary of the available mutants without starting the testing process.
  */
- function preflight() {
+function preflight() {
   prepare(() =>
     glob(contractsDir + contractsGlob, (err, files) => {
       if (err) throw err;
@@ -127,7 +129,7 @@ function prepare(callback) {
  * Shows a summary of the available mutants without starting the testing process and
  * saves the mutants to file.
  */
- function preflightAndSave() {
+function preflightAndSave() {
   prepare(() =>
     glob(contractsDir + contractsGlob, (err, files) => {
       if (err) throw err;
@@ -162,26 +164,27 @@ function generateAllMutations(files) {
   return mutations
 }
 
-function mutationsByHash(mutations) {
-  return mutations.reduce((obj, mutation) => {
-    obj[mutation.hash()] = mutation
-    return obj
-  }, {})
+/**
+ * Runs the original test suite to ensure that all tests pass.
+ */
+function preTest() {
+  reporter.beginPretest();
+  if (config.ganache) {
+    ganacheChild = testingInterface.spawnGanache();
+  }
+  const status = testingInterface.spawnTest(packageManager, runScript);
+  if (status === 0) {
+    console.log("Pre-test OK.");
+  } else {
+    console.error(chalk.red("Error: Original tests should pass."));
+    process.exit(1);
+  }
+  if (config.ganache) {
+    testingInterface.killGanache();
+  }
+  utils.cleanTmp();
 }
 
-function diff(argv) {
-  prepare(() =>
-    glob(contractsDir + contractsGlob, (err, files) => {
-      const mutations = generateAllMutations(files)
-      const index = mutationsByHash(mutations)
-      if (!index[argv.hash]) {
-        console.error('Mutation ' + argv.hash + ' not found.')
-        process.exit(1)
-      }
-      console.log(index[argv.hash].diff())
-    })
-  )
-}
 
 /**
  * Starts the mutation testing process
@@ -194,6 +197,10 @@ function test() {
         console.error(err)
         process.exit(1)
       }
+
+      //Run the pre-test
+      preTest();
+
       //Generate mutations
       const mutations = generateAllMutations(files)
 
@@ -285,6 +292,27 @@ function disableOperator(ID) {
     else
       console.log(ID + " does not exist.");
   }
+}
+
+function mutationsByHash(mutations) {
+  return mutations.reduce((obj, mutation) => {
+    obj[mutation.hash()] = mutation
+    return obj
+  }, {})
+}
+
+function diff(argv) {
+  prepare(() =>
+    glob(contractsDir + contractsGlob, (err, files) => {
+      const mutations = generateAllMutations(files)
+      const index = mutationsByHash(mutations)
+      if (!index[argv.hash]) {
+        console.error('Mutation ' + argv.hash + ' not found.')
+        process.exit(1)
+      }
+      console.log(index[argv.hash].diff())
+    })
+  )
 }
 
 module.exports = {
