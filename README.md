@@ -1,3 +1,7 @@
+<p align="center">
+      <img src="https://github.com/MorenaBarboni/SuMo-SOlidity-MUtator/blob/master/src/icons/sumo.png?raw=true" alt="SuMo" style="max-width:100%;" width="300">
+</p>
+
 # SuMo
 SuMo is a mutation testing tool for Solidity Smart Contracts. It features 25 Solidity-specific mutation operators, as well as 19 traditional operators.
 
