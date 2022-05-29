@@ -263,6 +263,10 @@ Reporter.prototype.saveOperatorsResults = function() {
     .string("Mutation Score")
     .style(headerStyle);
 
+  worksheet.cell(1, 11)
+  .string("Testing Time")
+  .style(headerStyle);
+
   for (var i = 0; i < this.operators.length; i++) {
     worksheet.cell(i + 2, 1)
       .string(this.operators[i])
@@ -279,12 +283,19 @@ Reporter.prototype.saveOperatorsResults = function() {
   //Retrieve list of killed mutants for each operator
   var operators = Object.entries(operatorsConfig);
   for (var i = 0; i < operators.length; i++) {
+    var time=0
     var operatorKilled = this.killed.filter(mutant => mutant.operator === operators[i][0]);
     var operatorLive = this.survived.filter(mutant => mutant.operator === operators[i][0]);
     var operatorStillborn = this.stillborn.filter(mutant => mutant.operator === operators[i][0]);
     var operatorEquivalent = this.equivalent.filter(mutant => mutant.operator === operators[i][0]);
     var operatorRedundant = this.redundant.filter(mutant => mutant.operator === operators[i][0]);
     var operatorTimedout = this.timedout.filter(mutant => mutant.operator === operators[i][0]);
+    this.killed.filter(mutant=> {if(mutant.operator===operators[i][0]){
+      time=time+mutant.testingTime
+    }})
+    this.survived.filter(mutant=> {if(mutant.operator===operators[i][0]){
+      time=time+mutant.testingTime
+    }})
     worksheet.cell(i + 2, 2)
       .number(operatorKilled.length + operatorLive.length + operatorEquivalent.length + operatorRedundant.length + operatorTimedout.length + operatorStillborn.length)
       .style(style);
@@ -323,6 +334,9 @@ Reporter.prototype.saveOperatorsResults = function() {
         .number(ms)
         .style(style);
     }
+    worksheet.cell(i + 2, 11)
+    .number(time/60000)
+    .style(style)
     workbook.write("./.sumo/operators.xlsx");
   }
 };

@@ -212,7 +212,9 @@ function test() {
 
           if (isCompiled) {
             reporter.beginTest(mutation)
+            let startTestTime = Date.now();
             const result = testingInterface.spawnTest(packageManager, runScript)
+            mutation.testingTime = Date.now() - startTestTime;
             if (result === 0) {
               mutation.status = "live";
             } else if (result === 999) {
