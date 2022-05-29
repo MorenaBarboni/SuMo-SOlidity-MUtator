@@ -3,34 +3,42 @@ const configFileName = '../operators.config.json'
 const configFile = require(configFileName)
 const config = require('../config')
 
-const Reporter = require('.././reporter')
+const Reporter = require('../reporter')
 const reporter = new Reporter()
 
 //Init operator version
 var AOROperator
 var BOROperator
 var EROperator
+var FVROperator
 var GVROperator
 var RVSOperator
 var SFROperator
 var VUROperator
+var VVROperator
 
 if(config.optimized){
   AOROperator = require('./assignment-replacement')
   BOROperator = require('./binary-replacement')
   EROperator = require('./enum-replacement')
+  FVROperator = require('./function-visibility-replacement')
   GVROperator = require('./global-variable-replacement')
   RVSOperator = require('./return-values-swap')
   SFROperator = require('./safemath-function-replacement')
   VUROperator = require('./variable-unit-replacement')
+  VVROperator = require('./variable-visibility-replacement')
+
 }else{
-  AOROperator = require('../operators-extended/assignment-replacement')
-  BOROperator = require('../operators-extended/binary-replacement')
-  EROperator = require('../operators-extended/enum-replacement')
-  GVROperator = require('../operators-extended/global-variable-replacement')
-  RVSOperator = require('../operators-extended/return-values-swap')
-  SFROperator = require('../operators-extended/safemath-function-replacement')
-  VUROperator = require('../operators-extended/variable-unit-replacement')
+  AOROperator = require('./non-optimized/assignment-replacement')
+  BOROperator = require('./non-optimized/binary-replacement')
+  EROperator = require('./non-optimized/enum-replacement')
+  FVROperator = require('./non-optimized/function-visibility-replacement')
+  GVROperator = require('./non-optimized/global-variable-replacement')
+  RVSOperator = require('./non-optimized/return-values-swap')
+  SFROperator = require('./non-optimized/safemath-function-replacement')
+  VUROperator = require('./non-optimized/variable-unit-replacement')
+  VVROperator = require('./non-optimized/variable-visibility-replacement')
+
 }
 
 const ACMOperator = require('./argument-change-overloaded-call')
@@ -46,7 +54,6 @@ const ECSOperator = require('./explicit-conversion-smaller')
 const EEDOperator = require('./event-emission-deletion')
 const EHCOperator = require('./exception-handling-change')
 const ETROperator = require('./ether-transfer-function-replacement')
-const FVROperator = require('./function-visibility-replacement')
 const ICMOperator = require('./increments-mirror')
 const ILROperator = require('./integer-literal-replacement')
 const LSCOperator = require('./loop-statement-change')
@@ -69,7 +76,6 @@ const SKIOperator = require('./super-keyword-insertion')
 const SLROperator = require('./string-literal-replacement')
 const TOROperator = require('./transaction-origin-replacement')
 const UORDOperator = require('./unary-replacement')
-const VVROperator = require('./variable-visibility-replacement')
 
 function CompositeOperator(operators) {
   this.operators = operators

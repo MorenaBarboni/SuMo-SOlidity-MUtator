@@ -1,4 +1,4 @@
-const Mutation = require('../mutation')
+const Mutation = require('../../mutation')
 
 function SFROperator() {}
 
@@ -14,11 +14,11 @@ SFROperator.prototype.getMutations = function(file, source, visit) {
        const start = node.range[0];
        const end = node.range[1];
        var text = source.slice(start, end+1);
- 
+
        var replacement
        var replacement2
        var replacement3
-       var replacement4     
+       var replacement4
 
        switch (node.memberName) {
         case 'add':
@@ -54,19 +54,19 @@ SFROperator.prototype.getMutations = function(file, source, visit) {
           break;
         }
         if (replacement) {
-          mutations.push(new Mutation(file, start, end+1, replacement))
+          mutations.push(new Mutation(file, start, end+1, replacement, this.ID))
         }
         if(replacement2){
-          mutations.push(new Mutation(file, start, end+1, replacement2))
+          mutations.push(new Mutation(file, start, end+1, replacement2, this.ID))
         }
         if (replacement3) {
-          mutations.push(new Mutation(file, start, end+1, replacement3))
+          mutations.push(new Mutation(file, start, end+1, replacement3, this.ID))
         }
         if(replacement4){
-          mutations.push(new Mutation(file, start, end+1, replacement4))
-        }  
-      }  
-    }      
+          mutations.push(new Mutation(file, start, end+1, replacement4, this.ID))
+        }
+      }
+    }
   })
   return mutations
 }

@@ -7,9 +7,11 @@ module.exports = {
   aliveDir: '.sumo/alive',
   mutantsDir: '.sumo/mutants',
   testingTimeOutInSec: 3000,
+  bail: false,
   ganache: true,
   customTestScript: false,
-  ignore: [],    
+  optimized: true,
+  ignore: [],
   contractsGlob: '/**/*.sol',
   packageManagerGlob: ['/package-lock.json', '/yarn.lock'],
   testGlob: ['/test/**/*.js', '/test/**/*.sol,', '/test/**/*.ts'
