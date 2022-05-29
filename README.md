@@ -27,13 +27,16 @@ These fields specify the path to different artefacts of the System Under Test:
 ##### 3) Mutation Process
 These fields allow to set up the mutation testing process
 
+* ```bail```: bail after the first test failure (false by default)
 * ```customTestScript```: use a custom compile and test script specified in the package.json of the SUT, instead of relying on the Truffle    interface (false by default)
 * ```ganache```: automatically spawn Ganache instances during the testing process (true by default)
 * ```ignore```:  array of paths to contract files that must be ignored by SuMo during mutation testing
 * ```optimized```: employ operator optimizations (true by default),
 * ```testingTimeOutInSec```: number of seconds after which a mutant is marked as timed-out during testing (300 by default)
 
-Note that by setting ```customTestScript``` to true you must specify a ```test``` and ```compile``` script in your ```package.json``` file.
+Note that if ```customTestScript``` is true you must specify a ```test``` and ```compile``` script in your ```package.json``` file.
+When using a custom test script the ```bail``` field of SuMo is ignored; it must be added to the custom script itself.
+
 
 
 ## CLI Usage

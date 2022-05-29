@@ -172,11 +172,14 @@ function preTest() {
   if (config.ganache) {
     ganacheChild = testingInterface.spawnGanache();
   }
-  const status = testingInterface.spawnTest(packageManager, runScript);
+  const status = testingInterface.spawnTest(packageManager, runScript, true);
   if (status === 0) {
     console.log("Pre-test OK.");
   } else {
-    console.error(chalk.red("Error: Original tests should pass."));
+    if (config.ganache) {
+      testingInterface.killGanache();
+    }
+    console.error(chalk.red("Error: Original tests should pass."));  
     process.exit(1);
   }
   if (config.ganache) {
@@ -220,7 +223,7 @@ function test() {
           if (isCompiled) {
             reporter.beginTest(mutation)
             let startTestTime = Date.now();
-            const result = testingInterface.spawnTest(packageManager, runScript)
+            const result = testingInterface.spawnTest(packageManager, runScript, config.bail)
             mutation.testingTime = Date.now() - startTestTime;
             if (result === 0) {
               mutation.status = "live";
