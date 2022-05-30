@@ -11,8 +11,6 @@ const chalk = require('chalk')
 const Reporter = require('./reporter')
 const testingInterface = require("./testingInterface");
 const mutationGenerator = require("./operators/mutationGenerator");
-const utils = require("./utils");
-
 
 const { mutantsDir } = require('./config')
 
@@ -187,7 +185,6 @@ function preTest() {
     process.exit(1);
   }
   testingInterface.killGanache(ganacheChild);
-  utils.cleanTmp();
 }
 
 
@@ -236,7 +233,6 @@ function test() {
             }
           }
           testingInterface.killGanache(ganacheChild);
-          utils.cleanTmp();
 
           reporter.mutantStatus(mutation);
           mutation.restore();

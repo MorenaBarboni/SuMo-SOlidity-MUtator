@@ -2,6 +2,8 @@ const { spawnSync, spawn } = require("child_process");
 const config = require("./config");
 const targetDir = config.projectDir;
 const testingTimeOutInSec = config.testingTimeOutInSec
+const utils = require("./utils");
+
 
 /**
 * Spawns a new compile process through the interface provided by the connected testing framework 
@@ -123,6 +125,7 @@ function killGanache(ganacheChild) {
     } else if (process.platform === "darwin") {
       ganacheChild.kill("SIGHUP");
     }
+    utils.cleanTmp();
   }
 }
 
