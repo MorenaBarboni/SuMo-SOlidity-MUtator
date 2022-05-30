@@ -231,6 +231,8 @@ function test() {
             } else {
               mutation.status = "killed";
             }
+          }else{
+            mutation.status = "stillborn";
           }
           testingInterface.killGanache(ganacheChild);
 
