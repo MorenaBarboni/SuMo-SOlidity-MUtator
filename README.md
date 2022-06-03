@@ -29,6 +29,7 @@ These fields determine where SuMo stores data during the mutation testing proces
 These fields specify the path to different artefacts of the System Under Test:
 * ```projectDir```: path of the root directory of the SUT where the package.json is located
 * ```contractsDir```: path of the directory where the contracts to be mutated are located
+* ```buildDir```: path of the directory where the artifacts of the compilation will be placed (usually ``` .../build/contracts/``` )
  
 ##### 3) Mutation Process
 These fields allow to set up the mutation testing process
@@ -38,11 +39,33 @@ These fields allow to set up the mutation testing process
 * ```ganache```: automatically spawn Ganache instances during the testing process (true by default)
 * ```ignore```:  array of paths to contract files that must be ignored by SuMo during mutation testing
 * ```optimized```: employ operator optimizations (true by default),
+* ```tce```: enable the Trivial Compiler Equivalence (true by default),
 * ```testingTimeOutInSec```: number of seconds after which a mutant is marked as timed-out during testing (300 by default)
 
 Note that if ```customTestScript``` is true you must specify a ```test``` and ```compile``` script in your ```package.json``` file.
 When using a custom test script the ```bail``` field of SuMo is ignored; it must be added to the custom script itself.
 
+##### 4) Trivial Compiler Equivalence
+
+The Trivial Compiler Equivalence compares the bytecode produced by the compiler to detect equivalences between mutants, thus it can only work if:
+1. the solc compiler optimization is enabled;
+2. no metadata hash is appended to the contract bytecode.
+
+Before running SuMo make sure that the following options are present in your ```truffle-config.js``` configuration file:
+
+```
+ compilers: {
+        solc: {
+            optimizer: {
+                enabled: true,
+                ...
+            },
+			metadata: {
+            bytecodeHash: "none"
+          }
+        }
+    }
+```
 
 
 ## CLI Usage
@@ -72,6 +95,8 @@ At the end of the mutation testing process the folder will contain:
 * ```operators.xlsx``` Mutation operators report
 * ```\alive``` Mutants that survived testing
 * ```\killed``` Mutants killed by tests
+* * ```\equivalent``` Equivalent mutants discarded by the TCE
+* ```\redundant``` Redundant mutants discarded by the TCE
 * ```\mutants``` Mutated contracts
 
 Use:
