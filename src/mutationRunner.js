@@ -18,6 +18,7 @@ const packageManagerGlob = config.packageManagerGlob;
 var packageManager;
 var runScript;
 var compiledArtifacts = [];
+var originalBytecodeMap = new Map();
 
 const reporter = new Reporter()
 
@@ -210,7 +211,6 @@ function test() {
       //Run the pre-test and compile the original contracts
       preTest();
 
-      var originalBytecodeMap = new Map();
 
       if (config.tce) {
         //save the bytecode of the original contracts
@@ -231,8 +231,9 @@ function test() {
       reporter.beginMutationTesting();
       var startTime = Date.now();
 
-      for (const file of originalBytecodeMap.keys()) {
-        runTest(mutations, originalBytecodeMap, file);
+      for (const file of files) {
+        console.log("Testing mutants of " +file)
+        runTest(mutations, file);
       }
       var testTime = ((Date.now() - startTime) / 60000).toFixed(2);
       reporter.testSummary();
@@ -246,14 +247,13 @@ function test() {
 /**
  * The <b>runTest</b> function compile and test each mutant, assigning them a certain status
  * @param mutations An array of all mutants
- * @param originalBytecodeMap A map containing all original contracts bytecodes
- * @param file The name of the original contract
+ * @param file The name of the mutated contract
  */
-function runTest(mutations, originalBytecodeMap, file) {
-  const bytecodeMutantsMap = new Map();
-  for (const mutation of mutations) {
+function runTest(mutations, file) {
+  const mutantBytecodeMap = new Map();
 
-    if ((mutation.file.substring(mutation.file.lastIndexOf("/") + 1)) === (file + ".sol")) {
+  for (const mutation of mutations) {
+    if ((parse(mutation.file).name) === (parse(file).name)) {
       let ganacheChild = testingInterface.spawnGanache();
       mutation.apply();
       reporter.beginCompile(mutation);
@@ -261,7 +261,7 @@ function runTest(mutations, originalBytecodeMap, file) {
 
       if (isCompiled) {
         if (config.tce) {
-          tce(mutation, bytecodeMutantsMap, originalBytecodeMap);
+          tce(mutation, mutantBytecodeMap, originalBytecodeMap);
         }
         if (mutation.status !== "redundant" && mutation.status !== "equivalent") {
           reporter.beginTest(mutation);
@@ -284,7 +284,7 @@ function runTest(mutations, originalBytecodeMap, file) {
       testingInterface.killGanache(ganacheChild);
     }
   }
-  bytecodeMutantsMap.clear();
+  mutantBytecodeMap.clear();
 }
 
 
