@@ -74,6 +74,10 @@ function prepare(callback) {
     console.error('Project directory is missing.')
     process.exit(1)
   }
+  if(config.tce && config.buildDir === ''){
+    console.error('Build directory is missing.')
+    process.exit(1)
+  }
 
   //Checks the package manager used by the SUT
   let packageManagerFile;
@@ -96,11 +100,16 @@ function prepare(callback) {
     process.exit(1);
   }
 
+
+
   mkdirp(config.baselineDir, () =>
     copy(config.contractsDir, config.baselineDir, { dot: true }, callback)
   )
-  mkdirp(config.aliveDir);
+  mkdirp(config.liveDir);
   mkdirp(config.killedDir);
+  mkdirp(config.stillbornDir);
+  mkdirp(config.timedoutDir);
+  mkdirp(config.equivalentDir);
   if (config.tce) {
     mkdirp(config.redundantDir);
     mkdirp(config.equivalentDir);
@@ -144,7 +153,8 @@ function preflightAndSave() {
  *  @param files The smart contracts under test
  */
 function generateAllMutations(files) {
-  reporter.setupReport()
+  reporter.setupReport();
+
   let mutations = []
   var startTime = Date.now()
   for (const file of files) {
@@ -172,6 +182,7 @@ function generateAllMutations(files) {
  */
 function preTest() {
   reporter.beginPretest();
+  reporter.setupLog();
   
   utils.cleanBuildDir(); //Remove old compiled artifacts
 
@@ -210,7 +221,6 @@ function test() {
 
       //Run the pre-test and compile the original contracts
       preTest();
-
 
       if (config.tce) {
         //save the bytecode of the original contracts
@@ -274,10 +284,13 @@ function runTest(mutations, file) {
             mutation.status = "timedout";
           } else {
             mutation.status = "killed";
-          }
+          }          
         }
       } else {
         mutation.status = "stillborn";
+      }
+      if(mutation.status !== "redunant"){
+        reporter.writeLog(mutation, null);
       }
       reporter.mutantStatus(mutation);
       mutation.restore();
@@ -385,6 +398,7 @@ function tce(mutation, map, originalBytecodeMap) {
     for (const key of map.keys()) {
       if (map.get(key) === mutation.bytecode) {
         mutation.status = "redundant";
+        reporter.writeLog(mutation, key);
         break;
       }
     }

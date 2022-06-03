@@ -8,8 +8,9 @@ SuMo is a mutation testing tool for Solidity Smart Contracts. It features 25 Sol
 SuMo was designed to run mutation testing on Solidity projects in a NodeJS environment. It relies on the interface of the [Truffle](https://github.com/trufflesuite/truffle) testing framework to compile the mutants and run the tests, and it automatically spawns [Ganache](https://github.com/trufflesuite/ganache) instances to guarantee a clean-room testing environment between mutants.
 
 Note that [ReSuMo](https://github.com/MorenaBarboni/ReSuMo/tree/main/src) advances the functionalities of SuMo through:
-1. a static, file-level regression testing mechanism for evolving projects
-2. the usage of the Trivial Compiler Equivalence (TCE) for automatically detecting and discarding mutant equivalencies
+1. a static, file-level regression testing mechanism for evolving projects;
+2. the automatic instrumentation of configuration files (e.g.,```truffle-config.js```) to enable the  Trivial Compiler Equivalence (TCE);
+3. a user-friendly GUI.
 
 ## Installation
 To install SuMo run ```npm install```.
@@ -22,7 +23,11 @@ These fields determine where SuMo stores data during the mutation testing proces
 * ```sumoDir```: path of the directory where SuMo must save the mutation testing artifacts (.sumo by default)
 * ```baselineDir```: path of the directory where SuMo must save the baseline of the SUT (.sumo/baseline by default)
 * ```killedDir```: path of the directory where SuMo must save the killed mutations (.sumo/killed by default)
-* ```aliveDir```: path of the directory where SuMo must save the live mutations (.sumo/alive by default)
+* ```liveDir```: path of the directory where SuMo must save the live mutations (.sumo/live by default)
+* ```equivalentdDir```: path of the directory where SuMo must save the equivalent mutations (.sumo/equivalent by default)
+* ```redundantDir```: path of the directory where SuMo must save the redundant mutations (.sumo/redundant by default)
+* ```stillbornDir```: path of the directory where SuMo must save the stillborn mutations (.sumo/stillborn by default)
+* ```timedoutDir```: path of the directory where SuMo must save the timedout mutations (.sumo/timedout by default)
 * ```mutantsDir```: path of the directory where SuMo must (optionally) save a copy of each mutated contract (.sumo/mutants by default)
 
 ##### 2) SUT directories
