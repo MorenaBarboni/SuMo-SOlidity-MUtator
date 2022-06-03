@@ -44,6 +44,7 @@ These fields allow to set up the mutation testing process
 * ```ganache```: automatically spawn Ganache instances during the testing process (true by default)
 * ```ignore```:  array of paths to contract files that must be ignored by SuMo during mutation testing
 * ```optimized```: employ operator optimizations (true by default),
+* ```skipContracts```: array of paths to contract files (or contract folders) that must be ignored by ReSuMo during mutation testing
 * ```tce```: enable the Trivial Compiler Equivalence (true by default),
 * ```testingTimeOutInSec```: number of seconds after which a mutant is marked as timed-out during testing (300 by default)
 
