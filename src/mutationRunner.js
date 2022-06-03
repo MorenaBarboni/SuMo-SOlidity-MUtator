@@ -12,21 +12,12 @@ const { parse } = require("path");
 const Reporter = require('./reporter')
 const testingInterface = require("./testingInterface");
 const mutationGenerator = require("./operators/mutationGenerator");
-
-const { mutantsDir, redundantDir, equivalentDir } = require('./config')
 const utils = require('./utils')
-
-
-const baselineDir = config.baselineDir
-const projectDir = config.projectDir
-const contractsDir = config.contractsDir
 const contractsGlob = config.contractsGlob
 const packageManagerGlob = config.packageManagerGlob;
-const aliveDir = config.aliveDir
-const killedDir = config.killedDir
 var packageManager;
 var runScript;
-var compiledContracts = [];
+var compiledArtifacts = [];
 
 const reporter = new Reporter()
 
@@ -78,7 +69,7 @@ const mutGen = new mutationGenerator.CompositeOperator([
 ])
 
 function prepare(callback) {
-  if (contractsDir === '' || projectDir === '') {
+  if (config.contractsDir === '' || config.projectDir === '') {
     console.error('Project directory is missing.')
     process.exit(1)
   }
@@ -86,7 +77,7 @@ function prepare(callback) {
   //Checks the package manager used by the SUT
   let packageManagerFile;
   for (const lockFile of packageManagerGlob) {
-    if (fs.existsSync(projectDir + lockFile)) {
+    if (fs.existsSync(config.projectDir + lockFile)) {
       packageManagerFile = lockFile;
       if (lockFile.includes("yarn")) {
         packageManager = "yarn";
@@ -104,16 +95,16 @@ function prepare(callback) {
     process.exit(1);
   }
 
-  mkdirp(baselineDir, () =>
-    copy(contractsDir, baselineDir, { dot: true }, callback)
+  mkdirp(config.baselineDir, () =>
+    copy(config.contractsDir, config.baselineDir, { dot: true }, callback)
   )
-  mkdirp(aliveDir);
-  mkdirp(killedDir);
+  mkdirp(config.aliveDir);
+  mkdirp(config.killedDir);
   if (config.tce) {
-    mkdirp(redundantDir);
-    mkdirp(equivalentDir);
+    mkdirp(config.redundantDir);
+    mkdirp(config.equivalentDir);
   }
-  mkdirp(mutantsDir);
+  mkdirp(config.mutantsDir);
 }
 
 /**
@@ -121,7 +112,7 @@ function prepare(callback) {
  */
 function preflight() {
   prepare(() =>
-    glob(contractsDir + contractsGlob, (err, files) => {
+    glob(config.contractsDir + contractsGlob, (err, files) => {
       if (err) throw err;
       const mutations = generateAllMutations(files)
       reporter.preflightSummary(mutations)
@@ -135,7 +126,7 @@ function preflight() {
  */
 function preflightAndSave() {
   prepare(() =>
-    glob(contractsDir + contractsGlob, (err, files) => {
+    glob(config.contractsDir + contractsGlob, (err, files) => {
       if (err) throw err;
       const mutations = generateAllMutations(files);
       for (const mutation of mutations) {
@@ -179,14 +170,14 @@ function generateAllMutations(files) {
  * Runs the original test suite to ensure that all tests pass.
  */
 function preTest() {
-  utils.cleanBuildDir();
   reporter.beginPretest();
-  let ganacheChild = testingInterface.spawnGanache();
+  
+  utils.cleanBuildDir(); //Remove old compiled artifacts
 
+  let ganacheChild = testingInterface.spawnGanache();
   const isCompiled = testingInterface.spawnCompile(packageManager, runScript);
 
   if (isCompiled) {
-
     const status = testingInterface.spawnTest(packageManager, runScript, true);
     if (status === 0) {
       console.log("Pre-test OK.");
@@ -210,7 +201,7 @@ function preTest() {
 function test() {
 
   prepare(() =>
-    glob(contractsDir + contractsGlob, (err, files) => {
+    glob(config.contractsDir + contractsGlob, (err, files) => {
       if (err) {
         console.error(err)
         process.exit(1)
@@ -222,13 +213,12 @@ function test() {
       var originalBytecodeMap = new Map();
 
       if (config.tce) {
-        reporter.setupReportTCE();
-        //save the bytecode of the original contracts to be mutated
+        //save the bytecode of the original contracts
         exploreDirectories(config.buildDir)
-        compiledContracts.map(singleContract => {
+        compiledArtifacts.map(artifact => {
           for (const file of files) {
-            if (parse(singleContract).name === parse(file).name) {
-              originalBytecodeMap.set(parse(file).name, saveBytecodeSync(singleContract))
+            if (parse(artifact).name === parse(file).name) {
+              originalBytecodeMap.set(parse(file).name, saveBytecodeSync(artifact))
             }
           }
         })
@@ -350,7 +340,7 @@ function mutationsByHash(mutations) {
 
 function diff(argv) {
   prepare(() =>
-    glob(contractsDir + contractsGlob, (err, files) => {
+    glob(config.contractsDir + contractsGlob, (err, files) => {
       const mutations = generateAllMutations(files)
       const index = mutationsByHash(mutations)
       if (!index[argv.hash]) {
@@ -371,14 +361,15 @@ function diff(argv) {
  * @param originalBytecodeMap The map that contains the original contract bytecode
  */
 function tce(mutation, map, originalBytecodeMap) {
-  console.log(chalk.red('Running the TCE'));
+  console.log();  
+  console.log(chalk.yellow('Running the TCE'));
   var file = mutation.file;
   let fileName = parse(file).name;
 
   exploreDirectories(config.buildDir)
-  compiledContracts.map(data => {
-    if (parse(data).name === parse(mutation.file).name) {
-      mutation.bytecode = saveBytecodeSync(data);
+  compiledArtifacts.map(artifact => {
+    if (parse(artifact).name === parse(mutation.file).name) {
+      mutation.bytecode = saveBytecodeSync(artifact);
     }
   })
 
@@ -413,7 +404,7 @@ function exploreDirectories(Directory) {
     if (fs.statSync(Absolute).isDirectory())
       return exploreDirectories(Absolute);
     else
-      return compiledContracts.push(Absolute);
+      return compiledArtifacts.push(Absolute);
   });
 }
 
