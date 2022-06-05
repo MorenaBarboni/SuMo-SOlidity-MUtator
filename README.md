@@ -7,7 +7,7 @@ SuMo is a mutation testing tool for Solidity Smart Contracts. It features 25 Sol
 
 SuMo was designed to run mutation testing on Solidity projects in a NodeJS environment. It relies on the interface of the [Truffle](https://github.com/trufflesuite/truffle) testing framework to compile the mutants and run the tests, and it automatically spawns [Ganache](https://github.com/trufflesuite/ganache) instances to guarantee a clean-room testing environment between mutants.
 
-Note that [ReSuMo](https://github.com/MorenaBarboni/ReSuMo/tree/main/src) advances the functionalities of SuMo through:
+Note that [ReSuMo](https://github.com/MorenaBarboni/ReSuMo/tree/main) advances the functionalities of SuMo through:
 1. a static, file-level regression testing mechanism for evolving projects;
 2. the automatic instrumentation of configuration files (e.g.,```truffle-config.js```) to enable the  Trivial Compiler Equivalence (TCE);
 3. a user-friendly GUI.

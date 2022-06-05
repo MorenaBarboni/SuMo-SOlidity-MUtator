@@ -190,7 +190,7 @@ function preTest() {
   const isCompiled = testingInterface.spawnCompile(packageManager, runScript);
 
   if (isCompiled) {
-    const status = testingInterface.spawnTest(packageManager, runScript, true);
+    const status = testingInterface.spawnTest(packageManager, runScript);
     if (status === 0) {
       console.log("Pre-test OK.");
     } else {
@@ -378,6 +378,8 @@ function tce(mutation, map, originalBytecodeMap) {
   console.log(chalk.yellow('Running the TCE'));
   var file = mutation.file;
   let fileName = parse(file).name;
+
+  compiledArtifacts = [];
 
   exploreDirectories(config.buildDir)
   compiledArtifacts.map(artifact => {
