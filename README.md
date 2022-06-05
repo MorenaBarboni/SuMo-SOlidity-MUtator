@@ -8,8 +8,9 @@ SuMo is a mutation testing tool for Solidity Smart Contracts. It features 25 Sol
 SuMo was designed to run mutation testing on Solidity projects in a NodeJS environment. It relies on the interface of the [Truffle](https://github.com/trufflesuite/truffle) testing framework to compile the mutants and run the tests, and it automatically spawns [Ganache](https://github.com/trufflesuite/ganache) instances to guarantee a clean-room testing environment between mutants.
 
 Note that [ReSuMo](https://github.com/MorenaBarboni/ReSuMo/tree/main/src) advances the functionalities of SuMo through:
-1. a static, file-level regression testing mechanism for evolving projects
-2. the usage of the Trivial Compiler Equivalence (TCE) for automatically detecting and discarding mutant equivalencies
+1. a static, file-level regression testing mechanism for evolving projects;
+2. the automatic instrumentation of configuration files (e.g.,```truffle-config.js```) to enable the  Trivial Compiler Equivalence (TCE);
+3. a user-friendly GUI.
 
 ## Installation
 To install SuMo run ```npm install```.
@@ -22,13 +23,18 @@ These fields determine where SuMo stores data during the mutation testing proces
 * ```sumoDir```: path of the directory where SuMo must save the mutation testing artifacts (.sumo by default)
 * ```baselineDir```: path of the directory where SuMo must save the baseline of the SUT (.sumo/baseline by default)
 * ```killedDir```: path of the directory where SuMo must save the killed mutations (.sumo/killed by default)
-* ```aliveDir```: path of the directory where SuMo must save the live mutations (.sumo/alive by default)
+* ```liveDir```: path of the directory where SuMo must save the live mutations (.sumo/live by default)
+* ```equivalentdDir```: path of the directory where SuMo must save the equivalent mutations (.sumo/equivalent by default)
+* ```redundantDir```: path of the directory where SuMo must save the redundant mutations (.sumo/redundant by default)
+* ```stillbornDir```: path of the directory where SuMo must save the stillborn mutations (.sumo/stillborn by default)
+* ```timedoutDir```: path of the directory where SuMo must save the timedout mutations (.sumo/timedout by default)
 * ```mutantsDir```: path of the directory where SuMo must (optionally) save a copy of each mutated contract (.sumo/mutants by default)
 
 ##### 2) SUT directories
 These fields specify the path to different artefacts of the System Under Test:
 * ```projectDir```: path of the root directory of the SUT where the package.json is located
 * ```contractsDir```: path of the directory where the contracts to be mutated are located
+* ```buildDir```: path of the directory where the artifacts of the compilation will be placed (usually ``` .../build/contracts/``` )
  
 ##### 3) Mutation Process
 These fields allow to set up the mutation testing process
@@ -38,11 +44,34 @@ These fields allow to set up the mutation testing process
 * ```ganache```: automatically spawn Ganache instances during the testing process (true by default)
 * ```ignore```:  array of paths to contract files that must be ignored by SuMo during mutation testing
 * ```optimized```: employ operator optimizations (true by default),
+* ```skipContracts```: array of paths to contract files (or contract folders) that must be ignored by ReSuMo during mutation testing
+* ```tce```: enable the Trivial Compiler Equivalence (true by default),
 * ```testingTimeOutInSec```: number of seconds after which a mutant is marked as timed-out during testing (300 by default)
 
 Note that if ```customTestScript``` is true you must specify a ```test``` and ```compile``` script in your ```package.json``` file.
 When using a custom test script the ```bail``` field of SuMo is ignored; it must be added to the custom script itself.
 
+##### 4) Trivial Compiler Equivalence
+
+The Trivial Compiler Equivalence compares the bytecode produced by the compiler to detect equivalences between mutants, thus it can only work if:
+1. the solc compiler optimization is enabled;
+2. no metadata hash is appended to the contract bytecode.
+
+Before running SuMo make sure that the following options are present in your ```truffle-config.js``` configuration file:
+
+```
+ compilers: {
+        solc: {
+            optimizer: {
+                enabled: true,
+                ...
+            },
+			metadata: {
+            bytecodeHash: "none"
+          }
+        }
+    }
+```
 
 
 ## CLI Usage
@@ -72,6 +101,8 @@ At the end of the mutation testing process the folder will contain:
 * ```operators.xlsx``` Mutation operators report
 * ```\alive``` Mutants that survived testing
 * ```\killed``` Mutants killed by tests
+* * ```\equivalent``` Equivalent mutants discarded by the TCE
+* ```\redundant``` Redundant mutants discarded by the TCE
 * ```\mutants``` Mutated contracts
 
 Use:
