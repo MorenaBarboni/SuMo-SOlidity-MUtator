@@ -71,7 +71,7 @@ function restore() {
  */
  function cleanBuildDir() {
   if (fs.existsSync(config.buildDir)) {
-    fsExtra.emptyDir(config.buildDir);
+    fsExtra.emptyDirSync(config.buildDir);
     console.log("Build directory cleaned.");
   } else {
     console.log("Build directory is already empty.");
