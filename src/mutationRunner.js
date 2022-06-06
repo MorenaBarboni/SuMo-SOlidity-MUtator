@@ -8,13 +8,28 @@ const chalk = require('chalk')
 const path = require("path");
 const { parse } = require("path");
 
-
 const Reporter = require('./reporter')
 const testingInterface = require("./testingInterface");
 const mutationGenerator = require("./operators/mutationGenerator");
 const utils = require('./utils')
+
+//SuMo configuration
+const sumoDir = config.sumoDir;
+const resultsDir = config.resultsDir
+const baselineDir = config.baselineDir;
+const projectDir = config.projectDir;
+const contractsDir = config.contractsDir;
+const buildDir = config.buildDir;
+const equivalentDir = resultsDir + '/equivalent';
+const liveDir = resultsDir + '/live';
+const mutantsDir = resultsDir + '/mutants';
+const redundantDir = resultsDir + '/redundant';
+const stillbornDir = resultsDir + '/stillborn';
+const timedoutDir = resultsDir + '/timedout';
+const killedDir = resultsDir + '/killed';
 const contractsGlob = config.contractsGlob
 const packageManagerGlob = config.packageManagerGlob;
+
 var packageManager;
 var runScript;
 var compiledArtifacts = [];
@@ -70,13 +85,10 @@ const mutGen = new mutationGenerator.CompositeOperator([
 ])
 
 function prepare(callback) {
-  if (config.contractsDir === '' || config.projectDir === '') {
-    console.error('Project directory is missing.')
-    process.exit(1)
-  }
-  if(config.tce && config.buildDir === ''){
-    console.error('Build directory is missing.')
-    process.exit(1)
+  if (sumoDir === "" || resultsDir === "" || baselineDir === "" ||
+     projectDir === "" || contractsDir === "" || (config.tce && buildDir === '')) {
+    console.error("SuMo configuration is incomplete or missing.");
+    process.exit(1);
   }
 
   //Checks the package manager used by the SUT
@@ -100,21 +112,20 @@ function prepare(callback) {
     process.exit(1);
   }
 
-
-
-  mkdirp(config.baselineDir, () =>
-    copy(config.contractsDir, config.baselineDir, { dot: true }, callback)
+  mkdirp(baselineDir, () =>
+    copy(contractsDir, baselineDir, { dot: true }, callback)
   )
-  mkdirp(config.liveDir);
-  mkdirp(config.killedDir);
-  mkdirp(config.stillbornDir);
-  mkdirp(config.timedoutDir);
-  mkdirp(config.equivalentDir);
+
+  mkdirp(mutantsDir);
+  mkdirp(liveDir);
+  mkdirp(killedDir);
+  mkdirp(timedoutDir);
+  mkdirp(stillbornDir);
   if (config.tce) {
-    mkdirp(config.redundantDir);
-    mkdirp(config.equivalentDir);
+    mkdirp(redundantDir);
+    mkdirp(equivalentDir);
   }
-  mkdirp(config.mutantsDir);
+
 }
 
 /**
@@ -217,6 +228,11 @@ function test() {
       if (err) {
         console.error(err)
         process.exit(1)
+      }
+
+      if (!files.length) {
+        console.error("Contract directory is empty")
+        process.exit()
       }
 
       //Run the pre-test and compile the original contracts

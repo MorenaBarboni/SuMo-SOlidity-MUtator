@@ -10,6 +10,7 @@ const sumoDir = config.sumoDir;
 const baselineDir = config.baselineDir;
 const contractsDir = config.contractsDir;
 const contractsGlob = config.contractsGlob;
+const buildDir = config.buildDir;
 
 /**
  * deletes the .sumo folder
@@ -49,7 +50,7 @@ function restore() {
       if (err) throw err;
 
       for (const file of files) {
-        let relativeFilePath = file.split(".sumo/baseline")[1];
+        let relativeFilePath = file.split(baselineDir)[1];
         let fileDir = path.dirname(relativeFilePath);
         fs.mkdir(contractsDir + fileDir, { recursive: true }, function (err) {
           if (err) return cb(err);
@@ -70,8 +71,8 @@ function restore() {
  * Cleans the build dir
  */
  function cleanBuildDir() {
-  if (fs.existsSync(config.buildDir)) {
-    fsExtra.emptyDirSync(config.buildDir);
+  if (fs.existsSync(buildDir)) {
+    fsExtra.emptyDirSync(buildDir);
     console.log("Build directory cleaned.");
   } else {
     console.log("Build directory is already empty.");

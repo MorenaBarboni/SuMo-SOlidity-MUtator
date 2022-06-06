@@ -22,13 +22,7 @@ Before using SuMo you must specify your desired configuration in the [config.js]
 These fields determine where SuMo stores data during the mutation testing process. Most paths are already set by default:
 * ```sumoDir```: path of the directory where SuMo must save the mutation testing artifacts (.sumo by default)
 * ```baselineDir```: path of the directory where SuMo must save the baseline of the SUT (.sumo/baseline by default)
-* ```killedDir```: path of the directory where SuMo must save the killed mutations (.sumo/killed by default)
-* ```liveDir```: path of the directory where SuMo must save the live mutations (.sumo/live by default)
-* ```equivalentdDir```: path of the directory where SuMo must save the equivalent mutations (.sumo/equivalent by default)
-* ```redundantDir```: path of the directory where SuMo must save the redundant mutations (.sumo/redundant by default)
-* ```stillbornDir```: path of the directory where SuMo must save the stillborn mutations (.sumo/stillborn by default)
-* ```timedoutDir```: path of the directory where SuMo must save the timedout mutations (.sumo/timedout by default)
-* ```mutantsDir```: path of the directory where SuMo must (optionally) save a copy of each mutated contract (.sumo/mutants by default)
+* ```resultsDir```: path of the directory where SuMo must save results (.sumo/results by default)
 
 ##### 2) SUT directories
 These fields specify the path to different artefacts of the System Under Test:
@@ -95,14 +89,16 @@ Use:
 * ```npm run sumo restore``` To restore the SUT files to a clean version if you suddenly interrupt the mutation process
 
 ### Results
-SuMo automatically creates a ```.sumo``` folder in the root directory of the project. <br/>
+SuMo automatically creates a ```.sumo\results``` folder in the root directory of the project. <br/>
 At the end of the mutation testing process the folder will contain:
 * ```report.txt``` Test report
 * ```operators.xlsx``` Mutation operators report
 * ```\alive``` Mutants that survived testing
 * ```\killed``` Mutants killed by tests
-* * ```\equivalent``` Equivalent mutants discarded by the TCE
+* ```\equivalent``` Equivalent mutants discarded by the TCE
 * ```\redundant``` Redundant mutants discarded by the TCE
+* ```\stillborn``` Stillborn mutants
+* ```\timedout``` Timedout mutants
 * ```\mutants``` Mutated contracts
 
 Use:
