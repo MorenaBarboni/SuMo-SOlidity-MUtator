@@ -154,7 +154,7 @@ function generateAllMutations(files) {
   for (const file of files) {
     let skipContract = false;
     for (const path of config.skipContracts) {
-      if (file.startsWith(path)) {
+      if (file.startsWith(path) && path !== "") {
         skipContract = true;
         break;
       }
