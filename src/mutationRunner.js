@@ -28,7 +28,6 @@ const stillbornDir = resultsDir + '/stillborn';
 const timedoutDir = resultsDir + '/timedout';
 const killedDir = resultsDir + '/killed';
 const contractsGlob = config.contractsGlob
-const packageManagerGlob = config.packageManagerGlob;
 
 var packageManager;
 var runScript;
@@ -92,25 +91,9 @@ function prepare(callback) {
   }
 
   //Checks the package manager used by the SUT
-  let packageManagerFile;
-  for (const lockFile of packageManagerGlob) {
-    if (fs.existsSync(config.projectDir + lockFile)) {
-      packageManagerFile = lockFile;
-      if (lockFile.includes("yarn")) {
-        packageManager = "yarn";
-        runScript = "run";
-      } else {
-        packageManager = "npm";
-        runScript = "run-script";
-      }
-      break;
-    }
-  }
-
-  if (!packageManagerFile) {
-    console.error("Target project does not contain a suitable lock file.");
-    process.exit(1);
-  }
+  let pmConfig = utils.getPackageManager()
+  packageManager = pmConfig.packageManager;
+  runScript = pmConfig.runScript;
 
   mkdirp(baselineDir, () =>
     copy(contractsDir, baselineDir, { dot: true }, callback)

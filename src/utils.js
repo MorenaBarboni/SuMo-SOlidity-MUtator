@@ -6,11 +6,14 @@ const fsExtra = require("fs-extra");
 const config = require("./config");
 const glob = require("glob");
 const path = require("path");
+const { projectDir } = require("./config");
 const sumoDir = config.sumoDir;
 const baselineDir = config.baselineDir;
 const contractsDir = config.contractsDir;
 const contractsGlob = config.contractsGlob;
 const buildDir = config.buildDir;
+const packageManagerGlob = config.packageManagerGlob;
+
 
 /**
  * deletes the .sumo folder
@@ -94,9 +97,36 @@ function restore() {
   }
 
 
+  //Checks the package manager used by the SUT
+function getPackageManager() {
+  let pmConfig = {};
+
+  for (const lockFile of packageManagerGlob) {
+    if (fs.existsSync(projectDir + lockFile)) {
+      let packageManagerFile = lockFile;
+      if (!packageManagerFile) {
+        console.error("Target project does not contain a suitable lock file.");
+        process.exit(1);
+      }
+
+      if (lockFile.includes("yarn")) {
+        pmConfig.packageManager = "yarn";
+        pmConfig.runScript = "run";
+      } else {
+        pmConfig.packageManager = "npm";
+        pmConfig.runScript = "run-script";
+      }
+      break;
+    }
+  }
+
+  return pmConfig;
+}
+
 module.exports = {
   cleanSumo: cleanSumo,
   restore:restore,
   cleanTmp: cleanTmp,
-  cleanBuildDir: cleanBuildDir
+  cleanBuildDir: cleanBuildDir,
+  getPackageManager: getPackageManager
 };
