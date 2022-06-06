@@ -6,6 +6,7 @@ module.exports = {
   buildDir: '',
   contractsDir: '',
   skipContracts: [],
+  skipTests: [],
   testingTimeOutInSec: 3000,
   bail: true,
   ganache: true,

@@ -7,11 +7,13 @@ const config = require('./config')
 const chalk = require('chalk')
 const path = require("path");
 const { parse } = require("path");
+const rimraf = require('rimraf')
 
 const Reporter = require('./reporter')
 const testingInterface = require("./testingInterface");
 const mutationGenerator = require("./operators/mutationGenerator");
 const utils = require('./utils')
+const { testsGlob } = require('./config')
 
 //SuMo configuration
 const sumoDir = config.sumoDir;
@@ -19,6 +21,7 @@ const resultsDir = config.resultsDir
 const baselineDir = config.baselineDir;
 const projectDir = config.projectDir;
 const contractsDir = config.contractsDir;
+const testDir = config.testDir;
 const buildDir = config.buildDir;
 const equivalentDir = resultsDir + '/equivalent';
 const liveDir = resultsDir + '/live';
@@ -85,7 +88,7 @@ const mutGen = new mutationGenerator.CompositeOperator([
 
 function prepare(callback) {
   if (sumoDir === "" || resultsDir === "" || baselineDir === "" ||
-     projectDir === "" || contractsDir === "" || (config.tce && buildDir === '')) {
+    projectDir === "" || contractsDir === "" || (config.tce && buildDir === '')) {
     console.error("SuMo configuration is incomplete or missing.");
     process.exit(1);
   }
@@ -95,9 +98,18 @@ function prepare(callback) {
   packageManager = pmConfig.packageManager;
   runScript = pmConfig.runScript;
 
-  mkdirp(baselineDir, () =>
-    copy(contractsDir, baselineDir, { dot: true }, callback)
-  )
+  if (fs.existsSync(baselineDir)) {
+    rimraf(baselineDir, function () {
+      //console.log("Baseline deleted");
+      mkdirp(baselineDir, () =>
+        copy(testDir, baselineDir + '/test', { dot: true },
+          copy(contractsDir, baselineDir + '/contracts', { dot: true }, callback)))
+    })
+  } else {
+    mkdirp(baselineDir, () =>
+      copy(testDir, baselineDir + '/test', { dot: true },
+        copy(contractsDir, baselineDir + '/contracts', { dot: true }, callback)))
+  }
 
   mkdirp(mutantsDir);
   mkdirp(liveDir);
@@ -116,10 +128,17 @@ function prepare(callback) {
  */
 function preflight() {
   prepare(() =>
-    glob(config.contractsDir + contractsGlob, (err, files) => {
+    glob(config.contractsDir + contractsGlob, (err, contracFiles) => {
       if (err) throw err;
-      const mutations = generateAllMutations(files)
-      reporter.preflightSummary(mutations)
+      glob(config.testDir + testsGlob, (err, testFiles) => {
+        if (err) throw err;
+        let contractsUnderMutation = contractSelection(contracFiles);
+        let testsToBeRun = testSelection(testFiles);
+        console.log(testsToBeRun)
+        reporter.printFilesUnderTest(contractsUnderMutation, testsToBeRun);
+        const mutations = generateAllMutations(contractsUnderMutation)
+        reporter.preflightSummary(mutations)
+      })
     })
   );
 }
@@ -132,12 +151,19 @@ function preflightAndSave() {
   prepare(() =>
     glob(config.contractsDir + contractsGlob, (err, files) => {
       if (err) throw err;
-      const mutations = generateAllMutations(files);
-      for (const mutation of mutations) {
-        mutation.save();
-      }
-      reporter.preflightSummary(mutations);
-      console.log("Mutants saved to file");
+      glob(config.testDir + testsGlob, (err, testFiles) => {
+        if (err) throw err;
+        let contractsUnderMutation = contractSelection(files);
+        let testsToBeRun = testSelection();
+        reporter.printFilesUnderTest(contractsUnderMutation, testsToBeRun);
+        reporter.printFilesUnderTest(contractsUnderMutation);
+        const mutations = generateAllMutations(files);
+        for (const mutation of mutations) {
+          mutation.save();
+        }
+        reporter.preflightSummary(mutations);
+        console.log("Mutants saved to file");
+      })
     })
   );
 }
@@ -152,19 +178,10 @@ function generateAllMutations(files) {
   let mutations = []
   var startTime = Date.now()
   for (const file of files) {
-    let skipContract = false;
-    for (const path of config.skipContracts) {
-      if (file.startsWith(path) && path !== "") {
-        skipContract = true;
-        break;
-      }
-    }
-    if (!skipContract) {
-      const source = fs.readFileSync(file, 'utf8')
-      const ast = parser.parse(source, { range: true })
-      const visit = parser.visit.bind(parser, ast)
-      mutations = mutations.concat(mutGen.getMutations(file, source, visit))
-    }
+    const source = fs.readFileSync(file, 'utf8')
+    const ast = parser.parse(source, { range: true })
+    const visit = parser.visit.bind(parser, ast)
+    mutations = mutations.concat(mutGen.getMutations(file, source, visit))
   }
   var generationTime = (Date.now() - startTime) / 1000
   reporter.saveGenerationTime(mutations.length, generationTime)
@@ -177,7 +194,7 @@ function generateAllMutations(files) {
 function preTest() {
   reporter.beginPretest();
   reporter.setupLog();
-  
+
   utils.cleanBuildDir(); //Remove old compiled artifacts
 
   let ganacheChild = testingInterface.spawnGanache();
@@ -208,47 +225,57 @@ function test() {
 
   prepare(() =>
     glob(config.contractsDir + contractsGlob, (err, files) => {
-      if (err) {
-        console.error(err)
-        process.exit(1)
-      }
+      if (err) throw err;
+      glob(config.testDir + testsGlob, (err, testFiles) => {
+        if (err) {
+          console.error(err)
+          process.exit(1)
+        }
 
-      if (!files.length) {
-        console.error("Contract directory is empty")
-        process.exit()
-      }
+        if (!files.length) {
+          console.error("Contract directory is empty")
+          process.exit()
+        }
 
-      //Run the pre-test and compile the original contracts
-      preTest();
+        //Run the pre-test and compile the original contracts
+        preTest();
 
-      if (config.tce) {
-        //save the bytecode of the original contracts
-        exploreDirectories(config.buildDir)
-        compiledArtifacts.map(artifact => {
-          for (const file of files) {
-            if (parse(artifact).name === parse(file).name) {
-              originalBytecodeMap.set(parse(file).name, saveBytecodeSync(artifact))
+        if (config.tce) {
+          //save the bytecode of the original contracts
+          exploreDirectories(config.buildDir)
+          compiledArtifacts.map(artifact => {
+            for (const file of files) {
+              if (parse(artifact).name === parse(file).name) {
+                originalBytecodeMap.set(parse(file).name, saveBytecodeSync(artifact))
+              }
             }
-          }
-        })
-      }
+          })
+        }
 
-      //Generate mutations
-      const mutations = generateAllMutations(files)
+        let contractsUnderMutation = contractSelection(files);
+        let testsToBeRun = testSelection(testFiles);
+        unlinkTests(testFiles, testsToBeRun);
+        reporter.printFilesUnderTest(contractsUnderMutation, testsToBeRun);
 
-      //Compile and test each mutant
-      reporter.beginMutationTesting();
-      var startTime = Date.now();
+        //Generate mutations
+        const mutations = generateAllMutations(contractsUnderMutation)
 
-      for (const file of files) {
-        console.log("Testing mutants of " +file)
-        runTest(mutations, file);
-      }
-      var testTime = ((Date.now() - startTime) / 60000).toFixed(2);
-      reporter.testSummary();
-      reporter.printTestReport(testTime);
-      reporter.saveOperatorsResults();
+        //Compile and test each mutant
+        reporter.beginMutationTesting();
+        var startTime = Date.now();
+
+        for (const file of files) {
+          console.log("Testing mutants of " + file)
+          runTest(mutations, file);
+        }
+        var testTime = ((Date.now() - startTime) / 60000).toFixed(2);
+        utils.restoreTestDir();
+        reporter.testSummary();
+        reporter.printTestReport(testTime);
+        reporter.saveOperatorsResults();
+      })
     })
+
   )
 }
 
@@ -283,12 +310,12 @@ function runTest(mutations, file) {
             mutation.status = "timedout";
           } else {
             mutation.status = "killed";
-          }          
+          }
         }
       } else {
         mutation.status = "stillborn";
       }
-      if(mutation.status !== "redunant"){
+      if (mutation.status !== "redunant") {
         reporter.writeLog(mutation, null);
       }
       reporter.mutantStatus(mutation);
@@ -373,7 +400,7 @@ function diff(argv) {
  * @param originalBytecodeMap The map that contains the original contract bytecode
  */
 function tce(mutation, map, originalBytecodeMap) {
-  console.log();  
+  console.log();
   console.log(chalk.yellow('Running the TCE'));
   var file = mutation.file;
   let fileName = parse(file).name;
@@ -395,7 +422,7 @@ function tce(mutation, map, originalBytecodeMap) {
 
   if (originalBytecodeMap.get(fileName) === mutation.bytecode) {
     mutation.status = "equivalent";
-    } else if (map.size !== 0) {
+  } else if (map.size !== 0) {
     for (const key of map.keys()) {
       if (map.get(key) === mutation.bytecode) {
         mutation.status = "redundant";
@@ -439,6 +466,67 @@ function saveBytecodeSync(file) {
     console.log(chalk.red('Artifact not found!!'));
   }
 }
+
+/**
+ * Selects the contracts to mutate
+ * @param files array of paths of all Smart Contracts * 
+ */
+function contractSelection(files) {
+  var contractUnderMutation = [];
+
+  for (const file of files) {
+    let skipContract = false;
+    for (const path of config.skipContracts) {
+      if (file.startsWith(path) && path !== "") {
+        skipContract = true;
+        break;
+      }
+    }
+    if (!skipContract) {
+      contractUnderMutation.push(file)
+    }
+  }
+  return contractUnderMutation;
+}
+
+/**
+ * Selects the test files to be evaluated
+ * @param files all test files
+ * @returns a list of tests to be run
+ */
+function testSelection(files) {
+  let testsToBeRun = [];
+
+  for (const file of files) {
+    let skipTest = false;
+    for (const path of config.skipTests) {
+      if (file.startsWith(path) && path !== "") {
+        skipTest = true;
+        break;
+      }
+    }
+    if (!skipTest) {
+      testsToBeRun.push(file)
+    }
+  }
+  return testsToBeRun;
+}
+
+/**
+ * Unliks tests that must not be run
+ * @param allTestFiles all test files
+ * @param testFilesToBeRun tests to be kept
+ * 
+ */
+function unlinkTests(allTestFiles, testFilesToBeRun) {
+  for (const test of allTestFiles) {
+    console.log(testFilesToBeRun)
+    if (!testFilesToBeRun.includes(test)) {
+      fs.unlinkSync(test);
+    }
+  }
+}
+
 
 module.exports = {
   test: test, preflight, preflight, mutate: preflightAndSave, diff: diff, list: enabledOperators,

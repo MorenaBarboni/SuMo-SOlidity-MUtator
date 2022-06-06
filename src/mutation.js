@@ -3,7 +3,7 @@ const jsdiff = require('diff')
 const fs = require('fs')
 const sha1 = require('sha1')
 const path = require('path')
-const { mutantsDir, saveMutants } = require('./config')
+const { mutantsDir } = require('./config')
 const config = require('./config')
 
 const baselineDir = config.baselineDir
@@ -65,7 +65,7 @@ Mutation.prototype.restore = function() {
 }
 
 Mutation.prototype.baseline = function() {
-  return baselineDir + this.file.substr(contractsDir.length)
+  return baselineDir+"/contracts" + this.file.substr(contractsDir.length);
 }
 
 Mutation.prototype.diff = function() {

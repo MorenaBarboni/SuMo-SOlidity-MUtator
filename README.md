@@ -38,7 +38,8 @@ These fields allow to set up the mutation testing process
 * ```ganache```: automatically spawn Ganache instances during the testing process (true by default)
 * ```ignore```:  array of paths to contract files that must be ignored by SuMo during mutation testing
 * ```optimized```: employ operator optimizations (true by default),
-* ```skipContracts```: array of paths to contract files (or contract folders) that must be ignored by ReSuMo during mutation testing
+* ```skipContracts```: array of paths to contract files (or contract folders) that must be ignored by SuMo during mutation testing
+*  ```skipTests```:   array of paths to test files that must be ignored by SuMo 
 * ```tce```: enable the Trivial Compiler Equivalence (true by default),
 * ```testingTimeOutInSec```: number of seconds after which a mutant is marked as timed-out during testing (300 by default)
 
@@ -55,16 +56,16 @@ Before running SuMo make sure that the following options are present in your ```
 
 ```
  compilers: {
-        solc: {
-            optimizer: {
-                enabled: true,
-                ...
-            },
-			metadata: {
-            bytecodeHash: "none"
-          }
+    solc: {
+        optimizer: {
+            enabled: true,
+            ...
+        },
+	      metadata: {
+             bytecodeHash: "none"
         }
-    }
+     }
+  }
 ```
 
 
@@ -86,7 +87,8 @@ Once everything is set up you can use:
 #### Running Mutation Testing
 Use:
 * ```npm run sumo test``` To launch the mutation testing process;
-* ```npm run sumo restore``` To restore the SUT files to a clean version if you suddenly interrupt the mutation process
+* ```npm run sumo restore``` To restore the SUT files to a clean version if you suddenly interrupt the mutation process. Note that the restore command overwrites the content of the project under test with the files stored in the ```.sumo/baseline``` folder.
+If you need to restore the project files, make sure to do so before performing other operations as the baseline is automatically refreshed on subsequent preflight or test runs.
 
 ### Results
 SuMo automatically creates a ```.sumo\results``` folder in the root directory of the project. <br/>

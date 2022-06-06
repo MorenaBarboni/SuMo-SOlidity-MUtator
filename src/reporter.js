@@ -5,6 +5,8 @@ var excel = require('excel4node');
 const operatorsConfigFileName = "./operators.config.json";
 const operatorsConfig = require(operatorsConfigFileName);
 const resultsDir = config.resultsDir
+const path = require("path");
+
 
 function Reporter() {
   this.operators = Object.entries(operatorsConfig);
@@ -229,6 +231,45 @@ Reporter.prototype.printTestReport = function(time) {
   });  
 };
 
+Reporter.prototype.printFilesUnderTest = function (contracts, tests) {
+  const nc = contracts.length;
+  console.log();
+  console.log("=============================================");
+  console.log(chalk.yellow.bold("> Selecting Contract and Test Files"))
+  console.log("=============================================");
+  console.log();
+
+  if (nc == 0) console.log("Contracts to be mutated : " + chalk.green("none"));
+  else {
+    console.log("Contracts to be mutated : (" + nc + "):");
+
+    contracts.forEach((c) => {
+      console.log(
+        "\t" + path.parse(c).dir + "/" + chalk.bold(path.basename(c))
+      );
+    });
+  }
+  console.log();
+
+  if (!tests) {
+    console.log("Tests to be run : " + chalk.green("all"));
+    console.log();
+  }
+  else {
+    const nt = tests.length;
+    if (nt == 0) console.log("Tests to be run : " + chalk.green("none"));
+    else {
+      console.log("Tests to be run : (" + nt + "):");
+
+      tests.forEach((t) => {
+        console.log(
+          "\t" + path.parse(t).dir + "/" + chalk.bold(path.basename(t))
+        );
+      });
+    }
+    console.log();
+  } 
+}
 
 /*Saves results for each operator to operators.xlsx */
 Reporter.prototype.saveOperatorsResults = function() {
