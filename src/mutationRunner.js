@@ -30,7 +30,8 @@ const redundantDir = resultsDir + '/redundant';
 const stillbornDir = resultsDir + '/stillborn';
 const timedoutDir = resultsDir + '/timedout';
 const killedDir = resultsDir + '/killed';
-const contractsGlob = config.contractsGlob
+const contractsGlob = config.contractsGlob;
+const testsGlob = config.testsGlob;
 
 var packageManager;
 var runScript;
@@ -154,7 +155,7 @@ function preflightAndSave() {
       glob(config.testDir + testsGlob, (err, testFiles) => {
         if (err) throw err;
         let contractsUnderMutation = contractSelection(files);
-        let testsToBeRun = testSelection();
+        let testsToBeRun = testSelection(testFiles);
         reporter.printFilesUnderTest(contractsUnderMutation, testsToBeRun);
         reporter.printFilesUnderTest(contractsUnderMutation);
         const mutations = generateAllMutations(files);

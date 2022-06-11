@@ -5,6 +5,7 @@ module.exports = {
   projectDir: '',
   buildDir: '',
   contractsDir: '',
+  testDir: '',
   skipContracts: [],
   skipTests: [],
   testingTimeOutInSec: 3000,
@@ -15,6 +16,5 @@ module.exports = {
   tce: true,
   contractsGlob: '/**/*.sol',
   packageManagerGlob: ['/package-lock.json', '/yarn.lock'],
-  testGlob: ['/test/**/*.js', '/test/**/*.sol,', '/test/**/*.ts'
-  ]
+  testGlob:  '/**/*.{js,sol,ts}'
 }
