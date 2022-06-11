@@ -13,7 +13,6 @@ const Reporter = require('./reporter')
 const testingInterface = require("./testingInterface");
 const mutationGenerator = require("./operators/mutationGenerator");
 const utils = require('./utils')
-const { testsGlob } = require('./config')
 
 //SuMo configuration
 const sumoDir = config.sumoDir;
@@ -135,7 +134,6 @@ function preflight() {
         if (err) throw err;
         let contractsUnderMutation = contractSelection(contracFiles);
         let testsToBeRun = testSelection(testFiles);
-        console.log(testsToBeRun)
         reporter.printFilesUnderTest(contractsUnderMutation, testsToBeRun);
         const mutations = generateAllMutations(contractsUnderMutation)
         reporter.preflightSummary(mutations)
