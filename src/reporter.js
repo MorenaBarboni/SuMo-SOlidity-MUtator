@@ -116,6 +116,133 @@ Reporter.prototype.preflightSummary = function(mutations) {
   }
 };
 
+//Save mutations info to excel file 
+Reporter.prototype.preflightToExcel = function (mutations) {
+  var workbook = new excel.Workbook();
+  var worksheet = workbook.addWorksheet('Mutations');
+
+   var headerStyle = workbook.createStyle({
+    font: {
+      color: '#000000',
+      size: 12,
+      bold: true
+    },
+    fill: {
+      type: 'pattern',
+      patternType: 'solid',
+      bgColor: '#e9e2d2',
+      fgColor: '#e9e2d2',
+    }
+  });
+
+  // Set Headers
+  worksheet.cell(1, 1)
+  .string("Operator")
+  .style(headerStyle);
+
+  worksheet.cell(1, 2)
+  .string("Hash")
+  .style(headerStyle);
+
+  worksheet.cell(1, 3)
+  .string("File")
+  .style(headerStyle);
+
+  worksheet.cell(1, 4)
+  .string("Mutation Start")
+  .style(headerStyle);
+
+  worksheet.cell(1, 5)
+  .string("Mutation End")
+  .style(headerStyle); worksheet.cell(1, 2)
+
+  //worksheet.cell(1, 6)
+  //.string("Replacement")
+ // .style(headerStyle); worksheet.cell(1, 2)
+
+  worksheet.cell(1, 7)
+  .string("Function")
+  .style(headerStyle); worksheet.cell(1, 2)
+
+  worksheet.cell(1, 8)
+  .string("Function Start")
+  .style(headerStyle); worksheet.cell(1, 2)
+
+  worksheet.cell(1, 9)
+  .string("Function End")
+  .style(headerStyle); worksheet.cell(1, 2)
+
+  var style = workbook.createStyle({
+    font: {
+      color: '#000000',
+      size: 10,
+    }
+  });
+
+  //Retrieve list of mutations
+   for(var i = 0; i < mutations.length; i ++){
+            
+      worksheet.cell(i+2, 1)
+      .string(mutations[i].operator)
+      .style(style);
+
+      worksheet.cell(i+2, 2)
+      .string(mutations[i].hash())
+      .style(style);
+
+      worksheet.cell(i+2, 3)
+      .string(mutations[i].file)
+      .style(style);
+      
+      worksheet.cell(i+2, 4)
+      .number(mutations[i].start)
+      .style(style);
+      
+      worksheet.cell(i+2, 5)
+      .number(mutations[i].end)
+      .style(style);
+
+      worksheet.cell(i+2, 6)
+      .string(mutations[i].replace)
+      .style(style);
+
+      if(!(mutations[i].inFunction == null)){
+        worksheet.cell(i+2, 7)
+      .string(mutations[i].inFunction)
+      .style(style);
+
+      worksheet.cell(i+2, 8)
+      .number(mutations[i].functionStart)
+      .style(style);
+
+      worksheet.cell(i+2, 9)
+      .number(mutations[i].functionEnd)
+      .style(style); 
+      }
+
+     
+    workbook.write('./.sumo/GeneratedMutations.xlsx');
+ }
+}
+
+//Merge function information into each mutation
+Reporter.prototype.addFunctionToMutation = function (mutations, functions) {
+  mutations.forEach(m => {
+     functions.forEach(f => {
+       if(m.file == f.file){
+         if(m.start >= f.start && m.end <= f.end){
+          m.inFunction = f.name
+          m.functionStart = f.start
+          m.functionEnd = f.end
+         }
+       }
+     });    
+   });
+   return mutations
+ }
+ 
+
+
 
 //Prints test summary to console
 Reporter.prototype.testSummary = function () {

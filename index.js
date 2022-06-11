@@ -14,6 +14,7 @@ yargs
     })
   }, mutationRunner.test)
   .command('preflight', 'print preflight summary', mutationRunner.preflight)
+  .command('preflightExcel', 'print preflight summary and save information about the mutations to excel', mutationRunner.preflightAndSaveExcel)  
   .command('diff <hash>', 'show diff for a given hash', (yargs) => {
     yargs.positional('hash', {
       type: 'string',

@@ -13,15 +13,19 @@ function splice(str, start, length, replacement) {
   return str.substring(0, start) + replacement + str.substring(start + length)
 }
 
-function Mutation(file, start, end, replace, operator, status = null, testingTime=null) {
-  this.file = file;
-  this.start = start;
-  this.end = end;
-  this.replace = replace;
-  this.operator = operator;
-  this.status = status;
-  this.testingTime = testingTime;
+
+function Mutation(file, start, end, replace, operator, status = null, testingTime=null, inFunction = null, functionStart = null, functionEnd = null) {
+  this.file = file
+  this.start = start
+  this.end = end
+  this.replace = replace
+  this.operator = operator
+  this.inFunction = inFunction,
+  this.functionStart = functionStart
+  this.functionEnd = functionEnd
+  this.status = status
 }
+
 
 Mutation.prototype.hash = function() {
   const input = [path.basename(this.file), this.start, this.end, this.replace].join(':')

@@ -31,7 +31,6 @@ const stillbornDir = resultsDir + '/stillborn';
 const timedoutDir = resultsDir + '/timedout';
 const killedDir = resultsDir + '/killed';
 const contractsGlob = config.contractsGlob;
-const testsGlob = config.testsGlob;
 
 var packageManager;
 var runScript;
@@ -168,6 +167,19 @@ function preflightAndSave() {
     })
   );
 }
+
+function preflightAndSaveExcel() {
+  prepare(() =>
+  glob(contractsDir + contractsGlob, (err, files) => {
+    if (err) throw err;
+    let mutations = generateAllMutationsWithFunctions(files)
+    reporter.preflightToExcel(mutations)
+    reporter.preflightSummary(mutations)
+    console.log("Mutation information saved to .sumo/GeneratedMutations.xlsx")
+  })
+  )
+}
+
 
 /**
  * Generates  the mutations for each target contract
@@ -528,9 +540,34 @@ function unlinkTests(allTestFiles, testFilesToBeRun) {
   }
 }
 
+//Generates mutations for each target contract
+function generateAllMutationsWithFunctions(files) {
+  reporter.setupReport()
+  let mutations = []
+  var startTime = Date.now()
+
+  for (const file of files) {
+    let ignoreFile = false;
+
+    for (const path of config.skipContracts) {
+      if (file.startsWith(path))
+        ignoreFile = true
+    }
+    if (!ignoreFile) {
+      const source = fs.readFileSync(file, 'utf8')
+      const ast = parser.parse(source, { range: true })
+      const visit = parser.visit.bind(parser, ast)
+      mutations = mutations.concat(mutGen.getMutationsWithFunctions(file, source, visit))
+    }
+  }
+  var generationTime = (Date.now() - startTime) / 1000
+  reporter.saveGenerationTime(mutations.length, generationTime)
+  return mutations
+}
+
 
 module.exports = {
   test: test, preflight, preflight, mutate: preflightAndSave, diff: diff, list: enabledOperators,
-  enable: enableOperator, disable: disableOperator
+  enable: enableOperator, disable: disableOperator, preflightAndSaveExcel:preflightAndSaveExcel
 }
 
