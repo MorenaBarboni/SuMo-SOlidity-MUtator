@@ -11,8 +11,10 @@ SFROperator.prototype.getMutations = function(file, source, visit) {
   visit({
     MemberAccess: (node) => {
        if(node.expression.name ==='SafeMath'){
-       const start = node.range[0];
-       const end = node.range[1];
+        const start = node.range[0];
+        const end = node.range[1];
+        const startLine = node.loc.start.line;
+        const endLine = node.loc.start.line;  
        var text = source.slice(start, end+1);
 
        var replacement
@@ -54,16 +56,16 @@ SFROperator.prototype.getMutations = function(file, source, visit) {
           break;
         }
         if (replacement) {
-          mutations.push(new Mutation(file, start, end+1, replacement, this.ID))
+          mutations.push(new Mutation(file, start, end+1, startLine, endLine, replacement, this.ID))
         }
         if(replacement2){
-          mutations.push(new Mutation(file, start, end+1, replacement2, this.ID))
+          mutations.push(new Mutation(file, start, end+1, startLine, endLine, replacement2, this.ID))
         }
         if (replacement3) {
-          mutations.push(new Mutation(file, start, end+1, replacement3, this.ID))
+          mutations.push(new Mutation(file, start, end+1, startLine, endLine, replacement3, this.ID))
         }
         if(replacement4){
-          mutations.push(new Mutation(file, start, end+1, replacement4, this.ID))
+          mutations.push(new Mutation(file, start, end+1, startLine, endLine, replacement4, this.ID))
         }
       }
     }

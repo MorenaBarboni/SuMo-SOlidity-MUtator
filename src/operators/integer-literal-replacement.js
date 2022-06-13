@@ -48,6 +48,11 @@ ILROperator.prototype.getMutations = function(file, source, visit) {
   //Apply mutations
   function mutateIntegerLiteral(node) {
     let value = node.number.toString();
+    const start = node.range[0];
+    const end = node.range[1];
+    const startLine = node.loc.start.line;
+    const endLine = node.loc.start.line;   
+    
     //Check if it is hex
     if (!value.match(/^0x[0-9a-f]+$/i)) {
       if (node.number % 1 == 0) {
@@ -58,11 +63,11 @@ ILROperator.prototype.getMutations = function(file, source, visit) {
         if (node.number == 1) {
           var sliced = source.slice(node.range[0] - 1, node.range[0]);
           if (sliced === "-")
-            mutations.push(new Mutation(file, node.range[0] - 1, node.range[1] + 1, "0" + subdenomination, ID));
+            mutations.push(new Mutation(file, start - 1, end + 1, startLine, endLine, "0" + subdenomination, ID));
           else
-            mutations.push(new Mutation(file, node.range[0], node.range[1] + 1, "0" + subdenomination, ID));
+            mutations.push(new Mutation(file, start, end + 1, startLine, endLine, "0" + subdenomination, ID));
         } else if (node.number == 0) {
-          mutations.push(new Mutation(file, node.range[0], node.range[1] + 1, "1" + subdenomination, ID));
+          mutations.push(new Mutation(file, start, end + 1, startLine, endLine, "1" + subdenomination, ID));
         } else {
           var num = Number(node.number);
           var inc;
@@ -76,8 +81,8 @@ ILROperator.prototype.getMutations = function(file, source, visit) {
             inc = BigInt(num + 1n);
             dec = BigInt(num - 1n);
           }
-          mutations.push(new Mutation(file, node.range[0], node.range[1] + 1, dec + subdenomination, ID));
-          mutations.push(new Mutation(file, node.range[0], node.range[1] + 1, inc + subdenomination, ID));
+          mutations.push(new Mutation(file, start, end + 1, startLine, endLine, dec + subdenomination, ID));
+          mutations.push(new Mutation(file, start, end + 1, startLine, endLine, inc + subdenomination, ID));
         }
       }
     }

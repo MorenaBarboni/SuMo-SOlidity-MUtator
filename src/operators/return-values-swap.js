@@ -40,15 +40,19 @@ RVSOperator.prototype.getMutations = function(file, source, visit) {
         var size;
         var exprStart;
         var exprEnd;
+        var startLine;
+        var endLine; 
         var original;
         var tokens;
         var replacement;
+
         //If the function has an explicit return structure
         if (returnNode) {
           if (returnNode.expression.components) {
             var returnValues = returnNode.expression.components; // return values nodes
             size = returnValues.length; // number of return values
-
+            startLine = returnNode.loc.start.line;
+            endLine = returnNode.loc.end.line; 
             exprStart = returnValues[0].range[0];
             exprEnd = returnValues[size - 1].range[1];
             original = source.substring(exprStart, exprEnd + 1); //return statement substring
@@ -60,6 +64,8 @@ RVSOperator.prototype.getMutations = function(file, source, visit) {
           size = node.returnParameters.length; // number of return parameters
           exprStart = node.returnParameters[0].range[0];
           exprEnd = node.returnParameters[size - 1].range[1];
+          startLine = node.loc.start.line;
+          endLine = node.loc.end.line; 
           original = source.substring(exprStart, exprEnd + 1); //return statement substring
           tokens = original.split(","); //tokenized return values
         }
@@ -90,7 +96,7 @@ RVSOperator.prototype.getMutations = function(file, source, visit) {
           }
         }
         if (replacement) {
-          mutations.push(new Mutation(file, exprStart, exprEnd + 1, replacement, this.ID));
+          mutations.push(new Mutation(file, exprStart, exprEnd + 1, startLine, endLine, replacement, this.ID));
         }
       }
 

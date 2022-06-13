@@ -11,11 +11,12 @@ PKDOperator.prototype.getMutations = function(file, source, visit) {
 
   visit({
     FunctionDefinition: (node) => {
-      let replacement;
       if (node.stateMutability === "payable" && !node.isReceiveEther && !node.isVirtual && !node.override) {
-        var functionSignature = source.substring(node.range[0], node.range[1]);
-        replacement = functionSignature.replace("payable", "");
-        mutations.push(new Mutation(file, node.range[0], node.range[1], replacement, this.ID));
+        const startLine = node.loc.start.line;
+        const endLine = node.loc.start.line;
+        const functionSignature = source.substring(node.range[0], node.range[1]);
+        const replacement = functionSignature.replace("payable", "");
+        mutations.push(new Mutation(file, node.range[0], node.range[1], startLine,  endLine, replacement, this.ID));
       }
     }
   });

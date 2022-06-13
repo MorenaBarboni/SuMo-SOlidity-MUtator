@@ -16,9 +16,11 @@ SKDOperator.prototype.getMutations = function(file, source, visit) {
         visit({
           MemberAccess: (node) => {
             if (node.expression.name == "super") {
-              var start = node.expression.range[0];
-              var end = node.expression.range[1];
-              mutations.push(new Mutation(file, start, end + 2, "", this.ID));
+              const start = node.expression.range[0];
+              const end = node.expression.range[1];
+              const startLine = node.loc.start.line;
+              const endLine = node.loc.end.line;   
+              mutations.push(new Mutation(file, start, end + 2, startLine, endLine, "", this.ID));
             }
           }
         });

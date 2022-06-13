@@ -13,6 +13,10 @@ FVROperator.prototype.getMutations = function(file, source, visit) {
     FunctionDefinition: (node) => {
       if (!node.isReceiveEther && !node.isFallback && !node.isVirtual && node.override == null) {
         let replacement;
+        const start = node.range[0];
+        const end = node.range[1];
+        const startLine = node.loc.start.line;
+        const endLine = node.loc.start.line;   
 
         var functionSignature = source.substring(node.range[0], node.range[1]);
 
@@ -46,7 +50,7 @@ FVROperator.prototype.getMutations = function(file, source, visit) {
           }
         }
         if (replacement)
-          mutations.push(new Mutation(file, node.range[0], node.range[1], replacement, this.ID));
+          mutations.push(new Mutation(file, start, end, startLine, endLine, replacement, this.ID));
          }
     }
   });

@@ -13,6 +13,8 @@ ICMOperator.prototype.getMutations = function(file, source, visit) {
     BinaryOperation: (node) => {
       const start = node.left.range[1] + 1;
       const end = node.right.range[0];
+      const startLine = node.loc.start.line;
+      const endLine = node.loc.start.line;   
       const text = source.slice(start, end);
 
       let replacement;
@@ -22,7 +24,7 @@ ICMOperator.prototype.getMutations = function(file, source, visit) {
       }
 
       if (replacement) {
-        mutations.push(new Mutation(file, start, end, replacement, this.ID));
+        mutations.push(new Mutation(file, start, end, startLine, endLine, replacement, this.ID));
       }
     }
   });

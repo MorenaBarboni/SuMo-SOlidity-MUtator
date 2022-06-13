@@ -13,6 +13,10 @@ MOCOperator.prototype.getMutations = function(file, source, visit) {
     FunctionDefinition: (node) => {
       /*If the function is decorated with at least 2 modifiers */
       if (node.modifiers.length > 1) {
+        const start = node.range[0];
+        const end = node.range[1] + 1;
+        const startLine = node.loc.start.line;
+        const endLine = node.loc.start.line;  
         let replacement = source.slice(node.range[0], node.range[1] + 1);
 
         for (var i = 0; i < node.modifiers.length; i++) {
@@ -22,7 +26,7 @@ MOCOperator.prototype.getMutations = function(file, source, visit) {
             replacement = replacement.replace(mod1, "*").replace(mod2, mod1).replace("*", mod2);
           }
         }
-        mutations.push(new Mutation(file, node.range[0], node.range[1] + 1, replacement, this.ID));
+        mutations.push(new Mutation(file, start, end, replacement, startLine, endLine, this.ID));
       }
     }
   });

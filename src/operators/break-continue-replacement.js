@@ -11,11 +11,12 @@ BCRDOperator.prototype.getMutations = function(file, source, visit) {
 
   visit({
     BreakStatement: (node) => {
-      var start = node.range[0];
-      var end = node.range[1];
-      mutations.push(new Mutation(file, start, end, "continue", this.ID));
-      mutations.push(new Mutation(file, start, end + 1, "", this.ID));
-
+      const start = node.range[0];
+      const end = node.range[1];
+      const startLine = node.loc.start.line;
+      const endLine = node.loc.start.line;      
+      mutations.push(new Mutation(file, start, end, startLine, endLine, "continue", this.ID));
+      mutations.push(new Mutation(file, start, end + 1,  startLine, endLine, "", this.ID));
     }
   }),
     visit({

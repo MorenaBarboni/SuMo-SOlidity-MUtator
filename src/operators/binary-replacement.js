@@ -16,8 +16,9 @@ BOROperator.prototype.getMutations = function(file, source, visit) {
         ranges.push(node.range);
         const start = node.left.range[1] + 1;
         const end = node.right.range[0];
-        const text = source.slice(start, end);
-
+        const startLine = node.loc.start.line;
+        const endLine = node.loc.start.line;
+        const text = source.slice(start, end); 
         let replacement;
         let replacement2;
 
@@ -90,10 +91,10 @@ BOROperator.prototype.getMutations = function(file, source, visit) {
         }
 
         if (replacement) {
-          mutations.push(new Mutation(file, start, end, replacement, this.ID));
+          mutations.push(new Mutation(file, start, end, startLine, endLine, replacement, this.ID));
         }
         if (replacement2) {
-          mutations.push(new Mutation(file, start, end, replacement2, this.ID));
+          mutations.push(new Mutation(file, start, end, startLine, endLine, replacement2, this.ID));
         }
       }
     }

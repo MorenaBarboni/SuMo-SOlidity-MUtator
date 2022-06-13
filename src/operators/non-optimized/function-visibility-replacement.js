@@ -15,7 +15,10 @@ FVROperator.prototype.getMutations = function(file, source, visit) {
         let replacement;
         let replacement2;
         let replacement3;
-
+        const start = node.range[0];
+        const end = node.range[1];
+        const startLine = node.loc.start.line;
+        const endLine = node.loc.start.line;   
         var functionSignature = source.substring(node.range[0], node.range[1]);
 
         //Constructor
@@ -56,11 +59,11 @@ FVROperator.prototype.getMutations = function(file, source, visit) {
           }
         }
         if (replacement)
-          mutations.push(new Mutation(file, node.range[0], node.range[1], replacement, this.ID));
+          mutations.push(new Mutation(file, start, end, startLine, endLine, replacement, this.ID));
         if (replacement2)
-          mutations.push(new Mutation(file, node.range[0], node.range[1], replacement2, this.ID));
+          mutations.push(new Mutation(file, start, end, startLine, endLine, replacement2, this.ID));
         if (replacement3)
-          mutations.push(new Mutation(file, node.range[0], node.range[1], replacement3, this.ID));
+          mutations.push(new Mutation(file, start, end, startLine, endLine, replacement3, this.ID));
 
       }
     }

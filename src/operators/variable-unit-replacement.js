@@ -16,6 +16,8 @@ VUROperator.prototype.getMutations = function(file, source, visit) {
         if (prevRange != node.range) {
           const start = node.range[0];
           const end = node.range[1];
+          const startLine = node.loc.start.line;
+          const endLine = node.loc.end.line;  
           var replacement = source.slice(start, end + 1);
 
           switch (node.subdenomination) {
@@ -45,7 +47,7 @@ VUROperator.prototype.getMutations = function(file, source, visit) {
             case "years":
               replacement = replacement.replace("years", "seconds");
           }
-          mutations.push(new Mutation(file, start, end + 1, replacement, this.ID));
+          mutations.push(new Mutation(file, start, end + 1, startLine, endLine, replacement, this.ID));
         }
         prevRange = node.range;
       }

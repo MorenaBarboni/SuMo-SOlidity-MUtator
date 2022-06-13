@@ -45,17 +45,21 @@ SCECOperator.prototype.getMutations = function(file, source, visit) {
   function mutate() {
     var start;
     var end;
+    var startLine;
+    var endLine;  
     var address;
     var address2;
 
     casts.forEach(c1 => {
       start = c1.arguments[0].range[0];
       end = c1.arguments[0].range[1];
+      startLine = c1.arguments[0].loc.start.line;
+      endLine = c1.arguments[0].loc.end.line;  
       address = c1.arguments[0].number;
       casts.forEach(c2 => {
         address2 = c2.arguments[0].number;
         if (address !== address2) {
-          mutations.push(new Mutation(file, start, end + 1, address2, this.ID));
+          mutations.push(new Mutation(file, start, end + 1, startLine, endLine, address2, this.ID));
         }
       });
     });

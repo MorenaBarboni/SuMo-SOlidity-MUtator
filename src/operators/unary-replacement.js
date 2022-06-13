@@ -27,6 +27,8 @@ UORDOperator.prototype.getMutations = function(file, source, visit) {
           start = node.range[0] + 1;
           end = node.range[1] + 1;
         }
+        const startLine = node.loc.start.line;
+        const endLine = node.loc.end.line;  
         const text = source.slice(start, end);
 
         switch (node.operator) {
@@ -52,9 +54,9 @@ UORDOperator.prototype.getMutations = function(file, source, visit) {
         }
 
         if (replacement)
-          mutations.push(new Mutation(file, start, end, replacement, this.ID));
+          mutations.push(new Mutation(file, start, end, startLine, endLine, replacement, this.ID));
         if (replacement2)
-          mutations.push(new Mutation(file, start, end, replacement2, this.ID));
+          mutations.push(new Mutation(file, start, end, startLine, endLine, replacement2, this.ID));
       }
     }
   });

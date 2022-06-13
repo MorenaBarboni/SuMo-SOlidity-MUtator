@@ -178,12 +178,16 @@ function generateAllMutations(files) {
   var startTime = Date.now()
   for (const file of files) {
     const source = fs.readFileSync(file, 'utf8')
-    const ast = parser.parse(source, { range: true })
+    const ast = parser.parse(source, { range: true, loc: true })
     const visit = parser.visit.bind(parser, ast)
     mutations = mutations.concat(mutGen.getMutations(file, source, visit))
   }
   var generationTime = (Date.now() - startTime) / 1000
   reporter.saveGenerationTime(mutations.length, generationTime)
+  for (const m of mutations) {
+    reporter.extractCoverageInfo(m);
+
+  }
   return mutations
 }
 

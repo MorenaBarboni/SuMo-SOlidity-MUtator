@@ -16,11 +16,13 @@ SFIOperator.prototype.getMutations = function(file, source, visit) {
         FunctionCall: (node) => {
           if (node.expression.name == "selfdestruct") {
             var selfDestruct = source.slice(node.range[0], node.range[1] + 1) + ";";
+            const startLine = func.body.loc.start.line;
+            const endLine = func.body.loc.start.line;   
 
             if (node.range[0] >= func.range[0] && node.range[1] <= func.range[1]) {
               var replacement = source.slice(func.body.range[0], func.body.range[0] + 1);  //Start of function body {
               replacement = replacement + " " + selfDestruct;
-              mutations.push(new Mutation(file, func.body.range[0], func.body.range[0] + 1, replacement, this.ID));
+              mutations.push(new Mutation(file, func.body.range[0], func.body.range[0] + 1, startLine, endLine, replacement, this.ID));
             }
           }
         }

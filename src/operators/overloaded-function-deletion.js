@@ -43,9 +43,11 @@ OLFDOperator.prototype.getMutations = function(file, source, visit) {
       if (!node.override) {
         var start = node.range[0];
         var end = node.range[1];
+        const startLine = node.loc.start.line;
+        const endLine = node.loc.end.line;  
         var text = source.slice(start, end + 1);
         replacement = "/*" + text + "*/";
-        mutations.push(new Mutation(file, start, end + 1, replacement, ID));
+        mutations.push(new Mutation(file, start, end + 1, startLine, endLine, replacement, ID));
       }
     });
   }

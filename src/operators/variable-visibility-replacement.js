@@ -15,6 +15,10 @@ VVRoperator.prototype.getMutations = function(file, source, visit) {
 
         let replacement;
         var varDeclaration = source.substring(node.range[0], node.range[1]);
+        const start = node.range[0];
+        const end = node.range[1];
+        const startLine = node.loc.start.line;
+        const endLine = node.loc.end.line;  
 
         switch (node.variables[0].visibility) {
           case "public":
@@ -38,7 +42,7 @@ VVRoperator.prototype.getMutations = function(file, source, visit) {
             replacement = slice1 + "public" + slice2;
             break;
         }
-        mutations.push(new Mutation(file, node.range[0], node.range[1], replacement, this.ID));
+        mutations.push(new Mutation(file, start, end, startLine, endLine, replacement, this.ID));
       }
     }
   });

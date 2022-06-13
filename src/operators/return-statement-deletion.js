@@ -13,11 +13,12 @@ RSDoperator.prototype.getMutations = function(file, source, visit) {
     ReturnStatement: (node) => {
       const start = node.range[0];
       const end = node.range[1];
-
+      const startLine = node.loc.start.line;
+      const endLine = node.loc.end.line;  
       const text = source.slice(start, end + 1);
       const replacement = "/* " + text + " */";
 
-      mutations.push(new Mutation(file, start, end + 1, replacement, this.ID));
+      mutations.push(new Mutation(file, start, end + 1, startLine, endLine, replacement, this.ID));
     }
   });
 

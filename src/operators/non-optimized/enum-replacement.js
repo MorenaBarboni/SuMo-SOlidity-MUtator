@@ -17,14 +17,19 @@ EROperator.prototype.getMutations = function(file, source, visit) {
       //ERd - Enum Replacement - Default value
       if(node.members.length>1){
 
-        var start1 = node.members[0].range[0];
-        var end2 = node.members[1].range[1];
+        var start = node.members[0].range[0];
+        var end = node.members[1].range[1] + 1;
+        var startLine = node.members[0].loc.start.line;
+        var endLine = node.members[1].loc.end.line;  
         var deafultValue = node.members[0].name;
         var secondValue = node.members[1].name;
 
-        var replacement =source.slice(start1, end2+1);
+        var replacementStart = node.members[0].range[0];
+        var replacementEnd = node.members[1].range[1];
+        var replacement = source.slice(replacementStart, replacementEnd + 1);
+
         replacement = replacement.replace(deafultValue, "*").replace(secondValue, deafultValue).replace("*", secondValue);
-        mutations.push(new Mutation(file, node.members[0].range[0], node.members[1].range[1]+1, replacement, this.ID))
+        mutations.push(new Mutation(file, start, end, startLine, endLine, replacement, this.ID));
       }
       //ERm - Enum Replacement - Member
     visit({
@@ -37,7 +42,11 @@ EROperator.prototype.getMutations = function(file, source, visit) {
           thisEnum.members.forEach(m => {
             if(m.name !== node.memberName){
               var replacement = text.replace(node.memberName, m.name);
-              mutations.push(new Mutation(file, node.range[0], node.range[1] + 1, replacement, this.ID))
+              var start = node.range[0];
+              var end = node.range[1] + 1;
+              var startLine = node.loc.start.line;
+              var endLine = node.loc.start.line;
+              mutations.push(new Mutation(file, start, end, startLine, endLine, replacement, this.ID))
             }
           });
        }

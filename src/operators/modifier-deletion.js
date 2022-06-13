@@ -17,7 +17,11 @@ MODOperator.prototype.getMutations = function(file, source, visit) {
         node.modifiers.forEach(m => {
           var mod = source.slice(m.range[0], m.range[1] + 1);
           replacement = functionSignature.replace(mod, "");
-          mutations.push(new Mutation(file, node.range[0], node.range[1], replacement, this.ID));
+          const start = node.range[0];
+          const end = node.range[1];
+          const startLine = node.loc.start.line;
+          const endLine = node.loc.start.line;  
+          mutations.push(new Mutation(file, start, end, startLine, endLine, replacement, this.ID));
         });
       }
     }

@@ -13,16 +13,20 @@ LSCOperator.prototype.getMutations = function(file, source, visit) {
     ForStatement: (node) => {
       var start = node.conditionExpression.range[0];
       var end = node.conditionExpression.range[1];
-      mutations.push(new Mutation(file, start, end + 1, "true", this.ID));
-      mutations.push(new Mutation(file, start, end + 1, "false", this.ID));
+      const startLine = node.loc.start.line;
+      const endLine = node.loc.start.line;   
+      mutations.push(new Mutation(file, start, end + 1, startLine, endLine, "true", this.ID));
+      mutations.push(new Mutation(file, start, end + 1, startLine, endLine, "false", this.ID));
     }
   }),
     visit({
       WhileStatement: (node) => {
         var start = node.condition.range[0];
         var end = node.condition.range[1];
-        mutations.push(new Mutation(file, start, end + 1, "true", this.ID));
-        mutations.push(new Mutation(file, start, end + 1, "false", this.ID));
+        const startLine = node.loc.start.line;
+        const endLine = node.loc.start.line;  
+        mutations.push(new Mutation(file, start, end + 1, startLine, endLine, "true", this.ID));
+        mutations.push(new Mutation(file, start, end + 1, startLine, endLine, "false", this.ID));
       }
     });
 
