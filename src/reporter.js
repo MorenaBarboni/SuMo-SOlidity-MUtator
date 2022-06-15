@@ -169,7 +169,7 @@ Reporter.prototype.setupCoverageReport = function () {
   fs.writeFileSync(resultsDir + "/coverageReport.txt", "################################################ LOG ################################################", function (err) {
     if (err) return console.log(err);
   })
-  fs.writeFileSync(resultsDir + "/log.txt", "hash; coveredBy; \n", function (err) {
+  fs.writeFileSync(resultsDir + "/log.txt", "hash; startLine; endLine; coveredBy; \n", function (err) {
     if (err) return console.log(err);
   })
 }
@@ -183,7 +183,7 @@ Reporter.prototype.writeLog = function (mutant, hashOfRedundant) {
 
 //Write sync log
 Reporter.prototype.writeCoverageReport = function (mutant, coveredBy) {
-  fs.appendFileSync(resultsDir + "/coverageReport.txt", mutant.hash() + "; " + coveredBy + '\n', function (err) {
+  fs.appendFileSync(resultsDir + "/coverageReport.txt", mutant.hash() + "; " + mutant.startLine + "; " + mutant.endLine + "; " + coveredBy + '\n', function (err) {
     if (err) return console.log(err);
   })
 }
