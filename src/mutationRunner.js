@@ -264,7 +264,6 @@ function test() {
         var startTime = Date.now();
 
         for (const file of files) {
-          console.log("Testing mutants of " + file)
           runTest(mutations, file);
         }
         var testTime = ((Date.now() - startTime) / 60000).toFixed(2);

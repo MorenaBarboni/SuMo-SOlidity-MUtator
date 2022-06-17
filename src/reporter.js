@@ -154,9 +154,6 @@ Reporter.prototype.setupReport = function() {
 
 //Setup sync log
 Reporter.prototype.setupLog = function() { 
-  fs.writeFileSync(resultsDir+"/log.txt", "################################################ LOG ################################################", function (err) {
-    if (err) return console.log(err);
-  }) 
   fs.writeFileSync(resultsDir+"/log.txt", "hash; file; operator; start; end; status; isRedundantTo; testingTime; \n", function (err) {
     if (err) return console.log(err);
   }) 

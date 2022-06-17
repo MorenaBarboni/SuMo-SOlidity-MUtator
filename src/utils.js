@@ -12,7 +12,9 @@ const baselineDir = config.baselineDir;
 const contractsDir = config.contractsDir;
 const contractsGlob = config.contractsGlob;
 const buildDir = config.buildDir;
+const testDir = config.testDir;
 const packageManagerGlob = config.packageManagerGlob;
+const testsGlob = config.testsGlob;
 
 
 /**
