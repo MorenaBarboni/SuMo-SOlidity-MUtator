@@ -6,7 +6,7 @@ function ILROperator() {
 ILROperator.prototype.ID = "ILR";
 ILROperator.prototype.name = "integer-literal-replacement";
 
-ILROperator.prototype.getMutations = function(file, source, visit) {
+ILROperator.prototype.getMutations = function (file, source, visit) {
 
   const ID = this.ID;
   const mutations = [];
@@ -72,9 +72,29 @@ ILROperator.prototype.getMutations = function(file, source, visit) {
             inc = num + 1;
             dec = num - 1;
           } else {
-            num = BigInt(node.number);
-            inc = BigInt(num + 1n);
-            dec = BigInt(num - 1n);
+            let num;
+            let inc;
+            let dec;
+            //Scientific notation
+            if (node.number.toString().includes('e')) {
+              let arr = node.number.toString().split("e");
+
+              let mantissa = arr[0]
+              let exponential = arr[1]
+              let incMant = BigInt(parseInt(mantissa));
+              incMant = incMant + 1n;
+              inc = incMant.toString() +'e'+exponential.toString()
+              let decMant = BigInt(parseInt(mantissa));
+              decMant = decMant - 1n;
+              dec = decMant.toString() +'e'+exponential.toString()
+
+            } else {
+              num = BigInt(node.number);
+              inc = BigInt(num + 1n);
+              dec = BigInt(num - 1n);
+            }
+
+
           }
           mutations.push(new Mutation(file, node.range[0], node.range[1] + 1, dec + subdenomination, ID));
           mutations.push(new Mutation(file, node.range[0], node.range[1] + 1, inc + subdenomination, ID));
@@ -86,5 +106,6 @@ ILROperator.prototype.getMutations = function(file, source, visit) {
 
   return mutations;
 };
+
 
 module.exports = ILROperator;
