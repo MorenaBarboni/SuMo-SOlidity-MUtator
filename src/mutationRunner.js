@@ -313,7 +313,7 @@ function runTest(mutations, file) {
       } else {
         mutation.status = "stillborn";
       }
-      if (mutation.status !== "redunant") {
+      if (mutation.status !== "redundant") {
         reporter.writeLog(mutation, null);
       }
       reporter.mutantStatus(mutation);
