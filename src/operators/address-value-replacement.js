@@ -178,7 +178,7 @@ AVROperator.prototype.getMutations = function(file, source, visit) {
       mutations.push(new Mutation(file, start, end + 1, "0", ID));
     }
     //Mutate assignment to address(this)
-    else if (arg.type === "Identifier" && arg.name === "this", ID) {
+    else if (arg.type === "Identifier" && arg.name === "this") {
       mutations.push(new Mutation(file, start, end + 1, "0", ID));
     }
 
