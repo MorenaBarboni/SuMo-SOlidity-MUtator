@@ -132,6 +132,7 @@ function preflight() {
       if (err) throw err;
       glob(config.testDir + testsGlob, (err, testFiles) => {
         if (err) throw err;
+
         let contractsUnderMutation = contractSelection(contracFiles);
         let testsToBeRun = testSelection(testFiles);
         reporter.printFilesUnderTest(contractsUnderMutation, testsToBeRun);
@@ -155,7 +156,6 @@ function preflightAndSave() {
         let contractsUnderMutation = contractSelection(files);
         let testsToBeRun = testSelection(testFiles);
         reporter.printFilesUnderTest(contractsUnderMutation, testsToBeRun);
-        reporter.printFilesUnderTest(contractsUnderMutation);
         const mutations = generateAllMutations(files);
         for (const mutation of mutations) {
           mutation.save();
@@ -223,16 +223,24 @@ function preTest() {
 function test() {
 
   prepare(() =>
-    glob(config.contractsDir + contractsGlob, (err, files) => {
-      if (err) throw err;
+    glob(config.contractsDir + contractsGlob, (err, contractFiles) => {
+      if (err) {
+        console.error(err)
+        process.exit(1)
+      }
       glob(config.testDir + testsGlob, (err, testFiles) => {
         if (err) {
           console.error(err)
           process.exit(1)
         }
 
-        if (!files.length) {
+        if (!contractFiles.length) {
           console.error("Contract directory is empty")
+          process.exit()
+        }
+
+        if (!testFiles.length) {
+          console.error("Test directory is empty")
           process.exit()
         }
 
@@ -243,7 +251,7 @@ function test() {
           //save the bytecode of the original contracts
           exploreDirectories(config.buildDir)
           compiledArtifacts.map(artifact => {
-            for (const file of files) {
+            for (const file of contractFiles) {
               if (parse(artifact).name === parse(file).name) {
                 originalBytecodeMap.set(parse(file).name, saveBytecodeSync(artifact))
               }
@@ -251,9 +259,9 @@ function test() {
           })
         }
 
-        let contractsUnderMutation = contractSelection(files);
+        let contractsUnderMutation = contractSelection(contractFiles);
         let testsToBeRun = testSelection(testFiles);
-        unlinkTests(testFiles, testsToBeRun);
+        unlinkTests(testFiles);
         reporter.printFilesUnderTest(contractsUnderMutation, testsToBeRun);
 
         //Generate mutations
@@ -263,7 +271,7 @@ function test() {
         reporter.beginMutationTesting();
         var startTime = Date.now();
 
-        for (const file of files) {
+        for (const file of contractFiles) {
           runTest(mutations, file);
         }
         var testTime = ((Date.now() - startTime) / 60000).toFixed(2);
@@ -513,14 +521,14 @@ function testSelection(files) {
 /**
  * Unliks tests that must not be run
  * @param allTestFiles all test files
- * @param testFilesToBeRun tests to be kept
  * 
  */
-function unlinkTests(allTestFiles, testFilesToBeRun) {
-  for (const test of allTestFiles) {
-    console.log(testFilesToBeRun)
-    if (!testFilesToBeRun.includes(test)) {
-      fs.unlinkSync(test);
+function unlinkTests(allTestFiles) {
+  for (const file of allTestFiles) {
+    for (const path of config.skipTests) {
+      if (file.startsWith(path) && path !== "") {
+        fs.unlinkSync(file);
+      }
     }
   }
 }
