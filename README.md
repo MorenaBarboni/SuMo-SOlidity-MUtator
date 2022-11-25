@@ -16,7 +16,7 @@ Note that [ReSuMo](https://github.com/MorenaBarboni/ReSuMo/tree/main) advances t
 To install SuMo run ```npm install```.
 
 ## Configuration
-Before using SuMo you must specify your desired configuration in the [config.js](https://github.com/MorenaBarboni/SuMo-private/blob/master/src/config.js) file.
+Before using SuMo you must specify your desired configuration in the [config.js](https://github.com/MorenaBarboni/SuMo-SOlidity-MUtator/blob/master/src/config.js) file.
 
 ##### 1) SuMo directories
 These fields determine where SuMo stores data during the mutation testing process. Most paths are already set by default:
@@ -61,10 +61,10 @@ Before running SuMo make sure that the following options are present in your ```
             enabled: true,
             ...
         },
-	      metadata: {
-             bytecodeHash: "none"
+        metadata: {
+              bytecodeHash: "none"
         }
-     }
+      }
   }
 ```
 
@@ -177,13 +177,13 @@ To cite SuMo, please use the following:
 
 ```
 @article{BARBONI2022111445,
-title = {SuMo: A mutation testing approach and tool for the Ethereum blockchain},
-journal = {Journal of Systems and Software},
-volume = {193},
-pages = {111445},
-year = {2022},
-issn = {0164-1212},
-doi = {https://doi.org/10.1016/j.jss.2022.111445},
-author = {Morena Barboni and Andrea Morichetta and Andrea Polini}
+  title = {SuMo: A mutation testing approach and tool for the Ethereum blockchain},
+  journal = {Journal of Systems and Software},
+  volume = {193},
+  pages = {111445},
+  year = {2022},
+  issn = {0164-1212},
+  doi = {https://doi.org/10.1016/j.jss.2022.111445},
+  author = {Morena Barboni and Andrea Morichetta and Andrea Polini}
 }
 ```
