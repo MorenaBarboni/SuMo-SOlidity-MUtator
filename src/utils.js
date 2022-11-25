@@ -90,9 +90,9 @@ function restore() {
 
 
     });
-    console.log("Project restored.");
+    console.log("> Project restored.");
   } else {
-    console.log("No baseline available.");
+    console.log("> Project was not restored (No baseline available).");
   }
 }
 
@@ -102,9 +102,9 @@ function restore() {
 function cleanBuildDir() {
   if (fs.existsSync(buildDir)) {
     fsExtra.emptyDirSync(buildDir);
-    console.log("Build directory cleaned.");
+    console.log("> Build directory cleaned.");
   } else {
-    console.log("Build directory is already empty.");
+    console.log("> Build directory is already empty.");
   }
 }
 
@@ -119,7 +119,7 @@ function cleanTmp() {
       //console.log(f + ' deleted')
     }
   });
-  console.log("Ganache temporary files deleted.");
+  console.log("> Ganache temporary files deleted.");
 }
 
 
@@ -154,12 +154,12 @@ function getPackageManager() {
 * Restore test files
 */
 function restoreTestDir() {
-  const baselineTest = baselineDir + "/tests";
+  const baselineTest = baselineDir + "/test";
   if (fs.existsSync(baselineTest)) {
     fsExtra.copySync(baselineTest, testDir);
-    console.log("Test files restored");
+    console.log("> Test files restored");
   } else
-    console.log("No baseline exist ");
+    console.log("> Could not restore test files (No test baseline available)");
 }
 
 module.exports = {

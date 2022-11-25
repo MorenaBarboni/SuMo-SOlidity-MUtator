@@ -11,10 +11,16 @@ TOROperator.prototype.getMutations = function(file, source, visit) {
 
   visit({
     MemberAccess: (node) => {
+      const start = node.range[0];
+      const end = node.range[1] + 1;
+      const startLine = node.loc.start.line;
+      const endLine = node.loc.end.line;
+      const original = source.slice(start, end)
+
       if ((node.memberName == "origin")) {
-        mutations.push(new Mutation(file, node.range[0], node.range[1] + 1, "msg.sender", this.ID));
+        mutations.push(new Mutation(file, start, end, startLine, endLine, original, "msg.sender", this.ID));
       } else if (node.memberName == "sender") {
-        mutations.push(new Mutation(file, node.range[0], node.range[1] + 1, "tx.origin", this.ID));
+        mutations.push(new Mutation(file, start, end, startLine, endLine, original, "tx.origin", this.ID));
       }
     }
   });

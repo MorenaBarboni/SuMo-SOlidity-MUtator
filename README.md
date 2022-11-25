@@ -16,7 +16,7 @@ Note that [ReSuMo](https://github.com/MorenaBarboni/ReSuMo/tree/main) advances t
 To install SuMo run ```npm install```.
 
 ## Configuration
-Before using SuMo you must specify your desired configuration in the [config.js](https://github.com/MorenaBarboni/SuMo-SOlidity-MUtator/blob/master/src/config.js) file.
+Before using SuMo you must specify your desired configuration in the [config.js](https://github.com/MorenaBarboni/SuMo-private/blob/master/src/config.js) file.
 
 ##### 1) SuMo directories
 These fields determine where SuMo stores data during the mutation testing process. Most paths are already set by default:
@@ -75,14 +75,15 @@ Before running SuMo make sure that the following options are present in your ```
 Before starting the mutation process you can choose which mutation operators to use:
 * ```npm run sumo list``` shows the currently enabled mutation operators
 * ```npm run sumo enable``` enables all the mutation operators
-* ```npm run sumo enable ID``` enables the mutation operator ID
+* ```npm run sumo enable [ID]``` enables the mutation operator ID
 * ```npm run sumo disable``` disables all the mutation operators
-* ```npm run sumo disable ID``` disables the mutation operator ID
+* ```npm run sumo disable [ID]``` disables the mutation operator ID
 
 #### Viewing the available mutations
 Once everything is set up you can use:
 * ```npm run sumo preflight``` To view the available mutations and save a preliminary report  to ./sumo/report.txt
 * ```npm run sumo mutate``` To view the available mutations, save a preliminary report  to ./sumo/report.txt, and save a copy of each mutant to ./sumo/mutants
+* * ```npm run sumo diff [hash]``` To view the difference between the mutant identified by hash and its original contract
 
 #### Running Mutation Testing
 Use:
@@ -92,9 +93,12 @@ If you need to restore the project files, make sure to do so before performing o
 
 ### Results
 SuMo automatically creates a ```.sumo\results``` folder in the root directory of the project. <br/>
-At the end of the mutation testing process the folder will contain:
-* ```report.txt``` Test report
-* ```operators.xlsx``` Mutation operators report
+SuMo generates the following reports:
+* ```report.txt``` Provides information about the whole testing process
+* ```operators.xlsx``` Provides the results of the mutation testing process for each operator
+* ```generated.csv``` Provides detailed information about the generated mutants
+* ```results.csv``` Provides the mutation testing results for each mutant. This synchronous log is updated each time a mutant is assigned a status
+*  ```summary.csv``` Provides a summary of the mutation testing results
 * ```\alive``` Mutants that survived testing
 * ```\killed``` Mutants killed by tests
 * ```\equivalent``` Equivalent mutants discarded by the TCE
@@ -172,11 +176,14 @@ SuMo includes currently 25 Solidity-specific operators and 19 general operators,
 To cite SuMo, please use the following:
 
 ```
-@inproceedings{9463055,
-  author={Barboni, Morena and Morichetta, Andrea and Polini, Andrea},
-  booktitle={2021 IEEE/ACM International Conference on Automation of Software Test (AST)}, 
-  title={SuMo: A Mutation Testing Strategy for Solidity Smart Contracts}, 
-  year={2021},
-  pages={50-59}
-  } 
+@article{BARBONI2022111445,
+title = {SuMo: A mutation testing approach and tool for the Ethereum blockchain},
+journal = {Journal of Systems and Software},
+volume = {193},
+pages = {111445},
+year = {2022},
+issn = {0164-1212},
+doi = {https://doi.org/10.1016/j.jss.2022.111445},
+author = {Morena Barboni and Andrea Morichetta and Andrea Polini}
+}
 ```

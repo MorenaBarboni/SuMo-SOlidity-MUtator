@@ -13,8 +13,12 @@ BCRDOperator.prototype.getMutations = function(file, source, visit) {
     BreakStatement: (node) => {
       var start = node.range[0];
       var end = node.range[1];
-      mutations.push(new Mutation(file, start, end, "continue", this.ID));
-      mutations.push(new Mutation(file, start, end + 1, "", this.ID));
+      const startLine =  node.loc.start.line;
+      const endLine =  node.loc.end.line;
+      const original = source.slice(start, end)
+
+      mutations.push(new Mutation(file, start, end, startLine, endLine, original, "continue", this.ID));
+      mutations.push(new Mutation(file, start, end + 1, startLine, endLine, original, "", this.ID));
 
     }
   }),
@@ -22,8 +26,12 @@ BCRDOperator.prototype.getMutations = function(file, source, visit) {
       ContinueStatement: (node) => {
         var start = node.range[0];
         var end = node.range[1];
-        mutations.push(new Mutation(file, start, end, "break", this.ID));
-        mutations.push(new Mutation(file, start, end + 1, "", this.ID));
+        const startLine =  node.loc.start.line;
+        const endLine =  node.loc.end.line;
+        const original = source.slice(start, end)
+
+        mutations.push(new Mutation(file, start, end, startLine, endLine, original, "break", this.ID));
+        mutations.push(new Mutation(file, start, end + 1, startLine, endLine, original, "", this.ID));
       }
     });
 

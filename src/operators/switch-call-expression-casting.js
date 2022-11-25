@@ -43,19 +43,25 @@ SCECOperator.prototype.getMutations = function(file, source, visit) {
 
   /*Callback to mutate contract casting */
   function mutate() {
-    var start;
-    var end;
+    var start, end;
+    var startLine, endLine;
     var address;
-    var address2;
+    var original, replacement;
 
     casts.forEach(c1 => {
       start = c1.arguments[0].range[0];
-      end = c1.arguments[0].range[1];
+      end = c1.arguments[0].range[1] + 1;
+
+      startLine = c1.loc.start.line;
+      endLine = c1.loc.end.line;
+      original = source.slice(start, end);
+
       address = c1.arguments[0].number;
+
       casts.forEach(c2 => {
-        address2 = c2.arguments[0].number;
-        if (address !== address2) {
-          mutations.push(new Mutation(file, start, end + 1, address2, this.ID));
+        replacement = c2.arguments[0].number; //address2
+        if (address !== replacement) {
+          mutations.push(new Mutation(file, start, end, startLine, endLine, original, replacement, this.ID));
         }
       });
     });

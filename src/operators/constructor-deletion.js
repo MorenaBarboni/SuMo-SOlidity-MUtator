@@ -13,11 +13,12 @@ CCDOperator.prototype.getMutations = function(file, source, visit) {
     FunctionDefinition: (node) => {
       if (node.isConstructor) {
         const start = node.range[0];
-        const end = node.range[1];
-
-        const text = source.slice(start, end + 1);
-        const replacement = "/* " + text + " */";
-        mutations.push(new Mutation(file, start, end + 1, replacement, this.ID));
+        const end = node.range[1] +1;
+        var lineStart = node.loc.start.line;
+        var lineEnd = node.loc.end.line;
+        const original = source.slice(start, end);
+        const replacement = "/* " + original + " */";
+        mutations.push(new Mutation(file, start, end, lineStart, lineEnd, original, replacement, this.ID));
       }
     }
   });

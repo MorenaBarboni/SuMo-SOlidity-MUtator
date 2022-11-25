@@ -114,13 +114,15 @@ MOROperator.prototype.getMutations = function(file, source, visit) {
     for (var i = 0; i < funcModifiers.length; i++) {
       var start = functionNode.modifiers[i].range[0];
       var end = functionNode.modifiers[i].range[1] + 1;
-      var funcModifier = source.slice(start, end);
-
+      const startLine = functionNode.loc.start.line;
+      const endLine = functionNode.body.loc.start.line; 
+      var original = source.substring(start, end);  //function modifier
       var replacement = source.slice(modifierNode.range[0], modifierNode.range[1] + 1);
 
       /*the replacement is valid if it does not match any of the attached modifiers*/
-      if (replacement !== funcModifier && !funcModifiers.includes(replacement)) {
-        mutations.push(new Mutation(file, start, end, replacement, "MOR"));
+      if (replacement !== original && !original.includes(replacement)) {
+        console.log("replacing " + original + " with " +replacement)
+        mutations.push(new Mutation(file, start, end, startLine, endLine, original, replacement, "MOR"));
       }
     }
   }

@@ -12,11 +12,17 @@ BLROperator.prototype.getMutations = function(file, source, visit) {
 
   visit({
     BooleanLiteral: (node) => {
+      const start = node.range[0]
+      const end = node.range[1] + 1
+      const startLine =  node.loc.start.line;
+      const endLine =  node.loc.end.line;
+      const original = source.slice(start, end)
+
       if (prevRange != node.range) { //Avoid duplicate mutants
         if (node.value) {
-          mutations.push(new Mutation(file, node.range[0], node.range[1] + 1, "false", this.ID));
+          mutations.push(new Mutation(file, start, end, startLine, endLine, original, "false", this.ID));
         } else {
-          mutations.push(new Mutation(file, node.range[0], node.range[1] + 1, "true", this.ID));
+          mutations.push(new Mutation(file, start, end, startLine, endLine, original, "true", this.ID));
         }
       }
       prevRange = node.range;

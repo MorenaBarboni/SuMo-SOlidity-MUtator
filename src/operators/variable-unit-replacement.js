@@ -15,37 +15,40 @@ VUROperator.prototype.getMutations = function(file, source, visit) {
       if (node.subdenomination) {
         if (prevRange != node.range) {
           const start = node.range[0];
-          const end = node.range[1];
-          var replacement = source.slice(start, end + 1);
+          const end = node.range[1]  + 1;
+          const lineStart = node.loc.start.line;
+          const lineEnd = node.loc.end.line;
+          const original = source.slice(start, end);
+          let replacement;
 
           switch (node.subdenomination) {
             //VURe - Ether Units Replacement
             case "wei":
-              replacement = replacement.replace("wei", "ether");
+              replacement = original.replace("wei", "ether");
               break;
             case "ether":
-              replacement = replacement.replace("ether", "wei");
+              replacement = original.replace("ether", "wei");
               break;
             //VURt - Time Units Replacement
             case "seconds":
-              replacement = replacement.replace("seconds", "minutes");
+              replacement = original.replace("seconds", "minutes");
               break;
             case "minutes":
-              replacement = replacement.replace("minutes", "hours");
+              replacement = original.replace("minutes", "hours");
               break;
             case "hours":
-              replacement = replacement.replace("hours", "days");
+              replacement = original.replace("hours", "days");
               break;
             case "days":
-              replacement = replacement.replace("days", "weeks");
+              replacement = original.replace("days", "weeks");
               break;
             case "weeks":
-              replacement = replacement.replace("weeks", "seconds");
+              replacement = original.replace("weeks", "seconds");
               break;
             case "years":
-              replacement = replacement.replace("years", "seconds");
+              replacement = original.replace("years", "seconds");
           }
-          mutations.push(new Mutation(file, start, end + 1, replacement, this.ID));
+          mutations.push(new Mutation(file, start, end, lineStart, lineEnd, original, replacement, this.ID));
         }
         prevRange = node.range;
       }

@@ -16,5 +16,5 @@ module.exports = {
   tce: true,
   contractsGlob: '/**/*.sol',
   packageManagerGlob: ['/package-lock.json', '/yarn.lock'],
-  testsGlob:  '/**/*.{js,sol,ts}'
+  testGlob:  '/**/*.{js,sol,ts}'
 }

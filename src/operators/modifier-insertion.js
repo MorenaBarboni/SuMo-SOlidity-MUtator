@@ -107,7 +107,9 @@ MOIOperator.prototype.getMutations = function(file, source, visit) {
 
     var startF = functionNode.range[0];
     var endF = functionNode.body.range[0];
-    var functionSignature = source.substring(startF, endF);
+    var original = source.substring(startF, endF);  //function signature
+    const startLine = functionNode.loc.start.line;
+    const endLine = functionNode.body.loc.start.line; 
 
     var startM = modifierNode.range[0];
     var endM = modifierNode.range[1] + 1;
@@ -115,15 +117,15 @@ MOIOperator.prototype.getMutations = function(file, source, visit) {
 
     //If the function has return parameters
     if (functionNode.returnParameters && functionNode.returnParameters.length > 0) {
-      var slice1 = functionSignature.split("returns")[0];
-      var slice2 = " returns" + functionSignature.split("returns")[1];
+      var slice1 = original.split("returns")[0];
+      var slice2 = " returns" + original.split("returns")[1];
       var replacement = slice1 + modifier + slice2;
-      mutations.push(new Mutation(file, startF, endF, replacement, ID));
+      mutations.push(new Mutation(file, startF, endF, startLine, endLine, original, replacement, ID));
     }
     //If the function has no return parameters
     else {
-      var replacement = functionSignature + modifier + " ";
-      mutations.push(new Mutation(file, startF, endF, replacement, ID));
+      var replacement = original + modifier + " ";
+      mutations.push(new Mutation(file, startF, endF, startLine, endLine, original, replacement, ID));
     }
 
   }

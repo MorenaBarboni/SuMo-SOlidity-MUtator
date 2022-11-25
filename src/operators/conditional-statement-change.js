@@ -12,16 +12,21 @@ CSCOperator.prototype.getMutations = function(file, source, visit) {
   visit({
     IfStatement: (node) => {
       var start = node.condition.range[0];
-      var end = node.condition.range[1];
-      mutations.push(new Mutation(file, start, end + 1, "true", this.ID));
-      mutations.push(new Mutation(file, start, end + 1, "false", this.ID));
+      var end = node.condition.range[1] +1;
+      var lineStart = node.condition.loc.start.line;
+      var lineEnd = node.condition.loc.end.line;
+      var original = source.slice(start, end);
+      mutations.push(new Mutation(file, start, end, lineStart, lineEnd, original, "true", this.ID));
+      mutations.push(new Mutation(file, start, end, lineStart, lineEnd, original, "false", this.ID));
 
       if (node.falseBody && !node.falseBody.trueBody) { //If this is the last falseBody
         start = node.trueBody.range[1] + 1;
-        end = node.falseBody.range[1];
-        var text = source.slice(start, end + 1);
-        var replacement = "/*" + text + "*/";
-        mutations.push(new Mutation(file, start, end + 1, replacement, this.ID));
+        end = node.falseBody.range[1] +1;
+        lineStart = node.trueBody.loc.start.line;
+        lineEnd = node.falseBody.loc.end.line;
+        original = source.slice(start, end);
+        var replacement = "/*" + original + "*/";
+        mutations.push(new Mutation(file, start, end, lineStart, lineEnd, original, replacement, this.ID));
       }
 
     }

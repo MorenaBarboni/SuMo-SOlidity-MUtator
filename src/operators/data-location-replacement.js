@@ -13,14 +13,16 @@ DLROperator.prototype.getMutations = function(file, source, visit) {
     VariableDeclaration: (node) => {
       if (node.storageLocation) {
         const start = node.range[0];
-        const end = node.range[1];
-        var replacement = source.slice(start, end + 1);
+        const end = node.range[1] +1;
+        const lineStart = node.loc.start.line;
+        const lineEnd = node.loc.end.line;
+        const original = source.slice(start, end);
         if (node.storageLocation === "memory") {
-          replacement = replacement.replace("memory", "storage");
-          mutations.push(new Mutation(file, start, end + 1, replacement, this.ID));
+          replacement = original.replace("memory", "storage");
+          mutations.push(new Mutation(file, start, end, lineStart, lineEnd, original, replacement, this.ID));
         } else if (node.storageLocation === "storage") {
-          replacement = replacement.replace("storage", "memory");
-          mutations.push(new Mutation(file, start, end + 1, replacement, this.ID));
+          replacement = original.replace("storage", "memory");
+          mutations.push(new Mutation(file, start, end, lineStart, lineEnd, original, replacement, this.ID));
         }
       }
     }

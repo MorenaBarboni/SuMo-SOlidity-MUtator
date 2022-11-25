@@ -13,8 +13,13 @@ VVRoperator.prototype.getMutations = function(file, source, visit) {
     StateVariableDeclaration: (node) => {
       if (node.variables[0].typeName.type != "Mapping") {
 
-        let replacement;
-        let replacement2;
+        const start = node.range[0];
+        const end = node.range[1];
+        const startLine = node.loc.start.line;
+        const endLine = node.loc.end.line;
+        const original = source.slice(start, end)
+        let replacement, replacement2;
+                
         var varDeclaration = source.substring(node.range[0], node.range[1]);
 
         switch (node.variables[0].visibility) {
@@ -43,8 +48,8 @@ VVRoperator.prototype.getMutations = function(file, source, visit) {
             replacement2 = slice1 + "private" + slice2;
             break;
         }
-        mutations.push(new Mutation(file, node.range[0], node.range[1], replacement, this.ID));
-        mutations.push(new Mutation(file, node.range[0], node.range[1], replacement2, this.ID));
+        mutations.push(new Mutation(file, start, end, startLine, endLine, original, replacement, this.ID));
+        mutations.push(new Mutation(file,  start, end, startLine, endLine, original, replacement2, this.ID));
       }
     }
   });

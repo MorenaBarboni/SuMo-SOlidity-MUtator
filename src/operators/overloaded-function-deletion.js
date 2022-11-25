@@ -42,10 +42,12 @@ OLFDOperator.prototype.getMutations = function(file, source, visit) {
       //Overridden functions are mutated by ORFD
       if (!node.override) {
         var start = node.range[0];
-        var end = node.range[1];
-        var text = source.slice(start, end + 1);
-        replacement = "/*" + text + "*/";
-        mutations.push(new Mutation(file, start, end + 1, replacement, ID));
+        var end = node.range[1] +1;
+        const startLine = node.loc.start.line;
+        const endLine = node.loc.end.line; 
+        const original = source.slice(start, end);
+        const replacement = "/*" + original + "*/";
+        mutations.push(new Mutation(file, start, end, startLine, endLine, original, replacement, ID));
       }
     });
   }

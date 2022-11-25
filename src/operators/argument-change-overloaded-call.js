@@ -60,14 +60,14 @@ ACMOperator.prototype.getMutations = function(file, source, visit) {
 
             //If the calls have a different number of arguments
             if (f.arguments.length !== r.arguments.length) {
-              apply(f.range[0], f.range[1], r.range[0], r.range[1]);
+              apply(f, r);
               break;
             }
             //If the calls have the same number of arguments but different order
             else {
               for (var i = 0; i < f.arguments.length; i++) {
                 if (f.arguments[i].type !== r.arguments[i].type) {
-                  apply(f.range[0], f.range[1], r.range[0], r.range[1]);
+                  apply(f, r);
                   break;
                 }
               }
@@ -79,9 +79,18 @@ ACMOperator.prototype.getMutations = function(file, source, visit) {
     }
   }
 
-  function apply(originalStart, originalEnd, replacementStart, replacementEnd) {
-    var text = source.slice(replacementStart, replacementEnd + 1);
-    mutations.push(new Mutation(file, originalStart, originalEnd + 1, text, this.ID));
+  function apply(originalNode, replacementNode) {
+    
+    let oStart = originalNode.range[0];
+    let oEnd = originalNode.range[1] + 1;
+    let oLineStart = originalNode.loc.start.line;
+    let oLineEnd = originalNode.loc.end.line;
+    let rStart = replacementNode.range[0];
+    let rEnd = replacementNode.range[1] + 1;
+
+    var original = source.slice(oStart, oEnd);    
+    var replacement = source.slice(rStart, rEnd);
+    mutations.push(new Mutation(file, oStart, oEnd, oLineStart, oLineEnd, original, replacement, this.ID));
   }
 
 

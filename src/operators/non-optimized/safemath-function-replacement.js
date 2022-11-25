@@ -2,12 +2,11 @@ const Mutation = require('../../mutation')
 
 function SFROperator() { }
 
-SFROperator.prototype.ID = 'SFR'
-SFROperator.prototype.name = 'safemath-function-replacement'
+SFROperator.prototype.ID = 'SFR';
+SFROperator.prototype.name = 'safemath-function-replacement';
 
 SFROperator.prototype.getMutations = function (file, source, visit) {
-  const mutations = []
-
+  const mutations = [];
   var isUsingSafeMath = false;
 
   visit({
@@ -20,62 +19,62 @@ SFROperator.prototype.getMutations = function (file, source, visit) {
   if (isUsingSafeMath) {
     visit({
       MemberAccess: (node) => {
-
         const start = node.range[0];
-        const end = node.range[1];
-        var text = source.slice(start, end + 1);
+        const end = node.range[1] + 1;
+        const lineStart = node.loc.start.line;
+        const lineEnd = node.loc.end.line;
+        const original = source.slice(start, end);
 
-        var replacement;
-        var replacement2; 
-        var replacement3;
-        var replacement4; 
+        var replacement, replacement2, replacement3, replacement4;
 
         switch (node.memberName) {
           case 'add':
-            replacement = text.replace('add', 'sub');
-            replacement2 = text.replace('add', 'div');
-            replacement3 = text.replace('add', 'mul');
-            replacement4 = text.replace('add', 'mod');
+            replacement = original.replace('add', 'sub');
+            replacement2 = original.replace('add', 'div');
+            replacement3 = original.replace('add', 'mul');
+            replacement4 = original.replace('add', 'mod');
+
             break;
           case 'sub':
-            replacement = text.replace('sub', 'add');
-            replacement2 = text.replace('sub', 'div');
-            replacement3 = text.replace('sub', 'mul');
-            replacement4 = text.replace('sub', 'mod');
+            replacement = original.replace('sub', 'add');
+            replacement2 = original.replace('sub', 'div');
+            replacement3 = original.replace('sub', 'mul');
+            replacement4 = original.replace('sub', 'mod');
             break;
           case 'mul':
-            replacement = text.replace('mul', 'add');
-            replacement2 = text.replace('mul', 'div');
-            replacement3 = text.replace('mul', 'sub');
-            replacement4 = text.replace('mul', 'mod');
+            replacement = original.replace('mul', 'add');
+            replacement2 = original.replace('mul', 'div');
+            replacement3 = original.replace('mul', 'sub');
+            replacement4 = original.replace('mul', 'mod');
             break;
           case 'div':
-            replacement = text.replace('div', 'mul');
-            replacement2 = text.replace('div', 'add');
-            replacement3 = text.replace('div', 'sub');
-            replacement4 = text.replace('div', 'mod');
+            replacement = original.replace('div', 'mul');
+            replacement2 = original.replace('div', 'add');
+            replacement3 = original.replace('div', 'sub');
+            replacement4 = original.replace('div', 'mod');
             break;
           case 'mod':
-            replacement = text.replace('mod', 'mul');
-            replacement2 = text.replace('mod', 'add');
-            replacement3 = text.replace('mod', 'sub');
-            replacement4 = text.replace('mod', 'div');
+            replacement = original.replace('mod', 'mul');
+            replacement2 = original.replace('mod', 'add');
+            replacement3 = original.replace('mod', 'sub');
+            replacement4 = original.replace('mod', 'div');
             break;
         }
         if (replacement) {
-          mutations.push(new Mutation(file, start, end + 1, replacement, this.ID))
+          mutations.push(new Mutation(file, start, end, lineStart, lineEnd, original, replacement, this.ID))
         }
         if (replacement2) {
-          mutations.push(new Mutation(file, start, end + 1, replacement2, this.ID))
+          mutations.push(new Mutation(file, start, end, lineStart, lineEnd, original, replacement2, this.ID))
         }
         if (replacement3) {
-          mutations.push(new Mutation(file, start, end + 1, replacement3, this.ID))
+          mutations.push(new Mutation(file, start, end, lineStart, lineEnd, original, replacement3, this.ID))
         }
         if (replacement4) {
-          mutations.push(new Mutation(file, start, end + 1, replacement4, this.ID))
+          mutations.push(new Mutation(file, start, end, lineStart, lineEnd, original, replacement4, this.ID))
         }
       }
     })
+
   }
 
   return mutations

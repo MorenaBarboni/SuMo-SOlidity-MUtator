@@ -25,9 +25,13 @@ SKIOperator.prototype.getMutations = function(file, source, visit) {
               if (overriddenFunctions.includes(node.expression.name)) {
                 var start = node.expression.range[0];
                 var end = node.expression.range[1];
-                var text = source.slice(start, end);
-                var replacement = "super." + text;
-                mutations.push(new Mutation(file, start, end, replacement, this.ID));
+                
+                const startLine = node.expression.loc.start.line;
+                const endLine = node.expression.loc.end.line;
+                const original = source.slice(start, end);
+        
+                const replacement = "super." + original;
+                mutations.push(new Mutation(file, start, end, startLine, endLine, original, replacement, this.ID));
               }
             }
           });

@@ -38,8 +38,8 @@ RVSOperator.prototype.getMutations = function(file, source, visit) {
         }
 
         var size;
-        var exprStart;
-        var exprEnd;
+        var exprStart, exprEnd;
+        var lineStart, lineEnd;
         var original;
         var tokens;
         var replacement;
@@ -48,9 +48,10 @@ RVSOperator.prototype.getMutations = function(file, source, visit) {
           if (returnNode.expression.components) {
             var returnValues = returnNode.expression.components; // return values nodes
             size = returnValues.length; // number of return values
-
             exprStart = returnValues[0].range[0];
             exprEnd = returnValues[size - 1].range[1];
+            lineStart = returnValues[0].loc.start.line;
+            lineEnd = returnValues[size-1].loc.end.line;
             original = source.substring(exprStart, exprEnd + 1); //return statement substring
             tokens = original.split(","); //tokenized return values
           }
@@ -60,6 +61,8 @@ RVSOperator.prototype.getMutations = function(file, source, visit) {
           size = node.returnParameters.length; // number of return parameters
           exprStart = node.returnParameters[0].range[0];
           exprEnd = node.returnParameters[size - 1].range[1];
+          lineStart =  node.returnParameters[0].loc.start.line;
+          lineEnd = node.returnParameters[size-1].loc.end.line;
           original = source.substring(exprStart, exprEnd + 1); //return statement substring
           tokens = original.split(","); //tokenized return values
         }
@@ -90,7 +93,7 @@ RVSOperator.prototype.getMutations = function(file, source, visit) {
           }
         }
         if (replacement) {
-          mutations.push(new Mutation(file, exprStart, exprEnd + 1, replacement, this.ID));
+          mutations.push(new Mutation(file, exprStart, exprEnd + 1, lineStart, lineEnd, original, replacement, this.ID));
         }
       }
 

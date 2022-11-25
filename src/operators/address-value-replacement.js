@@ -6,7 +6,7 @@ function AVROperator() {
 AVROperator.prototype.ID = "AVR";
 AVROperator.prototype.name = "address-value-replacement";
 
-AVROperator.prototype.getMutations = function(file, source, visit) {
+AVROperator.prototype.getMutations = function (file, source, visit) {
 
   const ID = this.ID;
   const mutations = [];
@@ -155,47 +155,61 @@ AVROperator.prototype.getMutations = function(file, source, visit) {
   //Mutates simple literal addresses and identifiers
   function mutateSimpleAddress(node) {
     const start = node.range[0];
-    const end = node.range[1];
-    mutations.push(new Mutation(file, start, end + 1, "address(this)", ID));
-    mutations.push(new Mutation(file, start, end + 1, "address(0)", ID));
+    var end = node.range[1] + 1;
+    const startLine = node.loc.start.line;
+    const endLine = node.loc.end.line;
+    const original = source.slice(start, end)
+
+    mutations.push(new Mutation(file, start, end, startLine, endLine, original, "address(this)", ID));
+    mutations.push(new Mutation(file, start, end, startLine, endLine, original, "address(0)", ID));
+
     //Swap the literal address with each declared literal address
     literalAddress.forEach(a => {
-      if (a !== node.number)
-        mutations.push(new Mutation(file, start, end + 2, a + ";", ID));
+      if (a !== node.number) {
+        end = node.range[1] + 2;
+        mutations.push(new Mutation(file, start, end, startLine, endLine, original, a + ";", ID));
+      }
     });
   }
 
   //Mutates address function calls
   function mutateFunctionCall(node) {
     const start = node.arguments[0].range[0];
-    const end = node.arguments[0].range[1];
+    const end = node.arguments[0].range[1] + 1;
+    const startLine = node.arguments[0].loc.start.line;
+    const endLine = node.arguments[0].loc.end.line;
+    const original = source.slice(start, end);
+
     var arg = node.arguments[0];
     var thisExpr = source.slice(node.range[0], node.range[1] + 1);
 
     //Mutate assignment to address(varName)
     if (arg.type === "Identifier" && arg.name !== "this") {
-      mutations.push(new Mutation(file, start, end + 1, "this", ID));
-      mutations.push(new Mutation(file, start, end + 1, "0", ID));
+      mutations.push(new Mutation(file, start, end, startLine, endLine, original, "this", ID));
+      mutations.push(new Mutation(file, start, end, startLine, endLine, original, "0", ID));
     }
     //Mutate assignment to address(this)
     else if (arg.type === "Identifier" && arg.name === "this") {
-      mutations.push(new Mutation(file, start, end + 1, "0", ID));
+       mutations.push(new Mutation(file, start, end, startLine, endLine, original, "0", ID));
     }
 
     //address(0x123)
     else if (arg.type === "NumberLiteral") {
       var addrValue = parseInt(arg.number);
       if (addrValue !== 0) {
-        mutations.push(new Mutation(file, start, end + 1, "0", ID));
+        mutations.push(new Mutation(file, start, end, startLine, endLine, original, "0", ID));
       }
-      mutations.push(new Mutation(file, start, end + 1, "this", ID));
+      mutations.push(new Mutation(file, start, end, startLine, endLine, original, "this", ID));
     }
     //Swap the function with each declared address
     literalAddress.forEach(a => {
       if (a !== thisExpr) {
         var start = node.expression.range[0];
-        var end = node.arguments[0].range[1];
-        mutations.push(new Mutation(file, start, end + 2, a, ID));
+        var end = node.arguments[0].range[1] + 2;
+        const startLine = node.expression.loc.start.line;
+        const endLine = node.expression.loc.end.line;
+        const original = source.slice(start, end);
+        mutations.push(new Mutation(file, start, end, startLine, endLine, original, a, ID));
       }
     });
   }

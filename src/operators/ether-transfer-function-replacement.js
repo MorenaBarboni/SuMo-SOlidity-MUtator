@@ -16,14 +16,15 @@ ETROperator.prototype.getMutations = function(file, source, visit) {
       if ((node.expression.type == "MemberAccess" || (node.expression.expression && node.expression.expression.type == "MemberAccess"))) {
         if (functions.includes(node.expression.memberName) || functions.includes(node.expression.expression.memberName)) {
 
-          var replacement;
-          var replacement2;
-
           //Call methods with gas or value - ex: call{value:...,gas:...}("")
           if (node.expression.expression && functions.includes(node.expression.expression.memberName)) {
 
+            var replacement, replacement2;
             const start = node.range[0];
-            const end = node.range[1];
+            const end = node.range[1] +1;
+            const startLine = node.loc.start.line;
+            const endLine = node.loc.end.line;
+            const original = source.slice(start, end);
 
             const addressStart = node.expression.expression.expression.range[0];
             const addressEnd = node.expression.expression.expression.range[1];
@@ -51,18 +52,25 @@ ETROperator.prototype.getMutations = function(file, source, visit) {
                 replacement = replacement + "(" + callArguments + ")";
                 replacement2 = replacement2 + "(" + callArguments + ")";
 
-                mutations.push(new Mutation(file, start, end + 1, replacement, this.ID));
-                mutations.push(new Mutation(file, start, end + 1, replacement2, this.ID));
+                mutations.push(new Mutation(file, start, end, startLine, endLine, original, replacement, this.ID));
+                mutations.push(new Mutation(file, start, end, startLine, endLine, original, replacement2, this.ID));
 
 
               } else if (node.expression.expression.memberName === "delegatecall") {
+                
+                replacement =  address + ".call" + "{" + valueArguments + "}" + "(" + callArguments + ")";
+                replacement2 =  address + ".staticcall" + "{" + valueArguments + "}" + "(" + callArguments + ")";
 
-                mutations.push(new Mutation(file, start, end + 1, address + ".call" + "{" + valueArguments + "}" + "(" + callArguments + ")", this.ID));
-                mutations.push(new Mutation(file, start, end + 1, address + ".staticcall" + "{" + valueArguments + "}" + "(" + callArguments + ")", this.ID));
+                mutations.push(new Mutation(file, start, end, startLine, endLine, original, replacement, this.ID));
+                mutations.push(new Mutation(file, start, end, startLine, endLine, original, replacement2, this.ID));
 
               } else if (node.expression.expression.memberName === "staticcall") {
-                mutations.push(new Mutation(file, start, end + 1, address + ".call" + "{" + valueArguments + "}" + "(" + callArguments + ")", this.ID));
-                mutations.push(new Mutation(file, start, end + 1, address + ".delegatecall" + "{" + valueArguments + "}" + "(" + callArguments + ")", this.ID));
+
+                replacement =  address + ".call" + "{" + valueArguments + "}" + "(" + callArguments + ")";
+                replacement2 =  address + ".delegatecall" + "{" + valueArguments + "}" + "(" + callArguments + ")";
+
+                mutations.push(new Mutation(file, start,  startLine, endLine, original, end, replacement , this.ID));
+                mutations.push(new Mutation(file, start,  startLine, endLine, original, end, replacement2 , this.ID));
               }
             }
           }
@@ -70,7 +78,12 @@ ETROperator.prototype.getMutations = function(file, source, visit) {
           else {
 
             var start = node.expression.range[0];
-            var end = node.expression.range[1];
+            var end = node.expression.range[1] +1;
+            var startLine = node.expression.loc.start.line;
+            var endLine = node.expression.loc.end.line;
+            let original = source.slice(start, end);
+            let replacement, replacement2;
+
             const addressStart = node.expression.expression.range[0];
             const addressEnd = node.expression.expression.range[1];
             const address = source.slice(addressStart, addressEnd + 1);
@@ -92,45 +105,67 @@ ETROperator.prototype.getMutations = function(file, source, visit) {
 
             //call
             if (node.expression.memberName == "call") {
-              mutations.push(new Mutation(file, start, end + 1, address + ".delegatecall", this.ID));
-              mutations.push(new Mutation(file, start, end + 1, address + ".staticcall", this.ID));
+              
+              replacement = address + ".delegatecall";
+              replacement2 = address + ".staticcall";
+
+              mutations.push(new Mutation(file, start, end, startLine, endLine, original, replacement , this.ID));
+              mutations.push(new Mutation(file, start, end, startLine, endLine, original, replacement2 , this.ID));
             }
             //delegatecall
             else if (node.expression.memberName == "delegatecall") {
-              mutations.push(new Mutation(file, start, end + 1, address + ".call", this.ID));
-              mutations.push(new Mutation(file, start, end + 1, address + ".staticcall", this.ID));
+
+              replacement = address + ".call";
+              replacement2 = address + ".staticcall";
+
+              mutations.push(new Mutation(file, start, end, startLine, endLine, original, replacement, this.ID));
+              mutations.push(new Mutation(file, start, end, startLine, endLine, original, replacement2, this.ID));
             }
             //staticcall
             else if (node.expression.memberName == "staticcall") {
-              mutations.push(new Mutation(file, start, end + 1, address + ".call", this.ID));
-              mutations.push(new Mutation(file, start, end + 1, address + ".delegatecall", this.ID));
+
+              replacement =  address + ".call";
+              replacement2 = address + ".delegatecall";
+
+              mutations.push(new Mutation(file, start, end, startLine, endLine, original, replacement, this.ID));
+              mutations.push(new Mutation(file, start, end, startLine, endLine, original, replacement2, this.ID));
             }
             //send
             else if (node.expression.memberName == "send") {
 
-              mutations.push(new Mutation(file, start, end + 1, address + ".transfer", this.ID));
+              replacement = address + ".transfer";      
+              mutations.push(new Mutation(file, start, end, startLine, endLine, original, replacement , this.ID));
 
               start = node.range[0];
-              end = node.range[1];
-              replacement = address + ".call{value: " + arg;
+              end = node.range[1] +1;
+              startLine = node.loc.start.line;
+              endLine = node.loc.end.line;
+
+              replacement2 = address + ".call{value: " + arg;
               if (subdenomination)
-                replacement = replacement + " " + subdenomination + "}(\"\")";
+                replacement2 = replacement2 + " " + subdenomination + "}(\"\")";
               else
-                replacement = replacement + "}(\"\")";
-              mutations.push(new Mutation(file, start, end + 1, replacement, this.ID));
+                replacement2 = replacement2 + "}(\"\")";
+
+              mutations.push(new Mutation(file, start, end,  startLine, endLine, original, replacement2, this.ID));
 
             }  //transfer
             else if (node.expression.memberName == "transfer") {
 
-              mutations.push(new Mutation(file, start, end + 1, address + ".send", this.ID));
+              replacement =  address + ".send";      
+              mutations.push(new Mutation(file, start, end, startLine, endLine, original, replacement, this.ID));
+
               start = node.range[0];
-              end = node.range[1];
-              replacement = address + ".call{value: " + arg;
+              end = node.range[1] +1;
+              startLine = node.loc.start.line;
+              endLine = node.loc.end.line;
+
+              replacement2 = address + ".call{value: " + arg;
               if (subdenomination)
-                replacement = replacement + " " + subdenomination + "}(\"\")";
+                replacement2 = replacement2 + " " + subdenomination + "}(\"\")";
               else
-                replacement = replacement + "}(\"\")";
-              mutations.push(new Mutation(file, start, end + 1, replacement, this.ID));
+                replacement2 = replacement2 + "}(\"\")";
+              mutations.push(new Mutation(file, start, end, startLine, endLine, original, replacement2, this.ID));
             }
 
           }

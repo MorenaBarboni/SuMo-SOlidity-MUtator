@@ -6,48 +6,53 @@ function FVROperator() {
 FVROperator.prototype.ID = "FVR";
 FVROperator.prototype.name = "function-visibility-replacement";
 
-FVROperator.prototype.getMutations = function(file, source, visit) {
+FVROperator.prototype.getMutations = function (file, source, visit) {
   const mutations = [];
 
   visit({
     FunctionDefinition: (node) => {
       if (!node.isReceiveEther && !node.isFallback && !node.isVirtual && node.override == null) {
-        let replacement;
+        if (node.body) {
+          const start = node.range[0];
+          const end = node.body.range[0];
+          const startLine = node.loc.start.line;
+          const endLine = node.body.loc.start.line;
+          const original = source.substring(start, end); //function signature  
+          let replacement;
 
-        var functionSignature = source.substring(node.range[0], node.range[1]);
-
-        //Constructor
-        if (node.isConstructor) {
-          if (node.visibility === "public") {
-            replacement = functionSignature.replace("public", "internal");
-          } else if (node.visibility === "internal") {
-            replacement = functionSignature.replace("internal", "public");
+          //Constructor
+          if (node.isConstructor) {
+            if (node.visibility === "public") {
+              replacement = original.replace("public", "internal");
+            } else if (node.visibility === "internal") {
+              replacement = original.replace("internal", "public");
+            }
           }
-        }
-        //Standard function
-        else {
-          switch (node.visibility) {
-            case "public":
-              if (node.stateMutability !== "payable") {
-                replacement = functionSignature.replace("public", "internal");
-              }
-              break;
-            case "external":
-              if (node.stateMutability !== "payable") {
-                replacement = functionSignature.replace("external", "internal");
-              }
-              break;
-            case "internal":
-              replacement = functionSignature.replace("internal", "public");
-              break;
-            case "private":
-              replacement = functionSignature.replace("private", "public");
-              break;
+          //Standard function
+          else {
+            switch (node.visibility) {
+              case "public":
+                if (node.stateMutability !== "payable") {
+                  replacement = original.replace("public", "internal");
+                }
+                break;
+              case "external":
+                if (node.stateMutability !== "payable") {
+                  replacement = original.replace("external", "internal");
+                }
+                break;
+              case "internal":
+                replacement = original.replace("internal", "public");
+                break;
+              case "private":
+                replacement = original.replace("private", "public");
+                break;
+            }
           }
+          if (replacement)
+            mutations.push(new Mutation(file, start, end, startLine, endLine, original, replacement, this.ID));
         }
-        if (replacement)
-          mutations.push(new Mutation(file, node.range[0], node.range[1], replacement, this.ID));
-         }
+      }
     }
   });
   return mutations;

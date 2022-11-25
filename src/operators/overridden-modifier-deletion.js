@@ -17,9 +17,11 @@ OMDOperator.prototype.getMutations = function(file, source, visit) {
             if (node.override) {
               var start = node.range[0];
               var end = node.range[1] + 1;
-              var text = source.slice(start, end);
-              replacement = "/*" + text + "*/";
-              mutations.push(new Mutation(file, start, end, replacement, this.ID));
+              const startLine = node.loc.start.line;
+              const endLine = node.loc.end.line; 
+              var original = source.slice(start, end);
+              replacement = "/*" + original + "*/";
+              mutations.push(new Mutation(file, start, end, startLine, endLine, original, replacement, this.ID));
             }
           }
         });
