@@ -40,7 +40,7 @@ These fields allow to set up the mutation testing process
 * ```skipContracts```: array of paths to contract files (or contract folders) that must be ignored by SuMo during mutation testing
 *  ```skipTests```:   array of paths to test files that must be ignored by SuMo 
 * ```tce```: enable the Trivial Compiler Equivalence (true by default),
-* * ```testingFramework```: the testing framework to be used. Available options are:
+* ```testingFramework```: the testing framework to be used. Available options are:
   * custom: SuMo uses the compile and test script defined in the package.json of the SUT;
   * truffle: SuMo uses the default Truffle compile and test commands;
   * hardhat: SuMo uses the default Hardhat compile and test commands;
