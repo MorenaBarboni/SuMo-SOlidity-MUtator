@@ -33,7 +33,6 @@ const contractsGlob = config.contractsGlob;
 const testsGlob = config.testsGlob;
 
 var packageManager;
-var runScript;
 var compiledArtifacts = [];
 var originalBytecodeMap = new Map();
 
@@ -93,10 +92,14 @@ function prepare(callback) {
     process.exit(1);
   }
 
+  if (config.testingFramework !== "truffle" && config.testingFramework !== "hardhat" && config.testingFramework !== "custom") {
+  console.error("The specified testing framework is not valid. \n The available options are:\n - truffle \n - hardhat \n - foundry \n - custom");
+  process.exit(1);
+}
+
+
   //Checks the package manager used by the SUT
-  let pmConfig = utils.getPackageManager()
-  packageManager = pmConfig.packageManager;
-  runScript = pmConfig.runScript;
+  packageManager = utils.getPackageManager()
 
   if (fs.existsSync(baselineDir)) {
     rimraf(baselineDir, function () {
@@ -128,12 +131,12 @@ function prepare(callback) {
  */
 function preflight() {
   prepare(() =>
-    glob(config.contractsDir + contractsGlob, (err, contracFiles) => {
+    glob(config.contractsDir + contractsGlob, (err, contracts) => {
       if (err) throw err;
-      glob(config.testDir + testsGlob, (err, testFiles) => {
+      glob(config.testDir + testsGlob, (err, tests) => {
         if (err) throw err;
-        let contractsUnderMutation = contractSelection(contracFiles);
-        let testsToBeRun = testSelection(testFiles);
+        let contractsUnderMutation = contractSelection(contracts);
+        let testsToBeRun = testSelection(tests);
         reporter.logSelectedFiles(contractsUnderMutation, testsToBeRun);
         generateAllMutations(contractsUnderMutation, true)
       })
@@ -147,12 +150,12 @@ function preflight() {
  */
 function mutate() {
   prepare(() =>
-    glob(config.contractsDir + contractsGlob, (err, files) => {
+    glob(config.contractsDir + contractsGlob, (err, contracts) => {
       if (err) throw err;
-      glob(config.testDir + testsGlob, (err, testFiles) => {
+      glob(config.testDir + testsGlob, (err, tests) => {
         if (err) throw err;
-        let contractsUnderMutation = contractSelection(files);
-        let testsToBeRun = testSelection(testFiles);
+        let contractsUnderMutation = contractSelection(contracts);
+        let testsToBeRun = testSelection(tests);
         reporter.logSelectedFiles(contractsUnderMutation, testsToBeRun);
         reporter.logSelectedFiles(contractsUnderMutation);
         const mutations = generateAllMutations(contractsUnderMutation, true);
@@ -190,16 +193,29 @@ function generateAllMutations(files, overwrite) {
 /**
  * Runs the original test suite to ensure that all tests pass.
  */
-function preTest() {
+ function preTest(contractsUnderMutation, testsToBeRun) {
+
   reporter.logPretest();
+
+  if (contractsUnderMutation.length == 0) {
+    console.log(chalk.red("- No contracts to be mutated"))
+    process.exit(1)
+  }
+
+  //run pretest on all test files regardless of regression
+  if (testsToBeRun.length == 0) {
+    console.log(chalk.red("- No tests to be evaluated"))
+    process.exit(1)
+  }
+
   utils.cleanBuildDir(); //Remove old compiled artifacts
   reporter.setupResultsCsv();
 
   let ganacheChild = testingInterface.spawnGanache();
-  const isCompiled = testingInterface.spawnCompile(packageManager, runScript);
+  const isCompiled = testingInterface.spawnCompile(packageManager);
 
   if (isCompiled) {
-    const status = testingInterface.spawnTest(packageManager, runScript);
+    const status = testingInterface.spawnTest(packageManager, testsToBeRun);
     if (status === 0) {
       console.log("Pre-test OK.");
     } else {
@@ -222,38 +238,34 @@ function preTest() {
 function test() {
 
   prepare(() =>
-    glob(config.contractsDir + contractsGlob, (err, files) => {
+    glob(config.contractsDir + contractsGlob, (err, contracts) => {
       if (err) throw err;
-      glob(config.testDir + testsGlob, (err, testFiles) => {
+      glob(config.testDir + testsGlob, (err, tests) => {
         if (err) {
           console.error(err)
           process.exit(1)
         }
 
-        if (!files.length) {
-          console.error("Contract directory is empty")
-          process.exit()
-        }
+        //Select contracts to mutate and test files to evaluate
+        let contractsUnderMutation = contractSelection(contracts);
+        let testsToBeRun = testSelection(tests);
+
+        reporter.logSelectedFiles(contractsUnderMutation, testsToBeRun);
 
         //Run the pre-test and compile the original contracts
-        preTest();
+        preTest(contractsUnderMutation, testsToBeRun);
 
         if (config.tce) {
           //save the bytecode of the original contracts
           exploreDirectories(config.buildDir)
           compiledArtifacts.map(artifact => {
-            for (const file of files) {
-              if (parse(artifact).name === parse(file).name) {
-                originalBytecodeMap.set(parse(file).name, saveBytecodeSync(artifact))
+            for (const contract of contracts) {
+              if (parse(artifact).name === parse(contract).name) {
+                originalBytecodeMap.set(parse(contract).name, saveBytecodeSync(artifact))
               }
             }
           })
         }
-
-        let contractsUnderMutation = contractSelection(files);
-        let testsToBeRun = testSelection(testFiles);
-        unlinkTests(testFiles, testsToBeRun);
-        reporter.logSelectedFiles(contractsUnderMutation, testsToBeRun);
 
         //Generate mutations
         const mutations = generateAllMutations(contractsUnderMutation, true)
@@ -262,11 +274,10 @@ function test() {
         reporter.logStartMutationTesting();
         var startTime = Date.now();
 
-        for (const file of files) {
-          runTest(mutations, file);
+        for (const contractUnderMutation of contractsUnderMutation) {
+          runTest(mutations, contractUnderMutation, testsToBeRun);
         }
         var testTime = ((Date.now() - startTime) / 60000).toFixed(2);
-        utils.restoreTestDir();
         reporter.logAndSaveTestSummary(testTime);
         reporter.saveOperatorsResults();
       })
@@ -281,7 +292,7 @@ function test() {
  * @param mutations An array of all mutants
  * @param file The name of the mutated contract
  */
-function runTest(mutations, file) {
+function runTest(mutations, file, testsToBeRun) {
   const mutantBytecodeMap = new Map();
 
   for (const mutation of mutations) {
@@ -289,7 +300,7 @@ function runTest(mutations, file) {
       let ganacheChild = testingInterface.spawnGanache();
       mutation.apply();
       reporter.logCompile(mutation);
-      const isCompiled = testingInterface.spawnCompile(packageManager, runScript);
+      const isCompiled = testingInterface.spawnCompile(packageManager);
 
       if (isCompiled) {
         if (config.tce) {
@@ -298,7 +309,7 @@ function runTest(mutations, file) {
         if (mutation.status !== "redundant" && mutation.status !== "equivalent") {
           reporter.logTest(mutation);
           let startTestTime = Date.now();
-          const result = testingInterface.spawnTest(packageManager, runScript)
+          const result = testingInterface.spawnTest(packageManager, testsToBeRun)
           mutation.testingTime = Date.now() - startTestTime;
           if (result === 0) {
             mutation.status = "live";
@@ -379,8 +390,12 @@ function mutationsByHash(mutations) {
  */
 function diff(argv) {
   prepare(() =>
-    glob(config.contractsDir + contractsGlob, (err, files) => {
-      const mutations = generateAllMutations(files, false)
+    glob(config.contractsDir + contractsGlob, (err, contracts) => {
+      if(err){
+        console.log(err);
+        process.exit(0);
+      }
+      const mutations = generateAllMutations(contracts, false)
       const index = mutationsByHash(mutations)
       if (!index[argv.hash]) {
         console.error('Mutation ' + argv.hash + ' not found.')
@@ -505,21 +520,6 @@ function testSelection(files) {
   }
   return testsToBeRun;
 }
-
-/**
- * Unliks tests that must not be run
- * @param allTestFiles all test files
- * @param testFilesToBeRun tests to be kept
- * 
- */
-function unlinkTests(allTestFiles, testFilesToBeRun) {
-  for (const test of allTestFiles) {
-    if (!testFilesToBeRun.includes(test)) {
-      fs.unlinkSync(test);
-    }
-  }
-}
-
 
 module.exports = {
   test: test, preflight, preflight, mutate: mutate, diff: diff, list: enabledOperators,

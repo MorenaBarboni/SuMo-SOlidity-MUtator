@@ -11,10 +11,10 @@ module.exports = {
   testingTimeOutInSec: 3000,
   bail: true,
   ganache: true,
-  customTestScript: false,
+  testingFramework: 'truffle',
   optimized: true,
-  tce: true,
+  tce: false,
   contractsGlob: '/**/*.sol',
   packageManagerGlob: ['/package-lock.json', '/yarn.lock'],
-  testGlob:  '/**/*.{js,sol,ts}'
+  testsGlob:  '/**/*.{js,sol,ts}'
 }

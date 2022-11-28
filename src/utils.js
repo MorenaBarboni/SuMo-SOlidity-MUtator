@@ -122,10 +122,9 @@ function cleanTmp() {
   console.log("> Ganache temporary files deleted.");
 }
 
-
 //Checks the package manager used by the SUT
 function getPackageManager() {
-  let pmConfig = {};
+  let packageManager;
 
   for (const lockFile of packageManagerGlob) {
     if (fs.existsSync(projectDir + lockFile)) {
@@ -134,32 +133,15 @@ function getPackageManager() {
         console.error("Target project does not contain a suitable lock file.");
         process.exit(1);
       }
-
       if (lockFile.includes("yarn")) {
-        pmConfig.packageManager = "yarn";
-        pmConfig.runScript = "run";
+        packageManager = "yarn";
       } else {
-        pmConfig.packageManager = "npm";
-        pmConfig.runScript = "run-script";
+        packageManager = "npm";
       }
       break;
     }
   }
-
-  return pmConfig;
-}
-
-
-/**
-* Restore test files
-*/
-function restoreTestDir() {
-  const baselineTest = baselineDir + "/test";
-  if (fs.existsSync(baselineTest)) {
-    fsExtra.copySync(baselineTest, testDir);
-    console.log("> Test files restored");
-  } else
-    console.log("> Could not restore test files (No test baseline available)");
+  return packageManager;
 }
 
 module.exports = {
@@ -167,6 +149,5 @@ module.exports = {
   restore: restore,
   cleanTmp: cleanTmp,
   cleanBuildDir: cleanBuildDir,
-  getPackageManager: getPackageManager,
-  restoreTestDir: restoreTestDir
+  getPackageManager: getPackageManager
 };

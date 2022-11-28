@@ -34,16 +34,19 @@ These fields specify the path to different artefacts of the System Under Test:
 These fields allow to set up the mutation testing process
 
 * ```bail```: bail after the first test failure (false by default)
-* ```customTestScript```: use a custom compile and test script specified in the package.json of the SUT, instead of relying on the Truffle    interface (false by default)
 * ```ganache```: automatically spawn Ganache instances during the testing process (true by default)
 * ```ignore```:  array of paths to contract files that must be ignored by SuMo during mutation testing
 * ```optimized```: employ operator optimizations (true by default),
 * ```skipContracts```: array of paths to contract files (or contract folders) that must be ignored by SuMo during mutation testing
 *  ```skipTests```:   array of paths to test files that must be ignored by SuMo 
 * ```tce```: enable the Trivial Compiler Equivalence (true by default),
+* * ```testingFramework```: the testing framework to be used. Available options are:
+  * custom: SuMo uses the compile and test script defined in the package.json of the SUT;
+  * truffle: SuMo uses the default Truffle compile and test commands;
+  * hardhat: SuMo uses the default Hardhat compile and test commands;
 * ```testingTimeOutInSec```: number of seconds after which a mutant is marked as timed-out during testing (300 by default)
 
-Note that if ```customTestScript``` is true you must specify a ```test``` and ```compile``` script in your ```package.json``` file.
+Note that if ```testingFramework``` is set to ```custom``` you must specify a ```test``` and ```compile``` script in your ```package.json``` file.
 When using a custom test script the ```bail``` field of SuMo is ignored; it must be added to the custom script itself.
 
 ##### 4) Trivial Compiler Equivalence

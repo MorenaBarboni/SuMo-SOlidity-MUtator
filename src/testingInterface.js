@@ -4,33 +4,46 @@ const targetDir = config.projectDir;
 const testingTimeOutInSec = config.testingTimeOutInSec
 const utils = require("./utils");
 
+const testCommands = {
+  truffle: {
+    compile: "compile",
+    test: "test",
+  },
+  hardhat: {
+    compile: "compile",
+    test: "test",
+  }
+}
+
+const runScript = {
+  npm: "run-script",
+  yarn: "run"
+}
 
 /**
 * Spawns a new compile process through the interface provided by the connected testing framework 
 * @param packageManager The package manager used within the SUT
-* @param runScript the run script command of the packageManager
 */
-function spawnCompile(packageManager, runScript) {
+function spawnCompile(packageManager) {
   var compileChild;
+  const testingFramework = config.testingFramework;
+  const compile = testCommands[testingFramework.toString()]["compile"];
+  const run = runScript[packageManager];
 
-  //Run a custom compile script
-  if (config.customTestScript) {
-
+  //CUSTOM
+  if (testingFramework === "custom") {
     if (process.platform === "win32") {
-      compileChild = spawnSync(packageManager + ".cmd", [runScript, "compile"], {
-        stdio: "inherit",
-        cwd: targetDir
-      });
+      compileChild = spawnSync(packageManager + ".cmd", [run, "compile"], { stdio: "inherit", cwd: targetDir });
     } else if (process.platform === "linux" || process.platform === "darwin") {
-      compileChild = spawnSync(packageManager, [runScript, "compile"], { stdio: "inherit", cwd: targetDir });
+      compileChild = spawnSync(packageManager, [run, "compile"], { stdio: "inherit", cwd: targetDir });
     }
   }
-  //Spawn a default truffle compile command
+  //TRUFFLE/HARDHAT
   else {
     if (process.platform === "win32") {
-      compileChild = spawnSync("truffle.cmd", ["compile"], { stdio: "inherit", cwd: targetDir });
+      compileChild = spawnSync(testingFramework + ".cmd", [compile], { stdio: "inherit", cwd: targetDir });
     } else if (process.platform === "linux" || process.platform === "darwin") {
-      compileChild = spawnSync("truffle", ["compile"], { stdio: "inherit", cwd: targetDir });
+      compileChild = spawnSync(testingFramework, [compile], { stdio: "inherit", cwd: targetDir });
     }
   }
   return compileChild.status === 0;
@@ -39,44 +52,37 @@ function spawnCompile(packageManager, runScript) {
 /**
 * Spawns a new test process through the interface provided by the connected testing framework 
 * @param packageManager The package manager used within the SUT
-* @param runScript the run script command of the packageManager
 */
-function spawnTest(packageManager, runScript) {
+function spawnTest(packageManager, testFiles) {
 
   var testChild;
+  const testingFramework = config.testingFramework;
+  const test = testCommands[testingFramework.toString()]["test"];
+  const run = runScript[packageManager];
 
-  //Run a custom test script
-  if (config.customTestScript) {
+  //CUSTOM
+  if (config.testingFramework === "custom") {
     if (process.platform === "win32") {
-      testChild = spawnSync(packageManager + ".cmd", [runScript, "test"], {
-        stdio: "inherit",
-        cwd: targetDir,
-        timeout: 300000
-      });
-
+      testChild = spawnSync(packageManager + ".cmd", [run, "test",  ...testFiles], { stdio: "inherit", cwd: targetDir, timeout: 300000 });
     } else if (process.platform === "linux" || process.platform === "darwin") {
-      testChild = spawnSync(packageManager, [runScript, "test"], {
-        stdio: "inherit",
-        cwd: targetDir,
-        timeout: 300000
-      });
+      testChild = spawnSync(packageManager, [run, "test",  ...testFiles], { stdio: "inherit", cwd: targetDir, timeout: 300000 });
     }
   }
-  //Spawn a default truffle test command
+  //TRUFFLE/HARDHAT
   else {
-    if(config.bail){
+    if (config.bail) {
       if (process.platform === "win32") {
-        testChild = spawnSync("truffle.cmd", ["test", "-b"], { stdio: "inherit", cwd: targetDir, timeout: (testingTimeOutInSec * 1000) });
+        testChild = spawnSync(testingFramework + ".cmd", [test, "-b",  ...testFiles], { stdio: "inherit", cwd: targetDir, timeout: (testingTimeOutInSec * 1000) });
       } else if (process.platform === "linux" || process.platform === "darwin") {
-        testChild = spawnSync("truffle", ["test", "-b"], { stdio: "inherit", cwd: targetDir, timeout: (testingTimeOutInSec * 1000) });
+        testChild = spawnSync(testingFramework, [test, "-b",  ...testFiles], { stdio: "inherit", cwd: targetDir, timeout: (testingTimeOutInSec * 1000) });
       }
-    }else{
+    } else {
       if (process.platform === "win32") {
-        testChild = spawnSync("truffle.cmd", ["test"], { stdio: "inherit", cwd: targetDir, timeout: (testingTimeOutInSec * 1000) });
+        testChild = spawnSync(testingFramework + ".cmd", [test, ...testFiles], { stdio: "inherit", cwd: targetDir, timeout: (testingTimeOutInSec * 1000) });
       } else if (process.platform === "linux" || process.platform === "darwin") {
-        testChild = spawnSync("truffle", ["test"], { stdio: "inherit", cwd: targetDir, timeout: (testingTimeOutInSec * 1000) });
+        testChild = spawnSync(testingFramework, [test, ...testFiles], { stdio: "inherit", cwd: targetDir, timeout: (testingTimeOutInSec * 1000) });
       }
-    }    
+    }
   }
   let status;
   if (testChild.error && testChild.error.code === "ETIMEDOUT") {
@@ -94,7 +100,7 @@ function spawnGanache() {
   var child;
   if (config.ganache) {
     if (process.platform === "win32") {
-      child = spawn("ganache-cli.cmd", { stdio: "inherit", cwd: targetDir, detached: true });
+      child = spawn("ganache-cli.cmd", {stdio: "inherit", cwd: targetDir, detached: true });
     } else if (process.platform === "linux" || process.platform === "darwin") {
       child = spawn("ganache-cli", { stdio: "inherit", cwd: targetDir, detached: true });
     }
