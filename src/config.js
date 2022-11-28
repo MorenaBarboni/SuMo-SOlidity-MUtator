@@ -18,3 +18,4 @@ module.exports = {
   packageManagerGlob: ['/package-lock.json', '/yarn.lock'],
   testsGlob:  '/**/*.{js,sol,ts}'
 }
+
