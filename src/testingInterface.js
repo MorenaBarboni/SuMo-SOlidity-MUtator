@@ -5,11 +5,15 @@ const testingTimeOutInSec = config.testingTimeOutInSec
 const utils = require("./utils");
 
 const testCommands = {
-  truffle: {
+  custom: {
     compile: "compile",
     test: "test",
   },
   hardhat: {
+    compile: "compile",
+    test: "test",
+  },
+  truffle: {
     compile: "compile",
     test: "test",
   }
