@@ -93,9 +93,15 @@ function prepare(callback) {
   }
 
   if (config.testingFramework !== "truffle" && config.testingFramework !== "hardhat" && config.testingFramework !== "custom") {
-  console.error("The specified testing framework is not valid. \n The available options are:\n - truffle \n - hardhat \n - foundry \n - custom");
-  process.exit(1);
-}
+    console.error("The specified testing framework is not valid. \n The available options are:\n - truffle \n - hardhat \n - custom");
+    process.exit(1);
+  }
+
+  if (config.network !== "ganache" && config.network !== "none") {
+    console.error("The specified network is not valid. \n The available options are:\n - ganache \n - none");
+    process.exit(1);
+  }
+
 
 
   //Checks the package manager used by the SUT
@@ -182,7 +188,7 @@ function generateAllMutations(files, overwrite) {
     const visit = parser.visit.bind(parser, ast)
     mutations = mutations.concat(mutGen.getMutations(file, source, visit, overwrite))
   }
-  if(overwrite){
+  if (overwrite) {
     var generationTime = (Date.now() - startTime) / 1000
     reporter.saveGeneratedMutantsCsv(mutations);
     reporter.logPreflightSummary(mutations, generationTime, mutGen.getEnabledOperators())
@@ -193,7 +199,7 @@ function generateAllMutations(files, overwrite) {
 /**
  * Runs the original test suite to ensure that all tests pass.
  */
- function preTest(contractsUnderMutation, testsToBeRun) {
+function preTest(contractsUnderMutation, testsToBeRun) {
 
   reporter.logPretest();
 
@@ -391,7 +397,7 @@ function mutationsByHash(mutations) {
 function diff(argv) {
   prepare(() =>
     glob(config.contractsDir + contractsGlob, (err, contracts) => {
-      if(err){
+      if (err) {
         console.log(err);
         process.exit(0);
       }
