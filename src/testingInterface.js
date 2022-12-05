@@ -67,25 +67,17 @@ function spawnTest(packageManager, testFiles) {
   //CUSTOM
   if (config.testingFramework === "custom") {
     if (process.platform === "win32") {
-      testChild = spawnSync(packageManager + ".cmd", [run, "test",  ...testFiles], { stdio: "inherit", cwd: targetDir, timeout: 300000 });
+      testChild = spawnSync(packageManager + ".cmd", [run, "test", ...testFiles], { stdio: "inherit", cwd: targetDir, timeout: 300000 });
     } else if (process.platform === "linux" || process.platform === "darwin") {
-      testChild = spawnSync(packageManager, [run, "test",  ...testFiles], { stdio: "inherit", cwd: targetDir, timeout: 300000 });
+      testChild = spawnSync(packageManager, [run, "test", ...testFiles], { stdio: "inherit", cwd: targetDir, timeout: 300000 });
     }
   }
   //TRUFFLE/HARDHAT
   else {
-    if (config.bail) {
-      if (process.platform === "win32") {
-        testChild = spawnSync(testingFramework + ".cmd", [test, "-b",  ...testFiles], { stdio: "inherit", cwd: targetDir, timeout: (testingTimeOutInSec * 1000) });
-      } else if (process.platform === "linux" || process.platform === "darwin") {
-        testChild = spawnSync(testingFramework, [test, "-b",  ...testFiles], { stdio: "inherit", cwd: targetDir, timeout: (testingTimeOutInSec * 1000) });
-      }
-    } else {
-      if (process.platform === "win32") {
-        testChild = spawnSync(testingFramework + ".cmd", [test, ...testFiles], { stdio: "inherit", cwd: targetDir, timeout: (testingTimeOutInSec * 1000) });
-      } else if (process.platform === "linux" || process.platform === "darwin") {
-        testChild = spawnSync(testingFramework, [test, ...testFiles], { stdio: "inherit", cwd: targetDir, timeout: (testingTimeOutInSec * 1000) });
-      }
+    if (process.platform === "win32") {
+      testChild = spawnSync(testingFramework + ".cmd", [test, "-b", ...testFiles], { stdio: "inherit", cwd: targetDir, timeout: (testingTimeOutInSec * 1000) });
+    } else if (process.platform === "linux" || process.platform === "darwin") {
+      testChild = spawnSync(testingFramework, [test, "-b", ...testFiles], { stdio: "inherit", cwd: targetDir, timeout: (testingTimeOutInSec * 1000) });
     }
   }
   let status;
@@ -102,9 +94,9 @@ function spawnTest(packageManager, testFiles) {
  */
 function spawnGanache() {
   var child;
-  if (config.ganache) {
+  if (config.network === "ganache") {
     if (process.platform === "win32") {
-      child = spawn("ganache-cli.cmd", {stdio: "inherit", cwd: targetDir, detached: true });
+      child = spawn("ganache-cli.cmd", { stdio: "inherit", cwd: targetDir, detached: true });
     } else if (process.platform === "linux" || process.platform === "darwin") {
       child = spawn("ganache-cli", { stdio: "inherit", cwd: targetDir, detached: true });
     }
@@ -127,7 +119,7 @@ function spawnGanache() {
  * Kills a spawned Ganache instance
  */
 function killGanache(ganacheChild) {
-  if (config.ganache) {
+  if (config.network === "ganache") {
     if (process.platform === "win32") {
       spawn("taskkill", ["/pid", ganacheChild.pid, "/f", "/t"]);
     } else if (process.platform === "linux") {

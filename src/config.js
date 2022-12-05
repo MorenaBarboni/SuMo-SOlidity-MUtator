@@ -9,13 +9,11 @@ module.exports = {
   skipContracts: [],
   skipTests: [],
   testingTimeOutInSec: 3000,
-  bail: true,
-  ganache: true,
-  testingFramework: 'truffle',
+  network: "ganache",
+  testingFramework: "truffle",
   optimized: true,
-  tce: false,
+  tce: true,
   contractsGlob: '/**/*.sol',
   packageManagerGlob: ['/package-lock.json', '/yarn.lock'],
   testsGlob:  '/**/*.{js,sol,ts}'
 }
-

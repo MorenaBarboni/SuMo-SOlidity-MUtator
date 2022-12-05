@@ -34,23 +34,35 @@ These fields specify the path to different artefacts of the System Under Test:
 ##### 3) Mutation Process
 These fields allow to set up the mutation testing process
 
-* ```bail```: bail after the first test failure (false by default)
-* ```ganache```: automatically spawn Ganache instances during the testing process (true by default)
 * ```ignore```:  array of paths to contract files that must be ignored by SuMo during mutation testing
 * ```optimized```: employ operator optimizations (true by default),
 * ```skipContracts```: array of paths to contract files (or contract folders) that must be ignored by SuMo during mutation testing
 *  ```skipTests```:   array of paths to test files that must be ignored by SuMo 
 * ```tce```: enable the Trivial Compiler Equivalence (true by default),
-* ```testingFramework```: the testing framework to be used. Available options are:
-  * custom: SuMo uses the compile and test script defined in the package.json of the SUT;
-  * truffle: SuMo uses the default Truffle compile and test commands;
-  * hardhat: SuMo uses the default Hardhat compile and test commands;
 * ```testingTimeOutInSec```: number of seconds after which a mutant is marked as timed-out during testing (300 by default)
 
-Note that if ```testingFramework``` is set to ```custom``` you must specify a ```test``` and ```compile``` script in your ```package.json``` file.
-When using a custom test script the ```bail``` field of SuMo is ignored; it must be added to the custom script itself.
+##### 4) Testing Interface
+These fields specify what  testing framework and blockchain simulator SuMo should use to conduct mutation testing:
+* ```network```: the blockchain simulator to be used. Available options are:
+  * ```ganache```: use the Ganache installation of SuMo;
+  * ```none```
+* ```testingFramework```: the testing framework to be used for compiling and testing the smart contracts. Available options are:
+  * ```truffle```: use the Truffle installation of SuMo;
+  * ```hardhat```: use the Hardhat installation of SuMo;
+  * ```custom```: use a custom compile and test script specified in the package.json of the project under test;
 
-##### 4) Trivial Compiler Equivalence
+Note that:
+ * When selecting a specific testing framework (e.g., truffle):
+  * SuMo will use its own installation of the framework to test the contracts, but it will still use the configuration file (e.g., ```truffle-config.js```) defined in your SUT;
+  * The smart contracts will be compiled with a default command  (e.g., ```truffle compile``` );
+  * The smart contracts will be tested with a default test command followed by the names of the test files to be executed and the bail option (e.g., ```truffle test ...testFiles -b``` ) 
+  
+ * When choosing ```custom```: 
+   * SuMo will invoke the ```compile``` and ```test``` script defined in the ```package.json``` of the SUT. This allows you to have more control over the testing process; 
+   * The smart contracts will be tested with your custom test script followed by the names of the test files to be  executed;
+   * Make sure to install the reuired dependencies in your SUT, and to define such scripts before starting the testing process.
+
+##### 5) Trivial Compiler Equivalence
 
 The Trivial Compiler Equivalence compares the bytecode produced by the compiler to detect equivalences between mutants, thus it can only work if:
 1. the solc compiler optimization is enabled;
