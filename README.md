@@ -14,7 +14,8 @@ Note that [ReSuMo](https://github.com/MorenaBarboni/ReSuMo/tree/main) advances t
 
 ## Installation
 To install SuMo run ```npm install```.
-Run ```npm run sumo version``` to check the currently installed SuMo version.
+
+To check the currently installed SuMo version run ```npm run sumo version```.
 
 ## Configuration
 Before using SuMo you must specify your desired configuration in the [config.js](https://github.com/MorenaBarboni/SuMo-SOlidity-MUtator/blob/master/src/config.js) file.
@@ -52,12 +53,12 @@ These fields specify what  testing framework and blockchain simulator SuMo shoul
   * ```custom```: use a custom compile and test script specified in the package.json of the project under test;
 
 Note that:
- * When selecting a specific testing framework (e.g., truffle):
+* When selecting a specific testing framework (e.g., truffle):
   * SuMo will use its own installation of the framework to test the contracts, but it will still use the configuration file (e.g., ```truffle-config.js```) defined in your SUT;
   * The smart contracts will be compiled with a default command  (e.g., ```truffle compile``` );
   * The smart contracts will be tested with a default test command followed by the names of the test files to be executed and the bail option (e.g., ```truffle test ...testFiles -b``` ) 
   
- * When choosing ```custom```: 
+* When choosing ```custom```: 
    * SuMo will invoke the ```compile``` and ```test``` script defined in the ```package.json``` of the SUT. This allows you to have more control over the testing process; 
    * The smart contracts will be tested with your custom test script followed by the names of the test files to be  executed;
    * Make sure to install the reuired dependencies in your SUT, and to define such scripts before starting the testing process.
