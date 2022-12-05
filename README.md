@@ -14,6 +14,7 @@ Note that [ReSuMo](https://github.com/MorenaBarboni/ReSuMo/tree/main) advances t
 
 ## Installation
 To install SuMo run ```npm install```.
+Run ```npm run sumo version``` to check the currently installed SuMo version.
 
 ## Configuration
 Before using SuMo you must specify your desired configuration in the [config.js](https://github.com/MorenaBarboni/SuMo-SOlidity-MUtator/blob/master/src/config.js) file.

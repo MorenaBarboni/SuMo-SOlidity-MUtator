@@ -46,5 +46,6 @@ yargs
   .command('restore', 'restore SUT files', (argv) => {
     utils.restore()
   })
+  .command('version', 'check the installed SuMo version', utils.version())
   .help()
   .argv

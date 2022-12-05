@@ -6,6 +6,7 @@ const fsExtra = require("fs-extra");
 const config = require("./config");
 const glob = require("glob");
 const path = require("path");
+const package = require("../package.json");
 const { projectDir } = require("./config");
 const sumoDir = config.sumoDir;
 const baselineDir = config.baselineDir;
@@ -144,10 +145,20 @@ function getPackageManager() {
   return packageManager;
 }
 
+//Checks if SuMo was correctly installed
+function version() {
+  if (fs.existsSync("./node_modules")) {
+    console.log("SuMo V." +package.version)
+  }else{
+    console.log("SuMo is not installed.")
+  }
+}
+
 module.exports = {
   cleanSumo: cleanSumo,
   restore: restore,
   cleanTmp: cleanTmp,
   cleanBuildDir: cleanBuildDir,
-  getPackageManager: getPackageManager
+  getPackageManager: getPackageManager,
+  version: version
 };
