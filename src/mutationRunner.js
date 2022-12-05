@@ -10,6 +10,7 @@ const { parse } = require("path");
 const rimraf = require('rimraf')
 
 const Reporter = require('./reporter')
+const TceRunner = require('./tceRunner')
 const testingInterface = require("./testingInterface");
 const mutationGenerator = require("./operators/mutationGenerator");
 const utils = require('./utils')
@@ -33,10 +34,9 @@ const contractsGlob = config.contractsGlob;
 const testsGlob = config.testsGlob;
 
 var packageManager;
-var compiledArtifacts = [];
-var originalBytecodeMap = new Map();
 
 const reporter = new Reporter()
+const tceRunner = new TceRunner()
 
 const mutGen = new mutationGenerator.CompositeOperator([
   new mutationGenerator.ACMOperator(),
@@ -217,7 +217,7 @@ function preTest(contractsUnderMutation, testsToBeRun) {
   utils.cleanBuildDir(); //Remove old compiled artifacts
   reporter.setupResultsCsv();
 
-  let ganacheChild = testingInterface.spawnGanache();
+  let ganacheChild = testingInterface.spawnNetwork();
   const isCompiled = testingInterface.spawnCompile(packageManager);
 
   if (isCompiled) {
@@ -225,16 +225,16 @@ function preTest(contractsUnderMutation, testsToBeRun) {
     if (status === 0) {
       console.log("Pre-test OK.");
     } else {
-      testingInterface.killGanache(ganacheChild);
+      testingInterface.killNetwork(ganacheChild);
       console.error(chalk.red("Error: Original tests should pass."));
       process.exit(1);
     }
   } else {
-    testingInterface.killGanache(ganacheChild);
+    testingInterface.killNetwork(ganacheChild);
     console.error(chalk.red("Error: Original contracts should compile."));
     process.exit(1);
   }
-  testingInterface.killGanache(ganacheChild);
+  testingInterface.killNetwork(ganacheChild);
 }
 
 
@@ -263,14 +263,7 @@ function test() {
 
         if (config.tce) {
           //save the bytecode of the original contracts
-          exploreDirectories(config.buildDir)
-          compiledArtifacts.map(artifact => {
-            for (const contract of contracts) {
-              if (parse(artifact).name === parse(contract).name) {
-                originalBytecodeMap.set(parse(contract).name, saveBytecodeSync(artifact))
-              }
-            }
-          })
+          tceRunner.saveOriginalBytecode(contractsUnderMutation);
         }
 
         //Generate mutations
@@ -301,16 +294,16 @@ function test() {
 function runTest(mutations, file, testsToBeRun) {
   const mutantBytecodeMap = new Map();
 
-  for (const mutation of mutations) {
+  for (var mutation of mutations) {
     if ((parse(mutation.file).name) === (parse(file).name)) {
-      let ganacheChild = testingInterface.spawnGanache();
+      let ganacheChild = testingInterface.spawnNetwork();
       mutation.apply();
       reporter.logCompile(mutation);
       const isCompiled = testingInterface.spawnCompile(packageManager);
 
       if (isCompiled) {
         if (config.tce) {
-          tce(mutation, mutantBytecodeMap, originalBytecodeMap);
+          mutation = tceRunner.runTce(mutation, mutantBytecodeMap, reporter);
         }
         if (mutation.status !== "redundant" && mutation.status !== "equivalent") {
           reporter.logTest(mutation);
@@ -333,7 +326,7 @@ function runTest(mutations, file, testsToBeRun) {
       }
       reporter.mutantStatus(mutation);
       mutation.restore();
-      testingInterface.killGanache(ganacheChild);
+      testingInterface.killNetwork(ganacheChild);
     }
   }
   mutantBytecodeMap.clear();
@@ -410,76 +403,6 @@ function diff(argv) {
       console.log(index[argv.hash].diff())
     })
   )
-}
-
-/**
- * The <b>tce()</b> function provides to compare bytecode of the all contracts used up to that point, and it can set status of the mutated contract
- * in two different cases. "equivalent" status is assigned to the mutated contract that has the same bytecode of the non-mutated contract. "redundant"
- * status is assigned to the mutated contract that has the same bytecode of another mutated contract already tested.
- * @param mutation The mutated contract
- * @param map The map of the already tested mutated contract
- * @param originalBytecodeMap The map that contains the original contract bytecode
- */
-function tce(mutation, map, originalBytecodeMap) {
-  console.log();
-  console.log(chalk.yellow('> Running the TCE'));
-  var file = mutation.file;
-  let fileName = parse(file).name;
-
-  compiledArtifacts = [];
-
-  exploreDirectories(config.buildDir)
-  compiledArtifacts.map(artifact => {
-    if (parse(artifact).name === parse(mutation.file).name) {
-      mutation.bytecode = saveBytecodeSync(artifact);
-    }
-  })
-
-  if (originalBytecodeMap.get(fileName) === mutation.bytecode) {
-    mutation.status = "equivalent";
-  } else if (map.size !== 0) {
-    for (const key of map.keys()) {
-      if (map.get(key) === mutation.bytecode) {
-        mutation.status = "redundant";
-        reporter.saveResultsCsv(mutation, key);
-        break;
-      }
-    }
-    if (mutation.status !== "redundant") {
-      map.set(mutation.hash(), mutation.bytecode);
-    }
-
-  } else {
-    map.set(mutation.hash(), mutation.bytecode);
-  }
-}
-
-
-function exploreDirectories(Directory) {
-  fs.readdirSync(Directory).forEach(File => {
-    const Absolute = path.join(Directory, File);
-    if (fs.statSync(Absolute).isDirectory())
-      return exploreDirectories(Absolute);
-    else
-      return compiledArtifacts.push(Absolute);
-  });
-}
-
-/**
- *The <b>saveBytecodeSync</b> function return the original bytecode of a certain contract
- * @param file The name of the original contract
- * @returns {*} The bytecode
- */
-function saveBytecodeSync(file) {
-  var mutantBytecode;
-  try {
-    const data = fs.readFileSync(file, "utf-8");
-    var json = JSON.parse(data);
-    mutantBytecode = json.bytecode;
-    return mutantBytecode;
-  } catch (err) {
-    console.log(chalk.red('Artifact not found!!'));
-  }
 }
 
 /**

@@ -45,8 +45,8 @@ These fields allow to set up the mutation testing process
 ##### 4) Testing Interface
 These fields specify what  testing framework and blockchain simulator SuMo should use to conduct mutation testing:
 * ```network```: the blockchain simulator to be used. Available options are:
-  * ```ganache```: use the Ganache installation of SuMo;
-  * ```none```
+  * ```ganache```: fire up a Ganache network using the Ganache installation of SuMo;
+  * ```none```: do not use a test network;
 * ```testingFramework```: the testing framework to be used for compiling and testing the smart contracts. Available options are:
   * ```truffle```: use the Truffle installation of SuMo;
   * ```hardhat```: use the Hardhat installation of SuMo;
@@ -69,7 +69,7 @@ The Trivial Compiler Equivalence compares the bytecode produced by the compiler 
 1. the solc compiler optimization is enabled;
 2. no metadata hash is appended to the contract bytecode.
 
-Before running SuMo make sure that the following options are present in your ```truffle-config.js``` configuration file:
+Before running SuMo make sure that the following options are present in your ```truffle-config.js``` or ```hardhat.config.js``` configuration file:
 
 ```
  compilers: {
