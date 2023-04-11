@@ -1,10 +1,9 @@
 const Mutation = require("../mutation");
 
 function RSDoperator() {
+  this.ID = "RSD";
+  this.name = "return-statement-deletion";
 }
-
-RSDoperator.prototype.ID = "RSD";
-RSDoperator.prototype.name = "return-statement-deletion";
 
 RSDoperator.prototype.getMutations = function(file, source, visit) {
   const mutations = [];

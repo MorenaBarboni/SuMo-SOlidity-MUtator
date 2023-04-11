@@ -1,10 +1,9 @@
 const Mutation = require("../mutation");
 
 function DLROperator() {
+  this.ID = "DLR";
+  this.name = "data-location-replacement";
 }
-
-DLROperator.prototype.ID = "DLR";
-DLROperator.prototype.name = "data-location-replacement";
 
 DLROperator.prototype.getMutations = function(file, source, visit) {
   const mutations = [];

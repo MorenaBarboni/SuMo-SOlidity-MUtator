@@ -1,20 +1,18 @@
-const Mutation = require("../mutation");
+const Mutation = require('../mutation')
 
 function MOROperator() {
+  this.ID = "MOR";
+  this.name = "modifier-replacement";
 }
 
-MOROperator.prototype.ID = "MOR";
-MOROperator.prototype.name = "modifier-replacement";
-
-MOROperator.prototype.getMutations = function(file, source, visit) {
+MOROperator.prototype.getMutations = function (file, source, visit) {
   const mutations = [];
   const modifiers = []; //Modifiers attached to functions
   const modifiersNodes = []; //Modifiers nodes attached to functions
 
-
   visitModifiers(visitFunctions);
 
-  /*Save attached modifiers */
+  /*Save the modifiers attached to each function */
   function visitModifiers(callback) {
     visit({
       ModifierInvocation: (node) => {
@@ -32,50 +30,50 @@ MOROperator.prototype.getMutations = function(file, source, visit) {
     }
   }
 
-  /*Visit decorated functions */
+  /*Visit each decorated function and replace its first modifier with all possible (legal) modifiers */
   function visitFunctions() {
     visit({
-      FunctionDefinition: (node) => {
+      FunctionDefinition: (fNode) => {
 
         /*If the function is decorated */
-        if (node.modifiers.length > 0) {
+        if (fNode.modifiers.length > 0) {
           /*If the function is not special */
-          if (node.body && !node.isConstructor && !node.isReceiveEther && !node.isFallback) {
+          if (fNode.body && !fNode.isConstructor && !fNode.isReceiveEther && !fNode.isFallback) {
 
             //Cycle the available modifiers nodes
             for (let i = 0; i < modifiersNodes.length; i++) {
-              const m = modifiersNodes[i];
+              const mNode = modifiersNodes[i];
 
               //If the modifier has parameters, they must be compatible with the function parameters
-              if (m.arguments && m.arguments.length > 0) {
+              if (mNode.arguments && mNode.arguments.length > 0) {
 
                 //If the function has parameters
-                if (node && node.parameters) {
+                if (fNode && fNode.parameters) {
 
                   var modArguments = [];
                   var funcArguments = [];
 
                   //Save modifier parameters
-                  m.arguments.forEach(e => {
+                  mNode.arguments.forEach(e => {
                     if (e.name)
                       modArguments.push(e.name);
-                    //the argument passed to the modifier are excluded
-                    // else if (e.value)
-                    //modArguments.push(e.value)
                   });
 
                   //Save function parameters
-                  node.parameters.forEach(e => {
+                  fNode.parameters.forEach(e => {
                     funcArguments.push(e.name);
                   });
 
                   //If the parameters of the modifier are included in the parameters of the function
                   if (modArguments.length > 0) {
-                    var is_included = modArguments.every(function(element, index) {
+                    var params_included = modArguments.every(function (element, index) {
                       return element === funcArguments[index];
                     });
-                    if (is_included) {
-                      mutate(node, m);
+                    if (params_included) {
+                      const result = mutate(fNode, mNode);
+                      if (result) {
+                        mutations.push(result);
+                      }
                     }
                   }
                 }
@@ -86,7 +84,10 @@ MOROperator.prototype.getMutations = function(file, source, visit) {
               }
               //If the modifier does not have arguments
               else {
-                mutate(node, m);
+                const result = mutate(fNode, mNode);
+                if (result) {
+                  mutations.push(result);
+                }
               }
             }
           }
@@ -97,34 +98,59 @@ MOROperator.prototype.getMutations = function(file, source, visit) {
 
 
   /**
-   * Applies a mutation to the function
-   * @param functionNode the function node to be mutated
-   * @param modifierNode the potential replacement node
-   *
-   */
+       * Checks if the modifier is a valid mutation candidate for the function.
+       * The modifier must be used in the same contract in which the function is defined, and it must not already be attached to the function signature. 
+       * @param functionNode the function node to be mutated
+       * @param modifierNode the potential modifier replacement node
+       * @returns a mutation if the modifier can be used, false otherwise
+    */
   function mutate(functionNode, modifierNode) {
 
-    /*retrieve modifier nodes attached to the current function node*/
-    var funcModifiers = [];
-    functionNode.modifiers.forEach(m => {
-      funcModifiers.push(source.slice(m.range[0], m.range[1] + 1));
-    });
+    if (contractContaining(functionNode) === contractContaining(modifierNode) && contractContaining(functionNode)) {
 
-    /*cycle the modifiers attached to the current function node*/
-    for (var i = 0; i < funcModifiers.length; i++) {
-      var start = functionNode.modifiers[i].range[0];
-      var end = functionNode.modifiers[i].range[1] + 1;
+      /*retrieve modifier nodes attached to the current function node*/
+      var funcModifiers = [];
+      functionNode.modifiers.forEach(m => {
+        funcModifiers.push(source.slice(m.range[0], m.range[1] + 1));
+      });
+
+      /*swap the first modifier attached to the current function node with a single different modifier*/
+      var start = functionNode.modifiers[0].range[0];
+      var end = functionNode.modifiers[0].range[1] + 1;
       const startLine = functionNode.loc.start.line;
-      const endLine = functionNode.body.loc.start.line; 
+      const endLine = functionNode.body.loc.start.line;
       var original = source.substring(start, end);  //function modifier
       var replacement = source.slice(modifierNode.range[0], modifierNode.range[1] + 1);
 
       /*the replacement is valid if it does not match any of the attached modifiers*/
-      if (replacement !== original && !original.includes(replacement)) {
-        console.log("replacing " + original + " with " +replacement)
-        mutations.push(new Mutation(file, start, end, startLine, endLine, original, replacement, "MOR"));
+      if (replacement !== original && !funcModifiers.find(m => m === replacement)) {
+        const mutation = new Mutation(file, start, end, startLine, endLine, original, replacement, "MOR");
+        return mutation;
+      } else {
+        return false;
       }
+    } else {
+      return false;
     }
+  }
+
+  /**
+   * Checks to which contract a node belongs to
+   * @param node the input node
+   * @returns the contract name (or false if no contract is found)
+   */
+  function contractContaining(node) {
+    const nodeStart = node.range[0];
+    const nodeEnd = node.range[1];
+    let cName = false;
+    visit({
+      ContractDefinition: (cNode) => {
+        if (nodeStart >= cNode.range[0] && nodeEnd <= cNode.range[1]) {
+          cName = cNode.name;
+        }
+      }
+    });
+    return cName;
   }
 
   return mutations;

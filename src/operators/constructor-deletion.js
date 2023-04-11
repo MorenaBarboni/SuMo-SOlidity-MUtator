@@ -1,10 +1,9 @@
 const Mutation = require("../mutation");
 
 function CCDOperator() {
+  this.ID = "CCD";
+  this.name = "contract-constructor-deletion";
 }
-
-CCDOperator.prototype.ID = "CCD";
-CCDOperator.prototype.name = "contract-constructor-deletion";
 
 CCDOperator.prototype.getMutations = function(file, source, visit) {
   const mutations = [];

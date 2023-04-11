@@ -1,10 +1,9 @@
 const Mutation = require("../mutation");
 
 function ETROperator() {
+  this.ID = "ETR";
+  this.name = "ether-transfer-function-replacement";
 }
-
-ETROperator.prototype.ID = "ETR";
-ETROperator.prototype.name = "ether-transfer-function-replacement";
 
 ETROperator.prototype.getMutations = function(file, source, visit) {
   const mutations = [];

@@ -1,10 +1,9 @@
 const Mutation = require("../mutation");
 
 function BCRDOperator() {
+  this.ID = "BCRD";
+  this.name = "break-continue-replacement-deletion";
 }
-
-BCRDOperator.prototype.ID = "BCRD";
-BCRDOperator.prototype.name = "break-continue-replacement-deletion";
 
 BCRDOperator.prototype.getMutations = function(file, source, visit) {
   const mutations = [];

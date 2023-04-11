@@ -1,10 +1,9 @@
 const Mutation = require("../mutation");
 
 function ACMOperator() {
+  this.ID = "ACM";
+  this.name = "argument-change-of-overloaded-method-call";
 }
-
-ACMOperator.prototype.ID = "ACM";
-ACMOperator.prototype.name = "argument-change-of-overloaded-method-call";
 
 ACMOperator.prototype.getMutations = function(file, source, visit) {
   const mutations = [];
@@ -90,7 +89,7 @@ ACMOperator.prototype.getMutations = function(file, source, visit) {
 
     var original = source.slice(oStart, oEnd);    
     var replacement = source.slice(rStart, rEnd);
-    mutations.push(new Mutation(file, oStart, oEnd, oLineStart, oLineEnd, original, replacement, this.ID));
+    mutations.push(new Mutation(file, oStart, oEnd, oLineStart, oLineEnd, original, replacement, "ACM"));
   }
 
 

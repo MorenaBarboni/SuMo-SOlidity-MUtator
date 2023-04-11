@@ -105,7 +105,3 @@ dist
 
 # sumo files
 .sumo
-
-#config files
-src/config.js
-src/operators.config.json

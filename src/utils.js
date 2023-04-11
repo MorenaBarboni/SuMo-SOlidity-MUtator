@@ -1,99 +1,93 @@
 const fs = require("fs");
 const os = require("os");
-const readline = require('readline');
+const chalk = require('chalk')
 const rimraf = require('rimraf')
 const fsExtra = require("fs-extra");
-const config = require("./config");
 const glob = require("glob");
 const path = require("path");
-const package = require("../package.json");
-const { projectDir } = require("./config");
-const sumoDir = config.sumoDir;
-const baselineDir = config.baselineDir;
-const contractsDir = config.contractsDir;
-const contractsGlob = config.contractsGlob;
-const buildDir = config.buildDir;
-const testDir = config.testDir;
-const packageManagerGlob = config.packageManagerGlob;
-const testsGlob = config.testsGlob;
+const appRoot = require('app-root-path');
+const rootDir = appRoot.toString().replaceAll("\\", "/");
+const sumoConfig = require(rootDir + "/sumo-config");
 
-
-/**
- * deletes the .sumo folder
- */
-function cleanSumo() {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-  });
-  if (!fs.existsSync(sumoDir)) {
-    console.log("Nothing to delete")
-    process.exit(0)
-  }
-  rl.question("If you delete the '.sumo' directory you will lose the mutation testing data. Do you want to proceed? y/n > ", function (response) {
-    response = response.trim()
-    response = response.toLowerCase()
-    if (response === 'y' || response === 'yes') {
-      fsExtra.remove(sumoDir);
-      console.log("'.sumo directory' deleted!")
-      rl.close()
-    }
-    else {
-      rl.close()
-    }
-  })
+//Static configuration
+const config = {
+  sumoDir: rootDir + "/.sumo",
+  sumoInstallPath: rootDir + "/node_modules/@morenabarboni/sumo",
+  liveDir: rootDir + "/.sumo/results/live",
+  redundantDir: rootDir + "/.sumo/results/redundant",
+  stillbornDir: rootDir + "/.sumo/results/stillborn",
+  timedoutDir: rootDir + "/.sumo/results/timedout",
+  killedDir: rootDir + "/.sumo/results/killed",
+  equivalentDir: rootDir + "/.sumo/results/equivalent",
+  mutantsDir: rootDir + "/.sumo/results/mutants",
+  reportTxt: rootDir + "/.sumo/results/report.txt",
+  resultsDir: rootDir + "/.sumo/results",
+  baselineDir: rootDir + "/.sumo/baseline",
+  mutOpsConfig: rootDir + "/node_modules/@morenabarboni/sumo/src/operators.config.json",
+  contractsGlob: '/**/*.sol',
+  packageManagerGlob: ['/package-lock.json', '/yarn.lock'],
+  testsGlob: '/**/*.{js,sol,ts}',
 }
 
+/**
+ * Prepares the results directory
+ */
+function setupResultsDir() {
+  let resultDirs = [config.resultsDir, config.liveDir, config.killedDir, config.redundantDir,
+  config.equivalentDir, config.timedoutDir, config.stillbornDir, config.mutantsDir];
+  resultDirs.forEach(dir => {
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir);
+    }
+  });
+}
 
 /**
- * restores the SUT files
+ * Restores the SUT files
  */
 function restore() {
+  const contractsDir = getContractsDir();
+  const testDir = getTestDir();
 
-  if (fs.existsSync(baselineDir)) {
+  if (fs.existsSync(config.baselineDir)) {
 
-    glob(baselineDir + contractsGlob, (err, files) => {
+    //Restore contracts
+    glob(config.baselineDir + '/contracts' + config.contractsGlob, (err, files) => {
       if (err) throw err;
 
-      //Restore contracts
-      glob(baselineDir + '/contracts' + contractsGlob, (err, files) => {
-        if (err) throw err;
+      for (const file of files) {
+        let relativeFilePath = file.split(".sumo/baseline/contracts")[1];
+        let fileDir = path.dirname(relativeFilePath);
+        fs.mkdir(contractsDir + fileDir, { recursive: true }, function (err) {
+          if (err) return cb(err);
 
-        for (const file of files) {
-          let relativeFilePath = file.split(".sumo/baseline/contracts")[1];
-          let fileDir = path.dirname(relativeFilePath);
-          fs.mkdir(contractsDir + fileDir, { recursive: true }, function (err) {
-            if (err) return cb(err);
-
-            fs.copyFile(file, contractsDir + relativeFilePath, (err) => {
-              if (err) throw err;
-            });
+          fs.copyFile(file, contractsDir + relativeFilePath, (err) => {
+            if (err) throw err;
           });
-        }
-      });
-
-      //Restore tests
-      glob(baselineDir + '/test' + testsGlob, (err, files) => {
-        if (err) throw err;
-
-        for (const file of files) {
-          let relativeFilePath = file.split(".sumo/baseline/test")[1];
-          let fileDir = path.dirname(relativeFilePath);
-          fs.mkdir(testDir + fileDir, { recursive: true }, function (err) {
-            if (err) return cb(err);
-
-            fs.copyFile(file, testDir + relativeFilePath, (err) => {
-              if (err) throw err;
-            });
-          });
-        }
-      });
-
-
+        });
+      }
     });
-    console.log("> Project restored.");
+
+    //Restore tests
+    glob(config.baselineDir + '/test' + config.testsGlob, (err, files) => {
+      if (err) throw err;
+
+      for (const file of files) {
+        let relativeFilePath = file.split(".sumo/baseline/test")[1];
+        let fileDir = path.dirname(relativeFilePath);
+        fs.mkdir(testDir + fileDir, { recursive: true }, function (err) {
+          if (err) return cb(err);
+
+          fs.copyFile(file, testDir + relativeFilePath, (err) => {
+            if (err) throw err;
+          });
+        });
+      }
+    });
+
+    console.log("Project restored.");
   } else {
-    console.log("> Project was not restored (No baseline available).");
+    console.log("Project was not restored (No baseline available).");
   }
 }
 
@@ -101,11 +95,19 @@ function restore() {
  * Cleans the build dir
  */
 function cleanBuildDir() {
-  if (fs.existsSync(buildDir)) {
-    fsExtra.emptyDirSync(buildDir);
-    console.log("> Build directory cleaned.");
-  } else {
-    console.log("> Build directory is already empty.");
+  const buildDir = getBuildDir();
+  fsExtra.emptyDirSync(buildDir);
+  console.log("Build directory cleaned.");
+}
+
+/**
+ * Cleans the results dir
+ */
+function cleanResultsDir() {
+  if (fs.existsSync(config.resultsDir)) {
+    fsExtra.emptyDirSync(config.resultsDir);
+    console.log("Results directory cleaned.\n");
+    setupResultsDir();
   }
 }
 
@@ -120,20 +122,15 @@ function cleanTmp() {
       //console.log(f + ' deleted')
     }
   });
-  console.log("> Ganache temporary files deleted.");
+  console.log("Ganache temporary files deleted.");
 }
 
 //Checks the package manager used by the SUT
 function getPackageManager() {
-  let packageManager;
+  let packageManager = null;
 
-  for (const lockFile of packageManagerGlob) {
-    if (fs.existsSync(projectDir + lockFile)) {
-      let packageManagerFile = lockFile;
-      if (!packageManagerFile) {
-        console.error("Target project does not contain a suitable lock file.");
-        process.exit(1);
-      }
+  for (const lockFile of config.packageManagerGlob) {
+    if (fs.existsSync(rootDir + lockFile)) {
       if (lockFile.includes("yarn")) {
         packageManager = "yarn";
       } else {
@@ -142,23 +139,106 @@ function getPackageManager() {
       break;
     }
   }
+  if (packageManager === null) {
+    console.error(chalk.red("Error: Cannot detect used package manager (the project does not include a valid lock file)."));
+    process.exit(1);
+  }
   return packageManager;
 }
 
-//Checks if SuMo was correctly installed
-function version() {
-  if (fs.existsSync("./node_modules")) {
-    console.log("SuMo V." +package.version)
-  }else{
-    console.log("SuMo is not installed.")
+/**
+ * Get the contracts directory
+ * @returns the path of the contracts directory
+ */
+function getContractsDir() {
+  if (sumoConfig.contractsDir && sumoConfig.contractsDir.replace(/\s/g, "") !== "") {
+    if (!fs.existsSync(rootDir + "/" + sumoConfig.contractsDir)) {
+      console.error(chalk.red("Error: The specified contract directory " + rootDir + "/" + sumoConfig.contractsDir + " does not exist."));
+      process.exit(1);
+    }
+    else {
+      return rootDir + "/" + sumoConfig.contractsDir;
+    }
+  } else {
+    if (!fs.existsSync(rootDir + "/contracts")) {
+      console.log("Error: No contracts directory found at " + rootDir + "/contracts")
+      process.exit(1);
+    }
+    else {
+      return rootDir + "/contracts";
+    }
   }
 }
 
+/**
+ * Get the test directory
+ * @returns the path of the test directory
+ */
+function getTestDir() {
+  if (sumoConfig.testDir && sumoConfig.testDir.replace(/\s/g, "") !== "") {
+    if (!fs.existsSync(rootDir + "/" + sumoConfig.testDir)) {
+      console.error(chalk.red("Error: The specified test directory " + rootDir + "/" + sumoConfig.contractsDir + " does not exist."));
+      process.exit(1);
+    }
+    else {
+      return rootDir + "/" + sumoConfig.testDir;
+    }
+  } else {
+    if (!fs.existsSync(rootDir + "/test")) {
+      console.error(chalk.red("Error: No test directory found at " + rootDir + "/test"));
+      process.exit(1);
+    }
+    else {
+      return rootDir + "/test";
+    }
+  }
+}
+
+/**
+ * Get the build directory
+ * @returns the path of the build directory
+ */
+function getBuildDir() {
+  //Check user-defined build dir
+  if (sumoConfig.buildDir && sumoConfig.buildDir.replace(/\s/g, "") !== "") {
+    if (!fs.existsSync(rootDir + "/" + sumoConfig.buildDir)) {
+      console.error(chalk.red("Error: The specified build directory " + rootDir + "/" + sumoConfig.buildDir + " does not exist."));
+      process.exit(1);
+    }
+    else {
+      return rootDir + "/" + sumoConfig.buildDir;
+    }
+  }
+  //Check default build dir
+  else {
+    let possibleBuilDirs = ["/build/artifacts/contracts", "/build/artifacts", "/build", "/output", "/out", "/artifacts/contracts", "/artifacts"]
+    let foundDir = null;
+    for (let i = 0; i < possibleBuilDirs.length; i++) {
+      const dir = possibleBuilDirs[i];
+      if (fs.existsSync(rootDir + dir)) {
+        foundDir = rootDir + dir;
+        break;
+      }
+    }
+    if (foundDir !== null) {
+      return foundDir;
+    } else {
+      console.error(chalk.red("Error: No valid build directory found in " + rootDir + ".\n Please compile your contracts and/or specify a build directory in your sumo-config.js"));
+      process.exit(1);
+    }
+  }
+}
+
+
 module.exports = {
-  cleanSumo: cleanSumo,
+  getBuildDir: getBuildDir,
+  getTestDir: getTestDir,
+  getContractsDir: getContractsDir,
+  setupResultsDir: setupResultsDir,
   restore: restore,
-  cleanTmp: cleanTmp,
   cleanBuildDir: cleanBuildDir,
+  cleanResultsDir: cleanResultsDir,
+  cleanTmp: cleanTmp,
   getPackageManager: getPackageManager,
-  version: version
+  config: config
 };

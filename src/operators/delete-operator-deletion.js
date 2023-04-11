@@ -1,10 +1,9 @@
 const Mutation = require("../mutation");
 
 function DODOperator() {
+  this.ID = "DOD";
+  this.name = "delete-operator-deletion";
 }
-
-DODOperator.prototype.ID = "DOD";
-DODOperator.prototype.name = "delete-operator-deletion";
 
 DODOperator.prototype.getMutations = function(file, source, visit) {
   const mutations = [];

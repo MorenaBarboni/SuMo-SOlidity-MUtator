@@ -1,10 +1,9 @@
 const Mutation = require("../mutation");
 
 function SKDOperator() {
+  this.ID = "SKD";
+  this.name = "super-keyword-deletion";
 }
-
-SKDOperator.prototype.ID = "SKD";
-SKDOperator.prototype.name = "super-keyword-deletion";
 
 SKDOperator.prototype.getMutations = function(file, source, visit) {
   const mutations = [];

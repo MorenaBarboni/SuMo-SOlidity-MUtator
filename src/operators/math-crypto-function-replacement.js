@@ -1,10 +1,9 @@
 const Mutation = require("../mutation");
 
 function MCROperator() {
+  this.ID = "MCR";
+  this.name = "math-and-crypto-function-replacement";
 }
-
-MCROperator.prototype.ID = "MCR";
-MCROperator.prototype.name = "math-and-crypto-function-replacement";
 
 MCROperator.prototype.getMutations = function(file, source, visit) {
   const mutations = [];

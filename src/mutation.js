@@ -3,12 +3,9 @@ const jsdiff = require('diff')
 const fs = require('fs')
 const sha1 = require('sha1')
 const path = require('path')
-const config = require('./config')
-
-const baselineDir = config.baselineDir
-const contractsDir = config.contractsDir
-const mutantsDir = config.resultsDir+'/mutants';
-
+const utils = require('./utils')
+const mutantsDir = utils.config.mutantsDir;
+const baselineDir = utils.config.baselineDir;
 
 function splice(str, start, length, replacement) {
   return str.substring(0, start) + replacement + str.substring(start + length)
@@ -30,7 +27,7 @@ function Mutation(file, start, end, startLine, endLine, original, replace, opera
 
 Mutation.prototype.hash = function () {
   const input = [path.basename(this.file), this.start, this.end, this.replace].join(':')
-  return sha1(input).slice(0, 8)
+  return "m" + sha1(input).slice(0, 8)
 }
 
 Mutation.prototype.apply = function () {
@@ -62,13 +59,14 @@ Mutation.prototype.applyToString = function (original) {
 Mutation.prototype.restore = function () {
   const baseline = this.baseline()
 
-  console.log('> Restoring ' + this.file)
+  console.log('Restoring ' + this.file)
 
   const original = fs.readFileSync(baseline, 'utf8')
   fs.writeFileSync(this.file, original, 'utf8')
 }
 
 Mutation.prototype.baseline = function () {
+  const contractsDir = utils.getContractsDir();
   return baselineDir + "/contracts" + this.file.substr(contractsDir.length);
 }
 
@@ -158,11 +156,11 @@ Mutation.prototype.toJson = function () {
  * Gets the mutation file name
  * @returns the name of the mutated contract
  */
- Mutation.prototype.fileName = function () {
+Mutation.prototype.fileName = function () {
 
   const lastIndex = this.file.lastIndexOf('/');
-  let fileName = this.file.slice(lastIndex+1);
-  
+  let fileName = this.file.slice(lastIndex + 1);
+
   return fileName;
 }
 

@@ -1,10 +1,9 @@
 const Mutation = require("../mutation");
 
 function SFDOperator() {
+  this.ID = "SFD";
+  this.name = "selfdestruct-function-deletion";
 }
-
-SFDOperator.prototype.ID = "SFD";
-SFDOperator.prototype.name = "selfdestruct-function-deletion";
 
 SFDOperator.prototype.getMutations = function(file, source, visit) {
   const mutations = [];

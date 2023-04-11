@@ -1,10 +1,9 @@
 const Mutation = require("../mutation");
 
 function ORFDOperator() {
+  this.ID = "ORFD";
+  this.name = "overridden-function-deletion";
 }
-
-ORFDOperator.prototype.ID = "ORFD";
-ORFDOperator.prototype.name = "overridden-function-deletion";
 
 ORFDOperator.prototype.getMutations = function(file, source, visit) {
   const mutations = [];

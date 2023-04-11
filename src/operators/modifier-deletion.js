@@ -1,10 +1,9 @@
 const Mutation = require("../mutation");
 
 function MODOperator() {
+  this.ID = "MOD";
+  this.name = "modifier-deletion";
 }
-
-MODOperator.prototype.ID = "MOD";
-MODOperator.prototype.name = "modifier-deletion";
 
 MODOperator.prototype.getMutations = function(file, source, visit) {
   const mutations = [];

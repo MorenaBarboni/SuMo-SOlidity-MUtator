@@ -1,10 +1,9 @@
 const Mutation = require("../mutation");
 
 function MOCOperator() {
+  this.ID = "MOC";
+  this.name = "modifier-order-change";
 }
-
-MOCOperator.prototype.ID = "MOC";
-MOCOperator.prototype.name = "modifier-order-change";
 
 MOCOperator.prototype.getMutations = function (file, source, visit) {
   const mutations = [];

@@ -1,10 +1,9 @@
 const Mutation = require("../mutation");
 
 function OLFDOperator() {
+  this.ID = "OLFD";
+  this.name = "overloaded-function-deletion";
 }
-
-OLFDOperator.prototype.ID = "OLFD";
-OLFDOperator.prototype.name = "overloaded-function-deletion";
 
 OLFDOperator.prototype.getMutations = function(file, source, visit) {
 

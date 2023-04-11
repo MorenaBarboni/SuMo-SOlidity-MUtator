@@ -1,22 +1,22 @@
 const fs = require("fs");
-const config = require("./config");
 const path = require("path");
 const { parse } = require("path");
 const chalk = require('chalk')
 
 function TceRunner() {
   this.currentBytecode = [];
-  this.originalBytecode = new Map(); 
+  this.originalBytecode = new Map();
 }
 
 /**
  * The <b>saveOriginalBytecode()</b> function stores bytecode of the original smart contracts in the originalBytecode Map.
  * The key is the name of the smart contract, the value is the contract bytecode.
  * @param contractsUnderMutation the smart contracts under mutation
+ * @param buildDir the directory containing the bytecode
  */
-TceRunner.prototype.saveOriginalBytecode = function (contractsUnderMutation) {
+TceRunner.prototype.saveOriginalBytecode = function (contractsUnderMutation, buildDir) {
   //save the bytecode of the original contracts
-  this.exploreDirectories(config.buildDir)
+  this.exploreDirectories(buildDir)
   this.currentBytecode.map(artifact => {
     for (const contract of contractsUnderMutation) {
       if (parse(artifact).name === parse(contract).name) {
@@ -34,31 +34,32 @@ TceRunner.prototype.saveOriginalBytecode = function (contractsUnderMutation) {
  * @param mutation The mutant object
  * @param map The byecode map of the mutant
  * @param reporter A reporter instance for logging information
+ * @param buildDir the directory containing the bytecode
  * @returns the mutant with a potentially updated status and an associated bytecode
  */
- TceRunner.prototype.runTce = function (mutation, map, reporter) {
+TceRunner.prototype.runTce = function (mutation, map, reporter, buildDir) {
   console.log();
-  console.log(chalk.yellow('> Running the TCE'));
+  console.log(chalk.yellow('Running the TCE'));
 
   var file = mutation.file;
   let fileName = parse(file).name;
 
   this.currentBytecode = [];
 
-  this.exploreDirectories(config.buildDir)
+  this.exploreDirectories(buildDir)
   this.currentBytecode.map(artifact => {
     if (parse(artifact).name === parse(mutation.file).name) {
       mutation.bytecode = saveBytecodeSync(artifact);
     }
   })
 
-  if (this.originalBytecode.get(fileName) === mutation.bytecode) {
+  if (this.originalBytecode.get(fileName) === mutation.bytecode && mutation.bytecode !== null) {
     mutation.status = "equivalent";
   } else if (map.size !== 0) {
     for (const key of map.keys()) {
-      if (map.get(key) === mutation.bytecode) {
+      if (map.get(key) === mutation.bytecode && mutation.bytecode !== null) {
         mutation.status = "redundant";
-        reporter.saveResultsCsv(mutation, key);
+        //reporter.saveResultsCsv(mutation, key);
         break;
       }
     }
@@ -81,7 +82,7 @@ TceRunner.prototype.exploreDirectories = function (Directory) {
     const Absolute = path.join(Directory, File);
     if (fs.statSync(Absolute).isDirectory())
       return this.exploreDirectories(Absolute);
-    else{
+    else {
       return this.currentBytecode.push(Absolute);
     }
   });
@@ -92,18 +93,23 @@ TceRunner.prototype.exploreDirectories = function (Directory) {
  * @param file The name of the original contract
  * @returns {*} The bytecode
  */
- function saveBytecodeSync(file) {
+function saveBytecodeSync(file) {
   var mutantBytecode;
   try {
     const data = fs.readFileSync(file, "utf-8");
     var json = JSON.parse(data);
-    mutantBytecode = json.bytecode;
+    if (json.bytecode && json.bytecode.object) {
+      mutantBytecode = json.bytecode.object;
+    } else if (json.bytecode) {
+      mutantBytecode = json.bytecode;
+    } else {
+      mutantBytecode = null;
+      console.log(chalk.red('Warning: Bytecode not found - TCE skipped.'));
+    }
     return mutantBytecode;
   } catch (err) {
-    console.log(chalk.red('Artifact not found!!'));
+    console.log(chalk.red("Error: Compiled artifact not found."));
   }
 }
-
-
 
 module.exports = TceRunner

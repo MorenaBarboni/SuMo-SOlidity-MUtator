@@ -1,10 +1,9 @@
 const Mutation = require("../mutation");
 
 function CBDOperator() {
+  this.ID = "CBD";
+  this.name = "catch-block-deletion";
 }
-
-CBDOperator.prototype.ID = "CBD";
-CBDOperator.prototype.name = "catch-block-deletion";
 
 CBDOperator.prototype.getMutations = function(file, source, visit) {
   const mutations = [];

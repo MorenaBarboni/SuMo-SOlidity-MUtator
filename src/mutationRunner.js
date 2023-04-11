@@ -1,42 +1,32 @@
-const copy = require('recursive-copy')
-const fs = require('fs')
-const glob = require('glob')
-const mkdirp = require('mkdirp')
-const parser = require('@solidity-parser/parser')
-const config = require('./config')
+const appRoot = require('app-root-path');
 const chalk = require('chalk')
-const path = require("path");
-const { parse } = require("path");
-const rimraf = require('rimraf')
-
+const fs = require('fs')
+const fse = require('fs-extra');
+const glob = require('glob')
+const parser = require('@solidity-parser/parser')
+var path = require('path');
 const Reporter = require('./reporter')
 const TceRunner = require('./tceRunner')
+const utils = require('./utils')
 const testingInterface = require("./testingInterface");
 const mutationGenerator = require("./operators/mutationGenerator");
-const utils = require('./utils')
 
 //SuMo configuration
-const sumoDir = config.sumoDir;
-const resultsDir = config.resultsDir
-const baselineDir = config.baselineDir;
-const projectDir = config.projectDir;
-const contractsDir = config.contractsDir;
-const testDir = config.testDir;
-const buildDir = config.buildDir;
-const equivalentDir = resultsDir + '/equivalent';
-const liveDir = resultsDir + '/live';
-const mutantsDir = resultsDir + '/mutants';
-const redundantDir = resultsDir + '/redundant';
-const stillbornDir = resultsDir + '/stillborn';
-const timedoutDir = resultsDir + '/timedout';
-const killedDir = resultsDir + '/killed';
-const contractsGlob = config.contractsGlob;
-const testsGlob = config.testsGlob;
-
+const rootDir = appRoot.toString().replaceAll("\\", "/");
+const sumoConfig = require(rootDir + '/sumo-config')
+const sumoDir = utils.config.sumoDir;
+const baselineDir = utils.config.baselineDir;
+const mutantsDir = utils.config.mutantsDir;
+const contractsGlob = utils.config.contractsGlob;
+const testsGlob = utils.config.testsGlob;
 var packageManager;
+var contractsDir;
+var testDir;
+var buildDir;
 
 const reporter = new Reporter()
 const tceRunner = new TceRunner()
+
 
 const mutGen = new mutationGenerator.CompositeOperator([
   new mutationGenerator.ACMOperator(),
@@ -86,50 +76,35 @@ const mutGen = new mutationGenerator.CompositeOperator([
 ])
 
 function prepare(callback) {
-  if (sumoDir === "" || resultsDir === "" || baselineDir === "" ||
-    projectDir === "" || contractsDir === "" || (config.tce && buildDir === '')) {
-    console.error("SuMo configuration is incomplete or missing.");
+  reporter.logPrepareCheck();
+
+  if (sumoConfig.testingFramework !== "truffle" && sumoConfig.testingFramework !== "hardhat" && sumoConfig.testingFramework !== "forge" && sumoConfig.testingFramework !== "custom") {
+    console.error(chalk.red("Error: The specified testing framework is not valid. \n The available options are:\n - truffle \n - hardhat \n - forge \n - custom"));
     process.exit(1);
   }
 
-  if (config.testingFramework !== "truffle" && config.testingFramework !== "hardhat" && config.testingFramework !== "custom") {
-    console.error("The specified testing framework is not valid. \n The available options are:\n - truffle \n - hardhat \n - custom");
-    process.exit(1);
+  //Setup .sumo dir
+  if (!fs.existsSync(sumoDir)) {
+    fs.mkdirSync(sumoDir);
   }
+  utils.setupResultsDir();
 
-  if (config.network !== "ganache" && config.network !== "none") {
-    console.error("The specified network is not valid. \n The available options are:\n - ganache \n - none");
-    process.exit(1);
-  }
+  //Get configurable directories from the sumo-config file
+  contractsDir = utils.getContractsDir();
+  testDir = utils.getTestDir();
+  buildDir = utils.getBuildDir();
+  reporter.logAndSaveConfigDirs(contractsDir, testDir, buildDir);
 
-
-
-  //Checks the package manager used by the SUT
+  //Check the package manager used by the SUT
   packageManager = utils.getPackageManager()
 
   if (fs.existsSync(baselineDir)) {
-    rimraf(baselineDir, function () {
-      //console.log("Baseline deleted");
-      mkdirp(baselineDir, () =>
-        copy(testDir, baselineDir + '/test', { dot: true },
-          copy(contractsDir, baselineDir + '/contracts', { dot: true }, callback)))
-    })
-  } else {
-    mkdirp(baselineDir, () =>
-      copy(testDir, baselineDir + '/test', { dot: true },
-        copy(contractsDir, baselineDir + '/contracts', { dot: true }, callback)))
+    fse.emptyDirSync(baselineDir);
   }
 
-  mkdirp(mutantsDir);
-  mkdirp(liveDir);
-  mkdirp(killedDir);
-  mkdirp(timedoutDir);
-  mkdirp(stillbornDir);
-  if (config.tce) {
-    mkdirp(redundantDir);
-    mkdirp(equivalentDir);
-  }
-
+  fse.copySync(testDir, baselineDir + "/test", { overwrite: true });
+  fse.copySync(contractsDir, baselineDir + "/contracts", { overwrite: true });
+  callback();
 }
 
 /**
@@ -137,9 +112,9 @@ function prepare(callback) {
  */
 function preflight() {
   prepare(() =>
-    glob(config.contractsDir + contractsGlob, (err, contracts) => {
+    glob(contractsDir + contractsGlob, (err, contracts) => {
       if (err) throw err;
-      glob(config.testDir + testsGlob, (err, tests) => {
+      glob(testDir + testsGlob, (err, tests) => {
         if (err) throw err;
         let contractsUnderMutation = contractSelection(contracts);
         let testsToBeRun = testSelection(tests);
@@ -156,19 +131,18 @@ function preflight() {
  */
 function mutate() {
   prepare(() =>
-    glob(config.contractsDir + contractsGlob, (err, contracts) => {
+    glob(contractsDir + contractsGlob, (err, contracts) => {
       if (err) throw err;
-      glob(config.testDir + testsGlob, (err, tests) => {
+      glob(testDir + testsGlob, (err, tests) => {
         if (err) throw err;
         let contractsUnderMutation = contractSelection(contracts);
         let testsToBeRun = testSelection(tests);
         reporter.logSelectedFiles(contractsUnderMutation, testsToBeRun);
-        reporter.logSelectedFiles(contractsUnderMutation);
         const mutations = generateAllMutations(contractsUnderMutation, true);
         for (const mutation of mutations) {
           mutation.save();
         }
-        console.log("- Mutants saved to .sumo/results/mutants");
+        console.log("Mutants saved to " + mutantsDir);
       })
     })
   );
@@ -197,56 +171,78 @@ function generateAllMutations(files, overwrite) {
 }
 
 /**
+ * Entry point for pre-test
+ */
+function runPreTest() {
+  prepare(() =>
+    glob(contractsDir + contractsGlob, (err, contracts) => {
+      if (err) throw err;
+      glob(testDir + testsGlob, (err, tests) => {
+        if (err) throw err;
+        //Select contracts to mutate and test files to evaluate
+        let contractsUnderMutation = contractSelection(contracts);
+        let testsToBeRun = testSelection(tests);
+        preTest(contractsUnderMutation, testsToBeRun)
+      })
+    })
+  );
+}
+
+/**
  * Runs the original test suite to ensure that all tests pass.
  */
 function preTest(contractsUnderMutation, testsToBeRun) {
 
   reporter.logPretest();
 
-  if (contractsUnderMutation.length == 0) {
-    console.log(chalk.red("- No contracts to be mutated"))
-    process.exit(1)
-  }
-
-  //run pretest on all test files regardless of regression
-  if (testsToBeRun.length == 0) {
-    console.log(chalk.red("- No tests to be evaluated"))
-    process.exit(1)
-  }
-
   utils.cleanBuildDir(); //Remove old compiled artifacts
+  utils.cleanResultsDir(); //Remove old results directory
+
+  reporter.logSelectedFiles(contractsUnderMutation, testsToBeRun);
+
+  if (contractsUnderMutation.length == 0) {
+    console.error(chalk.red("Error: No contracts to be mutated"))
+    process.exit(1)
+  }
+
+  //run pretest on all test files
+  if (testsToBeRun.length == 0) {
+    console.error(chalk.red("Error: No tests to be evaluated"))
+    process.exit(1)
+  }
+
   reporter.setupResultsCsv();
 
-  let ganacheChild = testingInterface.spawnNetwork();
+  let nodeChild = testingInterface.spawnNetwork(packageManager);
   const isCompiled = testingInterface.spawnCompile(packageManager);
 
   if (isCompiled) {
     const status = testingInterface.spawnTest(packageManager, testsToBeRun);
     if (status === 0) {
-      console.log("Pre-test OK.");
+      console.log(chalk.green("\nPre-test OK.\n"));
     } else {
-      testingInterface.killNetwork(ganacheChild);
-      console.error(chalk.red("Error: Original tests should pass."));
+      testingInterface.killNetwork(nodeChild);
+      console.error(chalk.red("\nError: Pre-test failed - original tests should pass."));
       process.exit(1);
     }
   } else {
-    testingInterface.killNetwork(ganacheChild);
-    console.error(chalk.red("Error: Original contracts should compile."));
+    testingInterface.killNetwork(nodeChild);
+    console.error(chalk.red("\nError: Pre-test failed - original contracts should compile."));
     process.exit(1);
   }
-  testingInterface.killNetwork(ganacheChild);
+  testingInterface.killNetwork(nodeChild);
 }
-
 
 /**
  * Starts the mutation testing process
+ * @param startHash hash of the first mutant to be tested
+ * @param endHash hash of the last mutant to be tested * 
  */
-function test() {
-
+function test(startHash, endHash) {
   prepare(() =>
-    glob(config.contractsDir + contractsGlob, (err, contracts) => {
+    glob(contractsDir + contractsGlob, (err, contracts) => {
       if (err) throw err;
-      glob(config.testDir + testsGlob, (err, tests) => {
+      glob(testDir + testsGlob, (err, tests) => {
         if (err) {
           console.error(err)
           process.exit(1)
@@ -256,18 +252,33 @@ function test() {
         let contractsUnderMutation = contractSelection(contracts);
         let testsToBeRun = testSelection(tests);
 
-        reporter.logSelectedFiles(contractsUnderMutation, testsToBeRun);
-
         //Run the pre-test and compile the original contracts
         preTest(contractsUnderMutation, testsToBeRun);
 
-        if (config.tce) {
-          //save the bytecode of the original contracts
-          tceRunner.saveOriginalBytecode(contractsUnderMutation);
+        if (sumoConfig.tce) {
+          tceRunner.saveOriginalBytecode(contractsUnderMutation, buildDir);
         }
 
         //Generate mutations
-        const mutations = generateAllMutations(contractsUnderMutation, true)
+        var mutations = generateAllMutations(contractsUnderMutation, true)
+        if (startHash !== "first") {
+          let startIndex = mutations.indexOf(mutations.find(m => m.id === startHash));
+          if (startIndex != -1) {
+            mutations = mutations.slice(startIndex, mutations.length - 1);
+          } else {
+            console.error(chalk.red("Error: The specified start hash does not corrispond to any generated mutant."));
+            process.exit(1);
+          }
+        }
+        if (endHash !== "last") {
+          let endIndex = mutations.indexOf(mutations.find(m => m.id === endHash));
+          if (endIndex != -1) {
+            mutations = mutations.slice(0, endIndex + 1);
+          } else {
+            console.error(chalk.red("Error: The specified end hash does not corrispond to any generated mutant."));
+            process.exit(1);
+          }
+        }
 
         //Compile and test each mutant
         reporter.logStartMutationTesting();
@@ -281,10 +292,8 @@ function test() {
         reporter.saveOperatorsResults();
       })
     })
-
   )
 }
-
 
 /**
  * The <b>runTest</b> function compile and test each mutant, assigning them a certain status
@@ -295,21 +304,20 @@ function runTest(mutations, file, testsToBeRun) {
   const mutantBytecodeMap = new Map();
 
   for (var mutation of mutations) {
-    if ((parse(mutation.file).name) === (parse(file).name)) {
-      let ganacheChild = testingInterface.spawnNetwork();
+    if ((path.parse(mutation.file).name) === (path.parse(file).name)) {
+      let startTestTime = Date.now();
+      let nodeChild = testingInterface.spawnNetwork(packageManager);
       mutation.apply();
       reporter.logCompile(mutation);
       const isCompiled = testingInterface.spawnCompile(packageManager);
 
       if (isCompiled) {
-        if (config.tce) {
-          mutation = tceRunner.runTce(mutation, mutantBytecodeMap, reporter);
+        if (sumoConfig.tce) {
+          mutation = tceRunner.runTce(mutation, mutantBytecodeMap, reporter, buildDir);
         }
         if (mutation.status !== "redundant" && mutation.status !== "equivalent") {
           reporter.logTest(mutation);
-          let startTestTime = Date.now();
           const result = testingInterface.spawnTest(packageManager, testsToBeRun)
-          mutation.testingTime = Date.now() - startTestTime;
           if (result === 0) {
             mutation.status = "live";
           } else if (result === 999) {
@@ -321,12 +329,11 @@ function runTest(mutations, file, testsToBeRun) {
       } else {
         mutation.status = "stillborn";
       }
-      if (mutation.status !== "redundant") {
-        reporter.saveResultsCsv(mutation, null);
-      }
+      mutation.testingTime = ((Date.now() - startTestTime));
+      reporter.saveResultsCsv(mutation);
       reporter.mutantStatus(mutation);
       mutation.restore();
-      testingInterface.killNetwork(ganacheChild);
+      testingInterface.killNetwork(nodeChild);
     }
   }
   mutantBytecodeMap.clear();
@@ -344,16 +351,16 @@ function enableOperator(ID) {
   if (!ID) {
     var success = mutGen.enableAll();
     if (success)
-      console.log("> All mutation operators enabled.");
+      console.log("\nAll mutation operators enabled.\n");
     else
-      console.log("Error");
+      console.error(chalk.red("\nError.\n"));
   } else {
     //Enable operator ID
     var success = mutGen.enable(ID);
     if (success)
-      console.log("> " + chalk.bold.yellow(ID) + " enabled.");
+      console.log("\n" + chalk.bold.yellow(ID) + " enabled.\n");
     else
-      console.log("> " + ID + " does not exist.");
+      console.error(chalk.red("\nError: " + ID + " does not exist.\n"));
   }
 }
 
@@ -363,16 +370,16 @@ function disableOperator(ID) {
   if (!ID) {
     var success = mutGen.disableAll();
     if (success)
-      console.log("> All mutation operators disabled.");
+      console.log("\nAll mutation operators disabled.\n");
     else
-      console.log("Error");
+      console.error(chalk.red("\nError.\n"));
   } else {
     //Disable operator ID
     var success = mutGen.disable(ID);
     if (success)
-      console.log("> " + chalk.bold.yellow(ID) + " disabled.");
+      console.log("\n" + chalk.bold.yellow(ID) + " disabled.\n");
     else
-      console.log("> " + ID + " does not exist.");
+      console.error(chalk.red("\nError: " + ID + " does not exist.\n"));
   }
 }
 
@@ -389,7 +396,7 @@ function mutationsByHash(mutations) {
  */
 function diff(argv) {
   prepare(() =>
-    glob(config.contractsDir + contractsGlob, (err, contracts) => {
+    glob(contractsDir + contractsGlob, (err, contracts) => {
       if (err) {
         console.log(err);
         process.exit(0);
@@ -397,7 +404,7 @@ function diff(argv) {
       const mutations = generateAllMutations(contracts, false)
       const index = mutationsByHash(mutations)
       if (!index[argv.hash]) {
-        console.error('Mutation ' + argv.hash + ' not found.')
+        console.error(chalk.red('\nError: Mutation ' + argv.hash + ' not found.'))
         process.exit(1)
       }
       console.log(index[argv.hash].diff())
@@ -414,8 +421,9 @@ function contractSelection(files) {
 
   for (const file of files) {
     let skipContract = false;
-    for (const path of config.skipContracts) {
-      if (file.startsWith(path) && path !== "") {
+    for (const relCPath of sumoConfig.skipContracts) {
+      let absolCPath = utils.getContractsDir() + "/" + relCPath;
+      if (file.startsWith(absolCPath) && relCPath !== "") {
         skipContract = true;
         break;
       }
@@ -437,11 +445,15 @@ function testSelection(files) {
 
   for (const file of files) {
     let skipTest = false;
-    for (const path of config.skipTests) {
-      if (file.startsWith(path) && path !== "") {
+    for (const relTPath of sumoConfig.skipTests) {
+      let absolTPath = utils.getTestDir() + "/" + relTPath;
+      if (file.startsWith(absolTPath) && relTPath !== "") {
         skipTest = true;
         break;
       }
+    }
+    if (sumoConfig.testingFramework === "forge" && !file.endsWith(".t.sol")) {
+      skipTest = true;
     }
     if (!skipTest) {
       testsToBeRun.push(file)
@@ -451,7 +463,12 @@ function testSelection(files) {
 }
 
 module.exports = {
-  test: test, preflight, preflight, mutate: mutate, diff: diff, list: enabledOperators,
-  enable: enableOperator, disable: disableOperator
+  preflight, preflight,
+  mutate: mutate,
+  pretest: runPreTest,
+  test: test,
+  diff: diff,
+  list: enabledOperators,
+  enable: enableOperator,
+  disable: disableOperator
 }
-

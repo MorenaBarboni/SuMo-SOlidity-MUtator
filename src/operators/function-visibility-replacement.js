@@ -1,10 +1,9 @@
-const Mutation = require("../mutation");
+const Mutation = require('../mutation')
 
 function FVROperator() {
+  this.ID = "FVR";
+  this.name = "function-visibility-replacement";
 }
-
-FVROperator.prototype.ID = "FVR";
-FVROperator.prototype.name = "function-visibility-replacement";
 
 FVROperator.prototype.getMutations = function (file, source, visit) {
   const mutations = [];
@@ -19,6 +18,8 @@ FVROperator.prototype.getMutations = function (file, source, visit) {
           const endLine = node.body.loc.start.line;
           const original = source.substring(start, end); //function signature  
           let replacement;
+          let replacement2;
+          let replacement3;
 
           //Constructor
           if (node.isConstructor) {
@@ -32,25 +33,37 @@ FVROperator.prototype.getMutations = function (file, source, visit) {
           else {
             switch (node.visibility) {
               case "public":
+                replacement = original.replace("public", "external");
                 if (node.stateMutability !== "payable") {
-                  replacement = original.replace("public", "internal");
+                  replacement2 = original.replace("public", "internal");
+                  replacement3 = original.replace("public", "private");
                 }
                 break;
               case "external":
+                replacement = original.replace("external", "public");
                 if (node.stateMutability !== "payable") {
-                  replacement = original.replace("external", "internal");
+                  replacement2 = original.replace("external", "internal");
+                  replacement3 = original.replace("external", "private");
                 }
                 break;
               case "internal":
                 replacement = original.replace("internal", "public");
+                replacement2 = original.replace("internal", "external");
+                replacement3 = original.replace("internal", "private");
                 break;
               case "private":
                 replacement = original.replace("private", "public");
+                replacement2 = original.replace("private", "external");
+                replacement3 = original.replace("private", "internal");
                 break;
             }
           }
           if (replacement)
             mutations.push(new Mutation(file, start, end, startLine, endLine, original, replacement, this.ID));
+          if (replacement2)
+            mutations.push(new Mutation(file, start, end, startLine, endLine, original, replacement2, this.ID));
+          if (replacement3)
+            mutations.push(new Mutation(file, start, end, startLine, endLine, original, replacement3, this.ID));
         }
       }
     }

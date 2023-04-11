@@ -1,10 +1,9 @@
 const Mutation = require("../mutation");
 
 function ICMOperator() {
+  this.ID = "ICM";
+  this.name = "increments-mirror";
 }
-
-ICMOperator.prototype.ID = "ICM";
-ICMOperator.prototype.name = "increments-mirror";
 
 ICMOperator.prototype.getMutations = function(file, source, visit) {
   const mutations = [];

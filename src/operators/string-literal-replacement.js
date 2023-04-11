@@ -1,10 +1,9 @@
 const Mutation = require("../mutation");
 
 function SLRoperator() {
+  this.ID = "SLR";
+  this.name = "string-literal-replacement";
 }
-
-SLRoperator.prototype.ID = "SLR";
-SLRoperator.prototype.name = "string-literal-replacement";
 
 SLRoperator.prototype.getMutations = function (file, source, visit) {
   const mutations = [];

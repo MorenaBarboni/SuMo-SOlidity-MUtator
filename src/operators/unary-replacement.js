@@ -1,10 +1,9 @@
 const Mutation = require("../mutation");
 
 function UORDOperator() {
+  this.ID = "UORD";
+  this.name = "unary-operator-replacement";
 }
-
-UORDOperator.prototype.ID = "UORD";
-UORDOperator.prototype.name = "unary-operator-replacement";
 
 UORDOperator.prototype.getMutations = function(file, source, visit) {
   const mutations = [];

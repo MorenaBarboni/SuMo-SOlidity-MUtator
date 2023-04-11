@@ -1,14 +1,23 @@
 const chalk = require('chalk')
 const fs = require('fs')
-const config = require('./config')
 var excel = require('excel4node');
 const path = require("path");
-const operatorsConfigFileName = "./operators.config.json";
-const operatorsConfig = require(operatorsConfigFileName);
-const resultsDir = config.resultsDir
+const utils = require('./utils');
+const appRoot = require('app-root-path');
+const rootDir = appRoot.toString().replaceAll("\\", "/");
+const sumoConfig = require(rootDir + "/sumo-config");
+const mutOpsConfig = require(utils.config.mutOpsConfig);
+const reportTxt = utils.config.reportTxt;
+const resultsDir = utils.config.resultsDir;
+const killedDir = utils.config.killedDir;
+const liveDir = utils.config.liveDir;
+const equivalentDir = utils.config.equivalentDir;
+const stillbornDir = utils.config.stillbornDir;
+const redundantDir = utils.config.redundantDir;
+const timedoutDir = utils.config.timedoutDir;
 
 function Reporter() {
-  this.operators = Object.entries(operatorsConfig);
+  this.operators = Object.entries(mutOpsConfig);
   this.survived = [];
   this.killed = [];
   this.stillborn = [];
@@ -22,7 +31,7 @@ Reporter.prototype.chalkMutant = function (mutant) {
 }
 
 Reporter.prototype.logPretest = function () {
-  console.log(chalk.yellow.bold("> Running pre-test 🔎"));
+  console.log(chalk.yellow.bold("Running pre-test 🔎"));
 };
 
 /**
@@ -30,18 +39,41 @@ Reporter.prototype.logPretest = function () {
  * @param {*} contracts list of contracts to be mutated
  * @param {*} tests list of tests to be run
  */
- Reporter.prototype.logSelectedFiles = function (contracts, tests) {
-  const nc = contracts.length;
-  console.log();
-  console.log(chalk.yellow.bold("> Selecting Contract and Test Files"))
-  console.log();
+Reporter.prototype.logPrepareCheck = function () {
+  console.log(chalk.yellow.bold("\nChecking project configuration\n"));
+}
 
-  if (nc == 0){
+
+/**
+ * Prints the project folders and saves them to report.txt
+ * @param {*} contracts list of contracts to be mutated
+ * @param {*} tests list of tests to be run
+ */
+Reporter.prototype.logAndSaveConfigDirs = function (contractsDir, testDir, buildDir) {
+  console.log("Contracts directory: " + contractsDir);
+  console.log("Test directory: " + testDir);
+  console.log("Build directory: " + buildDir + "\n");
+  fs.writeFileSync(reportTxt, ">>> PROJECT CONFIGURATION \n\nContracts directory: " + contractsDir +
+    "\nTest directory: " + testDir + "\nBuild directory: " + buildDir + "\n\n", function (err) {
+      if (err) return console.log(err);
+    });
+}
+
+/**
+ * Prints the files under test and saves them to report.txt
+ * @param {*} contracts list of contracts to be mutated
+ * @param {*} tests list of tests to be run
+ */
+Reporter.prototype.logSelectedFiles = function (contracts, tests) {
+  const nc = contracts.length;
+  console.log(chalk.yellow.bold("Selecting Contract and Test Files\n"))
+
+  if (nc == 0) {
     console.log("Contracts to be mutated : " + chalk.green("none"));
   }
   else {
     console.log("Contracts to be mutated : (" + nc + "):");
-    fs.writeFileSync(resultsDir + "/report.txt", ">>> SELECTED FILES \n\n Contracts to be mutated : (" + nc + "):\n", function (err) {
+    fs.appendFileSync(reportTxt, ">>> SELECTED FILES \n\nContracts to be mutated : (" + nc + "):\n", function (err) {
       if (err) return console.log(err);
     });
 
@@ -49,7 +81,7 @@ Reporter.prototype.logPretest = function () {
       console.log(
         "\t" + path.parse(c).dir + "/" + chalk.bold(path.basename(c))
       );
-      fs.appendFileSync(resultsDir + "/report.txt", "\t" + "- " +path.parse(c).dir + "/" + path.basename(c) + "\n", function (err) {
+      fs.appendFileSync(reportTxt, "\t" + "- " + path.parse(c).dir + "/" + path.basename(c) + "\n", function (err) {
         if (err) return console.log(err);
       });
     });
@@ -65,15 +97,15 @@ Reporter.prototype.logPretest = function () {
     if (nt == 0) console.log("Tests to be run : " + chalk.green("none"));
     else {
       console.log("Tests to be run : (" + nt + "):");
-      fs.appendFileSync(resultsDir + "/report.txt", "Tests to be run : (" + nt + "):\n", function (err) {
+      fs.appendFileSync(reportTxt, "Tests to be run : (" + nt + "):\n", function (err) {
         if (err) return console.log(err);
       });
- 
+
       tests.forEach((t) => {
         console.log(
           "\t" + path.parse(t).dir + "/" + chalk.bold(path.basename(t))
         );
-        fs.appendFileSync(resultsDir + "/report.txt", "\t" + "- " + path.parse(t).dir + "/" + path.basename(t) + '\n', function (err) {
+        fs.appendFileSync(reportTxt, "\t" + "- " + path.parse(t).dir + "/" + path.basename(t) + '\n', function (err) {
           if (err) return console.log(err);
         });
 
@@ -81,35 +113,34 @@ Reporter.prototype.logPretest = function () {
     }
     console.log();
   }
-  if(nc > 0){
-    fs.appendFileSync(resultsDir + "/report.txt", "\n\n>>> GENERATED MUTANTS \n", function (err) {
+  if (nc > 0) {
+    fs.appendFileSync(reportTxt, "\n\n>>> GENERATED MUTANTS \n", function (err) {
       if (err) return console.log(err);
     });
   }
 }
 
 Reporter.prototype.logStartMutationTesting = function () {
-  console.log(chalk.yellow.bold("> Starting Mutation Testing 👾"))
+  console.log(chalk.yellow.bold("Starting Mutation Testing 👾"))
 };
-
 
 Reporter.prototype.logPreflightSummary = function (mutations, genTime, operators) {
 
-  console.log(chalk.yellow.bold("> Preflight") + " ✈️ \n");
+  console.log(chalk.yellow.bold("Preflight") + " ✈️");
 
   //Print diff for each mutation
   /* for (const mutation of mutations) {
      process.stdout.write(mutation.diff());
    }*/
 
-   const preflight = "- " + operators + "\n\n- " + mutations.length + " mutation(s) found in " + genTime + " seconds \n" +
-   "- Generated mutations saved to .sumo/results/generated.csv \n"
+  const preflight = mutations.length + " mutation(s) found in " + genTime + " seconds \n" +
+    "Generated mutations saved to .sumo/results/generated.csv \n"
 
-   fs.appendFileSync(resultsDir + "/report.txt","\n\n>>> PREFLIGHT SUMMARY \n\n"  +preflight, function (err) {
+  fs.appendFileSync(reportTxt, "\n\n>>> PREFLIGHT SUMMARY \n\n" + preflight + "- SuMo preflight done.\n", function (err) {
     if (err) return console.log(err);
   });
 
-  console.log(preflight);
+  console.log(operators + "\n\n" + preflight);
 };
 
 /**
@@ -118,24 +149,22 @@ Reporter.prototype.logPreflightSummary = function (mutations, genTime, operators
  * @param {*} mutantString 
  */
 Reporter.prototype.saveGeneratedMutants = function (fileString, mutantString) {
-  fs.appendFileSync(resultsDir + "/report.txt", fileString + mutantString, { "flags": "a" }, function (err) {
+  fs.appendFileSync(reportTxt, fileString + mutantString, { "flags": "a" }, function (err) {
     if (err) return console.log(err);
   });
 };
 
 Reporter.prototype.logCompile = function (mutant) {
-  console.log("\n ");
-  console.log(chalk.yellow("> Compiling mutation ") + this.chalkMutant(mutant) + " of " + mutant.fileName());
+  console.log("\n" + chalk.yellow("Compiling mutation ") + this.chalkMutant(mutant) + " of " + mutant.fileName());
 };
 
 Reporter.prototype.logTest = function (mutant) {
 
-  console.log("- Mutant successfully compiled. \n");
+  console.log("Mutant successfully compiled.\n");
 
-  console.log(chalk.yellow("> Applying mutation ") + this.chalkMutant(mutant) + " to " + mutant.fileName());
+  console.log(chalk.yellow("Applying mutation ") + this.chalkMutant(mutant) + " to " + mutant.fileName());
   process.stdout.write(mutant.diff());
-  console.log("\n ");
-  console.log(chalk.yellow("> Running tests ") + "for mutant " + this.chalkMutant(mutant));
+  console.log("\n" + (chalk.yellow("Running tests ") + "for mutant " + this.chalkMutant(mutant)));
 };
 
 
@@ -147,49 +176,49 @@ Reporter.prototype.mutantStatus = function (mutant) {
   switch (mutant.status) {
     case "killed":
       this.killed.push(mutant);
-      console.log("- Mutant " + this.chalkMutant(mutant) + " was killed by tests.");
-      fs.writeFileSync(resultsDir + "/killed/" + mutant.fileName() + '-' + mutant.hash() + ".json", mutant.toJson(), function (err) {
+      console.log("\n>💀 Mutant " + this.chalkMutant(mutant) + " was killed by the tests.");
+      fs.writeFileSync(killedDir + "/" + mutant.fileName() + '-' + mutant.hash() + ".json", mutant.toJson(), function (err) {
         if (err) return console.log(err);
       });
       break;
     case "live":
       this.survived.push(mutant);
-      console.log("- Mutant " + this.chalkMutant(mutant) + " survived testing.");
-      fs.writeFileSync(resultsDir + "/live/" + mutant.fileName() + '-' + mutant.hash() + ".json", mutant.toJson(), function (err) {
+      console.log("\n🐛 Mutant " + this.chalkMutant(mutant) + " survived testing.");
+      fs.writeFileSync(liveDir + "/" + mutant.fileName() + '-' + mutant.hash() + ".json", mutant.toJson(), function (err) {
         if (err) return console.log(err);
       });
       break;
     case "stillborn":
       this.stillborn.push(mutant);
-      console.log("- Mutant " + this.chalkMutant(mutant) + " is stillborn.");
-      fs.writeFileSync(resultsDir + "/stillborn/" + mutant.fileName() + '-' + mutant.hash() + ".json", mutant.toJson(), function (err) {
+      console.log("Mutant " + this.chalkMutant(mutant) + " is stillborn.");
+      fs.writeFileSync(stillbornDir + "/" + mutant.fileName() + '-' + mutant.hash() + ".json", mutant.toJson(), function (err) {
         if (err) return console.log(err);
       });
       break;
     case "equivalent":
       this.equivalent.push(mutant);
       console.log(
-        "- Mutant " + this.chalkMutant(mutant) + " is equivalent."
+        "Mutant " + this.chalkMutant(mutant) + " is equivalent."
       );
-      fs.writeFileSync(resultsDir + "/equivalent/" + mutant.fileName() + '-' + mutant.hash() + ".json", mutant.toJson(), function (err) {
+      fs.writeFileSync(equivalentDir + "/" + mutant.fileName() + '-' + mutant.hash() + ".json", mutant.toJson(), function (err) {
         if (err) return console.log(err);
       });
       break;
     case "timedout":
       this.timedout.push(mutant);
       console.log(
-        "- Mutant " + this.chalkMutant(mutant) + " has timed out."
+        "Mutant " + this.chalkMutant(mutant) + " has timed out after " + (sumoConfig.testingTimeOutInSec) / 60 + " minutes."
       );
-      fs.writeFileSync(resultsDir + "/timedout/" + mutant.fileName() + '-' + mutant.hash() + ".json", mutant.toJson(), function (err) {
+      fs.writeFileSync(timedoutDir + "/" + mutant.fileName() + '-' + mutant.hash() + ".json", mutant.toJson(), function (err) {
         if (err) return console.log(err);
       });
       break;
     case "redundant":
       this.redundant.push(mutant);
       console.log(
-        "- Mutant " + this.chalkMutant(mutant) + " is redundant."
+        "Mutant " + this.chalkMutant(mutant) + " is redundant."
       );
-      fs.writeFileSync(resultsDir + "/redundant/" + mutant.fileName() + '-' + mutant.hash() + ".json", mutant.toJson(), function (err) {
+      fs.writeFileSync(redundantDir + "/" + mutant.fileName() + '-' + mutant.hash() + ".json", mutant.toJson(), function (err) {
         if (err) return console.log(err);
       });
       break;
@@ -212,7 +241,7 @@ Reporter.prototype.logAndSaveTestSummary = function (time) {
   const totalMutants = validMutants + stillbornMutants + timedoutMutants + equivalentMutants + redundantMutants;
   const mutationScore = ((this.killed.length / validMutants) * 100).toFixed(2);
 
-  const header = "Total$Stillborn$Timedout$Equivalent$Redundant$Valid$Live$Killed$MS$Time\n";
+  const header = "Total$Stillborn$Timedout$Equivalent$Redundant$Valid$Live$Killed$MS$Time(min)\n";
   const row = totalMutants + '$' + stillbornMutants + '$' + timedoutMutants + '$' + equivalentMutants + '$' + redundantMutants + '$' +
     validMutants + '$' + this.survived.length + '$' + this.killed.length + '$' + mutationScore + '$' + time;
 
@@ -220,30 +249,30 @@ Reporter.prototype.logAndSaveTestSummary = function (time) {
     if (err) return console.log(err);
   })
 
-  console.log('\n')
-  console.log(chalk.yellow.bold("> Mutation Testing completed in " + time + " minutes. 👋"))
-  console.log(chalk.yellow.bold("- Test Summary saved to .sumo/results/summary.csv \n "))
+  console.log("\n" + chalk.yellow.bold("Mutation Testing completed in " + time + " minutes. 👋"))
+  console.log("Test Summary saved to .sumo/results/summary.csv \n ")
   console.log(
     "SuMo generated " + totalMutants + " mutants: \n" +
-    "- " + this.survived.length + " mutants survived; \n" +
-    "- " + this.killed.length + " mutants killed; \n" +
-    "- " + this.stillborn.length + " mutants stillborn; \n" +
-    "- " + this.equivalent.length + " mutants equivalent; \n" +
-    "- " + this.redundant.length + " mutants redundant; \n" +
-    "- " + this.timedout.length + " mutants timed-out; \n"
+    "- " + this.survived.length + " live; \n" +
+    "- " + this.killed.length + " killed; \n" +
+    "- " + this.stillborn.length + " stillborn; \n" +
+    "- " + this.equivalent.length + " equivalent; \n" +
+    "- " + this.redundant.length + " redundant; \n" +
+    "- " + this.timedout.length + " timed-out; \n"
   );
   if (mutationScore >= 80) {
     console.log(chalk.bold("Mutation Score") + ": " + chalk.bold.green(mutationScore + " %"));
-  } else if (mutationScore >= 70 && mutationScore < 80) {
+  } else if (mutationScore >= 60 && mutationScore < 80) {
     console.log(chalk.bold("Mutation Score") + ": " + chalk.bold.yellow(mutationScore + " %"));
-  } else {
+  } else if (mutationScore < 60) {
     console.log(chalk.bold("Mutation Score") + ": " + chalk.bold.red(mutationScore + " %"));
+  } else {
+    console.log(chalk.bold("Mutation Score") + ": " + chalk.bold.red("-"));
   }
 
-  var printString = "\n\n >>> TEST REPORT \n\n  "
-    + totalMutants + " mutant(s) tested in " + time + " minutes."
-    + "\n\n - Total mutants: " + totalMutants
-    + "\n\n - Valid mutants: " + validMutants;
+  var printString = "\n\n >>> TEST REPORT"
+    + "\n\n - Generated mutants: " + totalMutants
+    + "\n\n - Tested mutants: " + validMutants;
 
 
   printString = printString + "\n\n - Live mutants: " + this.survived.length;
@@ -270,13 +299,11 @@ Reporter.prototype.logAndSaveTestSummary = function (time) {
   if (this.timedout.length > 0)
     printString = printString + "\n --- Timed-Out: " + JSON.stringify(this.timedout.map(m => m.hash()).join(", "));
 
-  printString = printString + "\n\n Mutation Score = " + mutationScore;
+  printString = printString + "\n\n MUTATION SCORE = " + mutationScore;
 
-  fs.appendFileSync(resultsDir + "/report.txt", printString, { "flags": "a" }, function (err) {
+  fs.appendFileSync(reportTxt, printString + "\n\n- " + totalMutants + " mutant(s) tested in " + time + " minutes." + "\n- SuMo test done.", { "flags": "a" }, function (err) {
     if (err) return console.log(err);
   });
-
-
 };
 
 //Save generated mutations to csv
@@ -291,7 +318,7 @@ Reporter.prototype.saveGeneratedMutantsCsv = function (mutations) {
     originalString = originalString.replace(/[\n\r]/g, '');
 
     var replaceString = m.replace.toString();
-    replaceString = replaceString.replace(/[\n\r]/g, ''); 
+    replaceString = replaceString.replace(/[\n\r]/g, '');
 
     const row = m.hash() + '$' + m.file + '$' + m.operator + '$' + m.start + '$' + m.end + '$' + m.startLine + '$' + m.endLine + '$' + originalString + '$' + replaceString + '\n';
 
@@ -304,7 +331,7 @@ Reporter.prototype.saveGeneratedMutantsCsv = function (mutations) {
 
 //Setup results.csv sync log
 Reporter.prototype.setupResultsCsv = function () {
-  fs.writeFileSync(resultsDir + "/results.csv", "Hash$File$Operator$Start$End$StartLine$EndLine$Original$Replacement$Status$RedundantTo$Time; \n", function (err) {
+  fs.writeFileSync(resultsDir + "/results.csv", "Hash$File$Operator$Start$End$StartLine$EndLine$Original$Replacement$Status$Time(s); \n", function (err) {
     if (err) return console.log(err);
   })
 }
@@ -315,7 +342,7 @@ Reporter.prototype.setupResultsCsv = function () {
  * @param {*} mutant mutant object
  * @param {*} hashOfRedundant optional hash of the mutant to which the current mutant is redundant
  */
-Reporter.prototype.saveResultsCsv = function (mutant, hashOfRedundant) {
+Reporter.prototype.saveResultsCsv = function (mutant) {
 
   var originalString = mutant.original;
   originalString = originalString.replace(/[\n\r]/g, '');
@@ -324,7 +351,7 @@ Reporter.prototype.saveResultsCsv = function (mutant, hashOfRedundant) {
   replaceString = replaceString.replace(/[\n\r]/g, '');
 
   const row = mutant.hash() + '$' + mutant.file + '$' + mutant.operator + '$' + mutant.start + '$' + mutant.end + '$' +
-    mutant.startLine + '$' + mutant.endLine + '$' + originalString + '$' + replaceString + '$' + mutant.status + '$' + hashOfRedundant + '$' + mutant.testingTime + '\n';
+    mutant.startLine + '$' + mutant.endLine + '$' + originalString + '$' + replaceString + '$' + mutant.status + '$' + mutant.testingTime + '\n';
 
   fs.appendFileSync(resultsDir + "/results.csv", row, function (err) {
     if (err) return console.log(err);
@@ -402,7 +429,7 @@ Reporter.prototype.saveOperatorsResults = function () {
     .style(headerStyle);
 
   worksheet.cell(1, 11)
-    .string("Testing Time")
+    .string("Time(min)")
     .style(headerStyle);
 
   for (var i = 0; i < this.operators.length; i++) {
@@ -418,8 +445,9 @@ Reporter.prototype.saveOperatorsResults = function () {
     }
   });
 
-  //Retrieve list of killed mutants for each operator
-  var operators = Object.entries(operatorsConfig);
+  //Retrieve list of mutants for each operator
+  var operators = Object.entries(mutOpsConfig);
+  var allMutants = this.killed.concat(this.survived, this.stillborn, this.equivalent, this.redundant, this.timedout)
   for (var i = 0; i < operators.length; i++) {
     var time = 0
     var operatorKilled = this.killed.filter(mutant => mutant.operator === operators[i][0]);
@@ -428,12 +456,7 @@ Reporter.prototype.saveOperatorsResults = function () {
     var operatorEquivalent = this.equivalent.filter(mutant => mutant.operator === operators[i][0]);
     var operatorRedundant = this.redundant.filter(mutant => mutant.operator === operators[i][0]);
     var operatorTimedout = this.timedout.filter(mutant => mutant.operator === operators[i][0]);
-    this.killed.filter(mutant => {
-      if (mutant.operator === operators[i][0]) {
-        time = time + mutant.testingTime
-      }
-    })
-    this.survived.filter(mutant => {
+    allMutants.filter(mutant => {
       if (mutant.operator === operators[i][0]) {
         time = time + mutant.testingTime
       }
@@ -477,13 +500,9 @@ Reporter.prototype.saveOperatorsResults = function () {
         .style(style);
     }
     worksheet.cell(i + 2, 11)
-      .number(time / 60000)
+      .number((time / 60000))
       .style(style)
-    workbook.write("./" + resultsDir + "/operators.xlsx");
+    workbook.write(resultsDir + "/operators.xlsx");
   }
 };
-
-
-
-
 module.exports = Reporter

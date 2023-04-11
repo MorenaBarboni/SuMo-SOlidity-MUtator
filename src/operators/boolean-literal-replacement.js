@@ -1,10 +1,9 @@
 const Mutation = require("../mutation");
 
 function BLROperator() {
+  this.ID = "BLR";
+  this.name = "boolean-literal-replacement";
 }
-
-BLROperator.prototype.ID = "BLR";
-BLROperator.prototype.name = "boolean-literal-replacement";
 
 BLROperator.prototype.getMutations = function(file, source, visit) {
   const mutations = [];

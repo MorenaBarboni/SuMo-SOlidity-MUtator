@@ -1,10 +1,9 @@
 const Mutation = require("../mutation");
 
 function SFIOperator() {
+  this.ID = "SFI";
+  this.name = "selfdestruct-function-insertion";
 }
-
-SFIOperator.prototype.ID = "SFI";
-SFIOperator.prototype.name = "selfdestruct-function-insertion";
 
 SFIOperator.prototype.getMutations = function(file, source, visit) {
   const mutations = [];

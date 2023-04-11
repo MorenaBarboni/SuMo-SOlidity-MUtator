@@ -1,24 +1,32 @@
 {
-  "name": "SuMo",
-  "version": "2.0.0",
+  "author": "Morena Barboni",
+  "name": "@morenabarboni/sumo",
+  "version": "0.0.1",
   "description": "A mutation testing tool for Ethereum smart contracts",
   "main": "index.js",
-  "author": "Morena Barboni",
-  "scripts": {
-    "sumo": "node index.js"
+  "bin": {
+    "sumo": "./index.js"
   },
-  "license": "MIT",
+  "keywords": [
+    "mutation testing",
+    "solidity",
+    "smart contract"
+  ],
+  "scripts": {
+    "postinstall": "node ./scripts/init.js"
+  },
   "dependencies": {
-    "@solidity-parser/parser": "^0.14.0",
+    "@solidity-parser/parser": "^0.15.0",
+    "app-root-path": "3.1.0",
     "chalk": "^4.1.2",
     "diff": "^5.0.0",
     "excel4node": "^1.7.2",
+    "eth-mutants": "0.1.1",
+    "fast-csv": "4.3.6",
     "fs-extra": "^10.1.0",
-    "ganache-cli": "6.12.2",
-    "hardhat": "2.12.3",
+    "postinstall": "^0.8.0",
     "recursive-copy": "^2.0.14",
     "sha1": "^1.1.1",
-    "truffle": "^5.6.8",
     "yargs": "^17.5.1"
   }
 }

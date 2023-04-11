@@ -1,10 +1,9 @@
 const Mutation = require("../mutation");
 
 function TOROperator() {
+  this.ID = "TOR";
+  this.name = "transaction-origin-replacement";
 }
-
-TOROperator.prototype.ID = "TOR";
-TOROperator.prototype.name = "transaction-origin-replacement";
 
 TOROperator.prototype.getMutations = function(file, source, visit) {
   const mutations = [];

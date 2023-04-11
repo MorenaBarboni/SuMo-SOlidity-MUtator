@@ -1,10 +1,9 @@
 const Mutation = require("../mutation");
 
 function OMDOperator() {
+  this.ID = "OMD";
+  this.name = "overridden-modifier-deletion";
 }
-
-OMDOperator.prototype.ID = "OMD";
-OMDOperator.prototype.name = "overridden-modifier-deletion";
 
 OMDOperator.prototype.getMutations = function(file, source, visit) {
   const mutations = [];

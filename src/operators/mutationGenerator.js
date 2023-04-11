@@ -1,8 +1,11 @@
+const chalk = require('chalk')
 const fs = require('fs')
-const configFileName = '../operators.config.json'
-const configFile = require(configFileName)
-const config = require('../config')
-
+const appRoot = require('app-root-path');
+const rootDir = appRoot;
+const utils = require("../utils");
+const mutOpsConfigPath = utils.config.mutOpsConfig
+const mutOpsConfig = require(mutOpsConfigPath)
+const config = require(rootDir + '/sumo-config')
 const Reporter = require('../reporter')
 const reporter = new Reporter()
 
@@ -12,33 +15,40 @@ var BOROperator
 var EROperator
 var FVROperator
 var GVROperator
+var MODOperator;
+var MOIOperator;
+var MOROperator;
 var RVSOperator
 var SFROperator
 var VUROperator
 var VVROperator
 
-if(config.optimized){
+if (config.optimized) {
+  AOROperator = require('./optimized/assignment-replacement')
+  BOROperator = require('./optimized/binary-replacement')
+  EROperator = require('./optimized/enum-replacement')
+  FVROperator = require('./optimized/function-visibility-replacement')
+  GVROperator = require('./optimized/global-variable-replacement')
+  MODOperator = require('./optimized/modifier-deletion')
+  MOIOperator = require('./optimized/modifier-insertion')
+  MOROperator = require('./optimized/modifier-replacement')
+  RVSOperator = require('./optimized/return-values-swap')
+  SFROperator = require('./optimized/safemath-function-replacement')
+  VUROperator = require('./optimized/variable-unit-replacement')
+  VVROperator = require('./optimized/variable-visibility-replacement')
+} else {
   AOROperator = require('./assignment-replacement')
   BOROperator = require('./binary-replacement')
   EROperator = require('./enum-replacement')
   FVROperator = require('./function-visibility-replacement')
   GVROperator = require('./global-variable-replacement')
+  MODOperator = require('./modifier-deletion')
+  MOIOperator = require('./modifier-insertion')
+  MOROperator = require('./modifier-replacement')
   RVSOperator = require('./return-values-swap')
   SFROperator = require('./safemath-function-replacement')
   VUROperator = require('./variable-unit-replacement')
   VVROperator = require('./variable-visibility-replacement')
-
-}else{
-  AOROperator = require('./non-optimized/assignment-replacement')
-  BOROperator = require('./non-optimized/binary-replacement')
-  EROperator = require('./non-optimized/enum-replacement')
-  FVROperator = require('./non-optimized/function-visibility-replacement')
-  GVROperator = require('./non-optimized/global-variable-replacement')
-  RVSOperator = require('./non-optimized/return-values-swap')
-  SFROperator = require('./non-optimized/safemath-function-replacement')
-  VUROperator = require('./non-optimized/variable-unit-replacement')
-  VVROperator = require('./non-optimized/variable-visibility-replacement')
-
 }
 
 const ACMOperator = require('./argument-change-overloaded-call')
@@ -46,8 +56,8 @@ const AVROperator = require('./address-value-replacement')
 const BCRDOperator = require('./break-continue-replacement')
 const BLROperator = require('./boolean-literal-replacement')
 const CBDOperator = require('./catch-block-deletion')
-const CCDOperator =  require('./constructor-deletion')
-const CSCOperator =  require('./conditional-statement-change')
+const CCDOperator = require('./constructor-deletion')
+const CSCOperator = require('./conditional-statement-change')
 const DLROperator = require('./data-location-replacement')
 const DODOperator = require('./delete-operator-deletion')
 const ECSOperator = require('./explicit-conversion-smaller')
@@ -60,9 +70,6 @@ const LSCOperator = require('./loop-statement-change')
 const HLROperator = require('./hex-literal-replacement')
 const MCROperator = require('./math-crypto-function-replacement')
 const MOCOperator = require('./modifier-order-change')
-const MODOperator = require('./modifier-deletion')
-const MOIOperator = require('./modifier-insertion')
-const MOROperator = require('./modifier-replacement')
 const OLFDOperator = require('./overloaded-function-deletion')
 const OMDOperator = require('./overridden-modifier-deletion')
 const ORFDOperator = require('./overridden-function-deletion')
@@ -89,23 +96,23 @@ function CompositeOperator(operators) {
  * @param {*} overwrite  overwrite the generated mutation reports
  * @returns 
  */
-CompositeOperator.prototype.getMutations = function(file, source, visit, overwrite) {
+CompositeOperator.prototype.getMutations = function (file, source, visit, overwrite) {
   let mutations = []
   const fileString = "\n Mutants generated for file: " + file + ": \n";
   var mutantString = "";
 
   for (const operator of this.operators) {
 
-    var enabled = Object.entries(configFile)
-    .find(pair => pair[0] === operator.ID && pair[1] === true);
+    var enabled = Object.entries(mutOpsConfig)
+      .find(pair => pair[0] === operator.ID && pair[1] === true);
 
-    if(enabled){   
+    if (enabled) {
       var opMutations = operator.getMutations(file, source, visit);
-      if(overwrite){
+      if (overwrite) {
         opMutations.forEach(m => {
           mutantString = mutantString + "- Mutant " + m.hash() + " was generated by " + operator.ID + " (" + operator.name + "). \n";
         });
-      }      
+      }
       mutations = mutations.concat(opMutations)
     }
   }
@@ -115,67 +122,78 @@ CompositeOperator.prototype.getMutations = function(file, source, visit, overwri
   return mutations
 }
 
-//Retrieve list of enabled mutation operators
-CompositeOperator.prototype.getEnabledOperators = function() {
-  var enabled = Object.entries(configFile)
-  .filter(pair => pair[1] === true);
+//Show information about enabled mutation operators
+CompositeOperator.prototype.getEnabledOperators = function () {
+  var printString;
+  var enabled = Object.entries(mutOpsConfig)
+    .filter(pair => pair[1] === true);
 
-  var printString = "Enabled mutations operators:";
-  for (const pair of enabled) {
-    printString = printString+'\n  - '+pair[0];   
+  if (enabled.length > 0) {
+    //Print enabled operators info
+    printString = chalk.bold("\nEnabled Mutation Operators:\n\n");
+
+    for (const entry of enabled) {
+      for (let i = 0; i < this.operators.length; i++) {
+        const operator = this.operators[i];
+        if (operator.ID === entry[0]) {
+          printString = printString + "> " + chalk.bold.yellow(operator.ID) + " (" + operator.name + ") \n"
+          break;
+        }
+      }
+    }
+  } else {
+    printString = chalk.red("Warning: No mutation operators enabled.\n");
   }
-  if(printString==="Enabled mutations operators:")
-    printString = printString + "\nNone"
-   return printString
+  return printString
 }
 
 //Enables a mutation operator
-CompositeOperator.prototype.enable = function(ID) {
-  var exists = Object.entries(configFile)
-  .find(pair => pair[0] === ID);
+CompositeOperator.prototype.enable = function (ID) {
+  var exists = Object.entries(mutOpsConfig)
+    .find(pair => pair[0] === ID);
 
-  if(exists){
-    configFile[ID] = true;    
-    fs.writeFileSync('./src/operators.config.json', JSON.stringify(configFile, null, 2), function writeJSON(err) {
+  if (exists) {
+    mutOpsConfig[ID] = true;
+    fs.writeFileSync(mutOpsConfigPath, JSON.stringify(mutOpsConfig, null, 2), function writeJSON(err) {
       if (err) return console.log(err);
     });
     return true;
   }
-   return false;
+  return false;
 }
 
 //Enables all mutation operators
-CompositeOperator.prototype.enableAll = function() {
-  Object.entries(configFile).forEach(pair => {
-    configFile[pair[0]] = true;  
+CompositeOperator.prototype.enableAll = function () {
+  Object.entries(mutOpsConfig).forEach(pair => {
+    mutOpsConfig[pair[0]] = true;
   });
-  fs.writeFileSync('./src/operators.config.json', JSON.stringify(configFile, null, 2), function writeJSON(err) {
+  fs.writeFileSync(mutOpsConfigPath, JSON.stringify(mutOpsConfig, null, 2), function writeJSON(err) {
     if (err) return false;
   });
   return true
 }
 
 //Disables a mutation operator
-CompositeOperator.prototype.disable = function(ID) {
-  var exists = Object.entries(configFile)
-  .find(pair => pair[0] === ID);
+CompositeOperator.prototype.disable = function (ID) {
+  var exists = Object.entries(mutOpsConfig)
+    .find(pair => pair[0] === ID);
 
-  if(exists){
-    configFile[ID] = false;    
-    fs.writeFileSync('./src/operators.config.json', JSON.stringify(configFile, null, 2), function writeJSON(err) {
+  if (exists) {
+    mutOpsConfig[ID] = false;
+    fs.writeFileSync(mutOpsConfigPath, JSON.stringify(mutOpsConfig, null, 2), function writeJSON(err) {
       if (err) return console.log(err);
     });
     return true;
-   }
+  }
   return false;
 }
 
 //Disables all mutation operators
-CompositeOperator.prototype.disableAll = function() {
-  Object.entries(configFile).forEach(pair => {
-    configFile[pair[0]] = false;  
+CompositeOperator.prototype.disableAll = function () {
+  Object.entries(mutOpsConfig).forEach(pair => {
+    mutOpsConfig[pair[0]] = false;
   });
-  fs.writeFileSync('./src/operators.config.json', JSON.stringify(configFile, null, 2), function writeJSON(err) {
+  fs.writeFileSync(mutOpsConfigPath, JSON.stringify(mutOpsConfig, null, 2), function writeJSON(err) {
     if (err) return false;
   });
   return true
@@ -224,7 +242,7 @@ module.exports = {
   SLROperator: SLROperator,
   TOROperator: TOROperator,
   UORDOperator: UORDOperator,
-  VUROperator : VUROperator,
+  VUROperator: VUROperator,
   VVROperator: VVROperator,
   CompositeOperator: CompositeOperator,
 }

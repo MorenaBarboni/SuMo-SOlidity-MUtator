@@ -1,10 +1,9 @@
 const Mutation = require("../mutation");
 
 function CSCOperator() {
+  this.ID = "CSC";
+  this.name = "conditional-statement-change";
 }
-
-CSCOperator.prototype.ID = "CSC";
-CSCOperator.prototype.name = "conditional-statement-change";
 
 CSCOperator.prototype.getMutations = function(file, source, visit) {
   const mutations = [];

@@ -1,10 +1,9 @@
 const Mutation = require("../mutation");
 
 function SKIOperator() {
+  this.ID = "SKI";
+  this.name = "super-keyword-insertion";
 }
-
-SKIOperator.prototype.ID = "SKI";
-SKIOperator.prototype.name = "super-keyword-insertion";
 
 SKIOperator.prototype.getMutations = function(file, source, visit) {
   const mutations = [];
@@ -24,14 +23,18 @@ SKIOperator.prototype.getMutations = function(file, source, visit) {
             FunctionCall: (node) => {
               if (overriddenFunctions.includes(node.expression.name)) {
                 var start = node.expression.range[0];
-                var end = node.expression.range[1];
-                
+                var end = node.expression.range[1] + 1;
+
                 const startLine = node.expression.loc.start.line;
                 const endLine = node.expression.loc.end.line;
                 const original = source.slice(start, end);
-        
+
                 const replacement = "super." + original;
-                mutations.push(new Mutation(file, start, end, startLine, endLine, original, replacement, this.ID));
+                const mutation = new Mutation(file, start, end, startLine, endLine, original, replacement, this.ID);
+            
+                if (!mutations.find(m => m.id === mutation.id)) {
+                  mutations.push(mutation);
+                }
               }
             }
           });

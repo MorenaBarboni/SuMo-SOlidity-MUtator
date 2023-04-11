@@ -1,10 +1,9 @@
 const Mutation = require("../mutation");
 
 function ILROperator() {
+  this.ID = "ILR";
+  this.name = "integer-literal-replacement";
 }
-
-ILROperator.prototype.ID = "ILR";
-ILROperator.prototype.name = "integer-literal-replacement";
 
 ILROperator.prototype.getMutations = function (file, source, visit) {
 
@@ -14,7 +13,6 @@ ILROperator.prototype.getMutations = function (file, source, visit) {
   var prevRange;
   var ranges = []; //Visited node ranges
 
-    //Visit arrays
   visit({
     TupleExpression: (node) => {
       if (node.isArray) {
@@ -54,22 +52,24 @@ ILROperator.prototype.getMutations = function (file, source, visit) {
         var subdenomination = "";
         var start = node.range[0];
         var end = node.range[1] + 1;
-        const startLine =  node.loc.start.line;
-        const endLine =  node.loc.end.line;
-        var original = source.slice(start,end);
+        const startLine = node.loc.start.line;
+        const endLine = node.loc.end.line;
+        var original = source.slice(start, end);
 
         if (node.subdenomination) {
           subdenomination = " " + node.subdenomination;
         }
         if (node.number == 1) {
           var sliced = source.slice(node.range[0] - 1, node.range[0]);
-          if (sliced === "-"){
+          if (sliced === "-") {
             start = node.range[0] - 1;
-            original = source.slice(start,end);
+            original = source.slice(start, end);
             mutations.push(new Mutation(file, start, end, startLine, endLine, original, "0" + subdenomination, ID));
+            mutations.push(new Mutation(file, start, end, startLine, endLine, original, "-2" + subdenomination, ID));
           }
-          else{
+          else {
             mutations.push(new Mutation(file, start, end, startLine, endLine, original, "0" + subdenomination, ID));
+            mutations.push(new Mutation(file, start, end, startLine, endLine, original, "2" + subdenomination, ID));
           }
         } else if (node.number == 0) {
           mutations.push(new Mutation(file, start, end, startLine, endLine, original, "1" + subdenomination, ID));
@@ -90,10 +90,10 @@ ILROperator.prototype.getMutations = function (file, source, visit) {
               let exponential = arr[1]
               let incMant = BigInt(parseInt(mantissa));
               incMant = incMant + 1n;
-              inc = incMant.toString() +'e'+exponential.toString()
+              inc = incMant.toString() + 'e' + exponential.toString()
               let decMant = BigInt(parseInt(mantissa));
               decMant = decMant - 1n;
-              dec = decMant.toString() +'e'+exponential.toString()
+              dec = decMant.toString() + 'e' + exponential.toString()
             } else {
               num = BigInt(node.number);
               inc = BigInt(num + 1n);

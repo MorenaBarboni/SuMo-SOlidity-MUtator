@@ -1,12 +1,11 @@
 const Mutation = require("../mutation");
 
 function MOIOperator() {
+  this.ID = "MOI";
+  this.name = "modifier-insertion";
 }
 
-MOIOperator.prototype.ID = "MOI";
-MOIOperator.prototype.name = "modifier-insertion";
-
-MOIOperator.prototype.getMutations = function(file, source, visit) {
+MOIOperator.prototype.getMutations = function (file, source, visit) {
   const ID = this.ID;
   const mutations = [];
   const modifiers = []; //Modifiers attached to functions
@@ -36,49 +35,48 @@ MOIOperator.prototype.getMutations = function(file, source, visit) {
   /*Visit not decorated functions */
   function visitFunctions() {
     visit({
-      FunctionDefinition: (node) => {
+      FunctionDefinition: (fNode) => {
         /*If the function is not decorated */
-        if (node.modifiers.length === 0 && node.body) {
+        if (fNode.modifiers.length === 0 && fNode.body) {
           /*If the function is not special */
-          if (node.body && !node.isConstructor && !node.isReceiveEther && !node.isFallback) {
+          if (fNode.body && !fNode.isConstructor && !fNode.isReceiveEther && !fNode.isFallback) {
 
             //Cycle the available modifiers nodes
             for (let i = 0; i < modifiersNodes.length; i++) {
-              const m = modifiersNodes[i];
+              const mNode = modifiersNodes[i];
 
               //If the modifier has parameters, they must be compatible with the function parameters
-              if (m.arguments) {
+              if (mNode.arguments) {
 
                 //If the function has parameters
-                if (node && node.parameters) {
+                if (fNode && fNode.parameters) {
 
                   var modArguments = [];
                   var funcArguments = [];
 
                   //Save modifier parameters
-                  m.arguments.forEach(e => {
+                  mNode.arguments.forEach(e => {
                     if (e.name)
                       modArguments.push(e.name);
-                    //the argument passed to the modifier are excluded
-                    // else if (e.value)
-                    //modArguments.push(e.value)
                   });
 
                   //Save function parameters
-                  node.parameters.forEach(e => {
+                  fNode.parameters.forEach(e => {
                     funcArguments.push(e.name);
                   });
 
                   //If the parameters of the modifier are included in the parameters of the function
                   if (modArguments.length > 0) {
-                    var is_included = modArguments.every(function(element, index) {
+                    var params_included = modArguments.every(function (element, index) {
                       return element === funcArguments[index];
                     });
-                    if (is_included) {
-                      mutate(node, m);
+                    if (params_included) {
+                      const result = mutate(fNode, mNode);
+                      if (result) {
+                        mutations.push(result);
+                      }
                     }
                   }
-
                 }
                 //If the function does not have arguments, skip the mutation
                 else {
@@ -87,7 +85,10 @@ MOIOperator.prototype.getMutations = function(file, source, visit) {
               }
               //If the modifier does not have arguments
               else {
-                mutate(node, m);
+                const result = mutate(fNode, mNode);
+                if (result) {
+                  mutations.push(result);
+                }
               }
             }
           }
@@ -104,30 +105,52 @@ MOIOperator.prototype.getMutations = function(file, source, visit) {
    *
    */
   function mutate(functionNode, modifierNode) {
+    if (contractContaining(functionNode) === contractContaining(modifierNode) && contractContaining(functionNode)) {
 
-    var startF = functionNode.range[0];
-    var endF = functionNode.body.range[0];
-    var original = source.substring(startF, endF);  //function signature
-    const startLine = functionNode.loc.start.line;
-    const endLine = functionNode.body.loc.start.line; 
+      var startF = functionNode.range[0];
+      var endF = functionNode.body.range[0];
+      var original = source.substring(startF, endF);  //function signature
+      const startLine = functionNode.loc.start.line;
+      const endLine = functionNode.body.loc.start.line;
 
-    var startM = modifierNode.range[0];
-    var endM = modifierNode.range[1] + 1;
-    var modifier = source.substring(startM, endM);
+      var startM = modifierNode.range[0];
+      var endM = modifierNode.range[1] + 1;
+      var modifier = source.substring(startM, endM);
 
-    //If the function has return parameters
-    if (functionNode.returnParameters && functionNode.returnParameters.length > 0) {
-      var slice1 = original.split("returns")[0];
-      var slice2 = " returns" + original.split("returns")[1];
-      var replacement = slice1 + modifier + slice2;
-      mutations.push(new Mutation(file, startF, endF, startLine, endLine, original, replacement, ID));
+      //If the function has return parameters
+      if (functionNode.returnParameters && functionNode.returnParameters.length > 0) {
+        var slice1 = original.split("returns")[0];
+        var slice2 = " returns" + original.split("returns")[1];
+        var replacement = slice1 + modifier + slice2;
+        return new Mutation(file, startF, endF, startLine, endLine, original, replacement, ID);
+      }
+      //If the function has no return parameters
+      else {
+        var replacement = original + modifier + " ";
+        return new Mutation(file, startF, endF, startLine, endLine, original, replacement, ID);
+      }
+    } else {
+      return false;
     }
-    //If the function has no return parameters
-    else {
-      var replacement = original + modifier + " ";
-      mutations.push(new Mutation(file, startF, endF, startLine, endLine, original, replacement, ID));
-    }
+  }
 
+  /**
+ * Checks to which contract a node belongs to
+ * @param node the input node
+ * @returns the contract name (or false if no contract is found)
+ */
+  function contractContaining(node) {
+    const nodeStart = node.range[0];
+    const nodeEnd = node.range[1];
+    let cName = false;
+    visit({
+      ContractDefinition: (cNode) => {
+        if (nodeStart >= cNode.range[0] && nodeEnd <= cNode.range[1]) {
+          cName = cNode.name;
+        }
+      }
+    });
+    return cName;
   }
 
 

@@ -1,10 +1,9 @@
 const Mutation = require("../mutation");
 
 function AVROperator() {
+  this.ID = "AVR";
+  this.name = "address-value-replacement";
 }
-
-AVROperator.prototype.ID = "AVR";
-AVROperator.prototype.name = "address-value-replacement";
 
 AVROperator.prototype.getMutations = function (file, source, visit) {
 
@@ -39,7 +38,6 @@ AVROperator.prototype.getMutations = function (file, source, visit) {
               globalAddressNode.push(node);
               if (addrValue !== 0 && (!literalAddress.includes(node.expression.number))) {
                 literalAddress.push(node.expression.number);
-                console.log(node.expression.number);
               }
             } else if (node.expression && node.expression.type === "FunctionCall") {
               if (node.expression.arguments[0].type == "NumberLiteral") {
@@ -190,7 +188,7 @@ AVROperator.prototype.getMutations = function (file, source, visit) {
     }
     //Mutate assignment to address(this)
     else if (arg.type === "Identifier" && arg.name === "this") {
-       mutations.push(new Mutation(file, start, end, startLine, endLine, original, "0", ID));
+      mutations.push(new Mutation(file, start, end, startLine, endLine, original, "0", ID));
     }
 
     //address(0x123)

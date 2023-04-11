@@ -1,10 +1,9 @@
 const Mutation = require("../mutation");
 
 function LSCOperator() {
+  this.ID = "LSC";
+  this.name = "loop-statement-change";
 }
-
-LSCOperator.prototype.ID = "LSC";
-LSCOperator.prototype.name = "loop-statement-change";
 
 LSCOperator.prototype.getMutations = function(file, source, visit) {
   const mutations = [];

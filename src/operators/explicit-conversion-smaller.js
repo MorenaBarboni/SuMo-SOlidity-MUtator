@@ -1,10 +1,9 @@
 const Mutation = require("../mutation");
 
 function ECSOperator() {
+  this.ID = "ECS";
+  this.name = "explicit-conversion-to-smaller-type";
 }
-
-ECSOperator.prototype.ID = "ECS";
-ECSOperator.prototype.name = "explicit-conversion-to-smaller-type";
 
 ECSOperator.prototype.getMutations = function(file, source, visit) {
   const mutations = [];

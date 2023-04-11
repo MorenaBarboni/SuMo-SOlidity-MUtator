@@ -1,10 +1,9 @@
 const Mutation = require("../mutation");
 
 function EEDOperator() {
+  this.ID = "EED";
+  this.name = "event-emission-deletion";
 }
-
-EEDOperator.prototype.ID = "EED";
-EEDOperator.prototype.name = "event-emission-deletion";
 
 EEDOperator.prototype.getMutations = function(file, source, visit) {
   const mutations = [];

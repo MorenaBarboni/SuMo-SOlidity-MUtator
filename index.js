@@ -6,21 +6,30 @@ const utils = require('./src/utils')
 
 yargs
   .usage('$0 <cmd> [args]')
-  .command('test', 'run mutation tests', (yargs) => {
-    yargs.option('failfast', {
-      type: 'bool',
-      default: false,
-      describe: 'abort on first surviving mutant'
-    })
-  }, mutationRunner.test)
-  .command('preflight', 'print preflight summary', mutationRunner.preflight)
+  .command('preflight', 'run preflight', mutationRunner.preflight)
+  .command('mutate', 'save mutants to file', mutationRunner.mutate)
+  .command('pretest', 'run pretest', mutationRunner.pretest)
+  .command('test [startHash] [endHash]', 'run mutation testing', (yargs) => {
+    yargs
+      .positional('startHash', {
+        type: 'string',
+        describe: '(optional) ID of the first mutant to be tested',
+        default: 'first'
+      })
+      .positional('endHash', {
+        type: 'string',
+        describe: '(optional) ID of the last mutant to be tested',
+        default: 'last'
+      })
+  }, (argv) => {
+    mutationRunner.test(argv.startHash, argv.endHash)
+  })
   .command('diff <hash>', 'show diff for a given hash', (yargs) => {
     yargs.positional('hash', {
       type: 'string',
       describe: 'hash of mutant'
     })
   }, mutationRunner.diff)
-  .command('mutate', 'save mutants to file', mutationRunner.mutate)
   .command('list', 'print list of enabled mutation operators', mutationRunner.list)
   .command('enable [ID]', 'enable a mutation operator', (yargs) => {
     yargs
@@ -40,12 +49,8 @@ yargs
   }, (argv) => {
     mutationRunner.disable(argv.ID)
   }) 
-  .command('cleanSumo', 'clean .sumo directory', (argv) => {
-    utils.cleanSumo()
-  })
   .command('restore', 'restore SUT files', (argv) => {
     utils.restore()
   })
-  .command('version', 'check the installed SuMo version', utils.version())
-  .help()
+   .help()
   .argv
