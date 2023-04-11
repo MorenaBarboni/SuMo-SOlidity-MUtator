@@ -1,7 +1,11 @@
-# SuMo - SOlidity MUtator
+# SuMo
 SuMo is a mutation testing tool for Solidity Smart Contracts. It features 25 Solidity-specific mutation operators, as well as 19 traditional operators.
 
 SuMo was designed to run mutation testing on Solidity projects in a NodeJS environment. It can run test using [Truffle](https://github.com/trufflesuite/truffle), [Hardhat](https://hardhat.org/) and [Forge](https://github.com/foundry-rs/foundry). If needed, SuMo can also automatically spawn [Ganache](https://github.com/trufflesuite/ganache) instances to guarantee a clean-room testing environment between mutants.
+
+## Installation
+
+To install sumo run ```npm install @morenabarboni/sumo```:
 
 ## Configuration
 Before using SuMo you must specify your desired configuration in a [sumo-config.js](https://github.com/MorenaBarboni/SuMo-SOlidity-MUtator/blob/master/src/sumo-config.js) in the root directory of your project. The ```sumo-config.js``` is automatically generated upon installation.
