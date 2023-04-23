@@ -5,7 +5,7 @@ SuMo was designed to run mutation testing on Solidity projects in a NodeJS envir
 
 ## Installation
 
-To install sumo run ```npm install @morenabarboni/sumo```:
+To install sumo run ```npm install @morenabarboni/sumo```
 
 ## Configuration
 Before using SuMo you must specify your desired configuration in a [sumo-config.js](https://github.com/MorenaBarboni/SuMo-SOlidity-MUtator/blob/master/src/sumo-config.js) in the root directory of your project. The ```sumo-config.js``` is automatically generated upon installation.
@@ -22,8 +22,8 @@ module.exports = {
   testingTimeOutInSec: 300,
   network: "none",
   testingFramework: "truffle",
-  optimized: true,
-  tce: true
+  optimized: false,
+  tce: false
 }
 ```
 
@@ -65,7 +65,7 @@ Note that:
   
 * When choosing ```custom```: 
   * SuMo will invoke the ```compile``` and ```test``` script defined in your ```package.json```. This allows you to customize the scripts and have more control over the testing process; 
-  * If you specify some test files to be skipped in the  in the ```sumo-config.js```, SuMo will automatically append the list of the test files to be  executed to the test script.
+  * The ```skipTests``` list will be overridden by the ```test``` script in your ```package.json```. To skip some test files, you can either: 1) append the specific test files you want to run to your ```test``` script, or 2) remove the test files to be skipped from the test folder.
 
 ## Trivial Compiler Equivalence
 
@@ -81,6 +81,7 @@ If your ```testingFramework``` is ```truffle``` or ```hardhat```, you must add t
     solc: {
         optimizer: {
             enabled: true,
+            runs: 200
             ...
         },
         metadata: {

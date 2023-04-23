@@ -27,7 +27,6 @@ var buildDir;
 const reporter = new Reporter()
 const tceRunner = new TceRunner()
 
-
 const mutGen = new mutationGenerator.CompositeOperator([
   new mutationGenerator.ACMOperator(),
   new mutationGenerator.AOROperator(),
@@ -200,13 +199,11 @@ function preTest(contractsUnderMutation, testsToBeRun) {
 
   reporter.logSelectedFiles(contractsUnderMutation, testsToBeRun);
 
-  if (contractsUnderMutation.length == 0) {
+  if (contractsUnderMutation.length === 0) {
     console.error(chalk.red("Error: No contracts to be mutated"))
     process.exit(1)
   }
-
-  //run pretest on all test files
-  if (testsToBeRun.length == 0) {
+  if (testsToBeRun.length === 0) {
     console.error(chalk.red("Error: No tests to be evaluated"))
     process.exit(1)
   }
@@ -447,7 +444,7 @@ function testSelection(files) {
     let skipTest = false;
     for (const relTPath of sumoConfig.skipTests) {
       let absolTPath = utils.getTestDir() + "/" + relTPath;
-      if (file.startsWith(absolTPath) && relTPath !== "") {
+      if (file.startsWith(absolTPath) && relTPath !== "" && sumoConfig.testingFramework !== "custom") {
         skipTest = true;
         break;
       }

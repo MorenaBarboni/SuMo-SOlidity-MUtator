@@ -1,6 +1,7 @@
 const appRoot = require('app-root-path');
+const chalk = require('chalk')
+const utils = require('./utils')
 const { spawnSync, spawn } = require("child_process");
-const utils = require("./utils");
 const rootDir = appRoot.toString().replaceAll("\\", "/");
 const sumoConfig = require(rootDir + "/sumo-config");
 
@@ -11,7 +12,7 @@ const testingTimeOutInSec = sumoConfig.testingTimeOutInSec
 * @param packageManager The package manager used within the SUT (npm or yarn)
 */
 function spawnCompile(packageManager) {
-  var compileChild;
+  let compileChild;
   const testingFramework = sumoConfig.testingFramework;
   const execute = (packageManager === "npm") ? "npx" : "yarn";
   const executeCmd = (process.platform === "win32") ? execute + ".cmd" : execute;
@@ -34,7 +35,8 @@ function spawnCompile(packageManager) {
     const packageManagerCmd = (process.platform === "win32") ? packageManager + ".cmd" : packageManager;
     compileChild = spawnSync(packageManagerCmd, [run, "compile"], { stdio: "inherit", cwd: rootDir });
   } else {
-    console.error("> Error: The selected testing framework is not valid.")
+    console.log(chalk.red("Error: The selected testing framework is not valid."));
+    process.exit(1);
   }
   return compileChild.status === 0;
 }
@@ -45,22 +47,23 @@ function spawnCompile(packageManager) {
 */
 function spawnTest(packageManager, testFiles) {
 
-  var testChild;
+  let testChild;
   const testingFramework = sumoConfig.testingFramework;
+  const skipTests = sumoConfig.skipTests;
   const execute = (packageManager === "npm") ? "npx" : "yarn";
   const executeCmd = (process.platform === "win32") ? execute + ".cmd" : execute;
 
   //Truffle
-  if (sumoConfig.testingFramework === "truffle") {
-    if (sumoConfig.skipTests.length === 0) {
+  if (testingFramework === "truffle") {
+    if (skipTests.length === 0) {
       testChild = spawnSync(executeCmd, ["truffle", "test", "-b"], { stdio: "inherit", cwd: rootDir, timeout: testingTimeOutInSec * 1000 });
     } else {
       testChild = spawnSync(executeCmd, ["truffle", "test", "-b", ...testFiles], { stdio: "inherit", cwd: rootDir, timeout: testingTimeOutInSec * 1000 });
     }
   }
   //Hardhat
-  else if (sumoConfig.testingFramework === "hardhat") {
-    if (sumoConfig.skipTests.length === 0) {
+  else if (testingFramework === "hardhat") {
+    if (skipTests.length === 0) {
       testChild = spawnSync(executeCmd, ["hardhat", "test", "--bail"], { stdio: "inherit", cwd: rootDir, timeout: testingTimeOutInSec * 1000 });
     } else {
       testChild = spawnSync(executeCmd, ["hardhat", "test", "--bail", ...testFiles], { stdio: "inherit", cwd: rootDir, timeout: testingTimeOutInSec * 1000 });
@@ -68,7 +71,7 @@ function spawnTest(packageManager, testFiles) {
   }
   //Forge
   else if (testingFramework === "forge") {
-    if (sumoConfig.skipTests.length === 0) {
+    if (skipTests.length === 0) {
       testChild = spawnSync("forge", ['t'], { stdio: "inherit", cwd: rootDir, timeout: testingTimeOutInSec * 1000 });
     } else {
       let relativeTestfiles = []
@@ -81,15 +84,16 @@ function spawnTest(packageManager, testFiles) {
     }
   }
   //Custom
-  if (sumoConfig.testingFramework === "custom") {
+  else if (testingFramework === "custom") {
     const run = (packageManager === "npm") ? "run-script" : "run";
     const packageManagerCmd = (process.platform === "win32") ? packageManager + ".cmd" : packageManager;
-    if (sumoConfig.skipTests.length === 0) {
-      testChild = spawnSync(packageManagerCmd, [run, "test"], { stdio: "inherit", cwd: rootDir, timeout: (testingTimeOutInSec * 1000) });
-    } else {
-      testChild = spawnSync(packageManagerCmd, [run, "test", ...testFiles], { stdio: "inherit", cwd: rootDir, timeout: (testingTimeOutInSec * 1000) });
-    }
+    testChild = spawnSync(packageManagerCmd, [run, "test"], { stdio: "inherit", cwd: rootDir, timeout: (testingTimeOutInSec * 1000) });
   }
+  else {
+    console.log(chalk.red("Error: The selected testing framework is not valid."));
+    process.exit(1);
+  }
+
   let status;
   if (testChild.error && testChild.error.code === "ETIMEDOUT") {
     status = 999;
@@ -109,11 +113,12 @@ function spawnNetwork(packageManager) {
   const executeCmd = (process.platform === "win32") ? execute + ".cmd" : execute;
 
   if (sumoConfig.network === "ganache") {
-    child = spawn(executeCmd, ["ganache-cli"], { stdio: "inherit", cwd: rootDir});
+    console.log(chalk.yellow("\nStarting Ganache"))
+    child = spawn(executeCmd, ["ganache-cli"], { stdio: "pipe", cwd: rootDir });
     child.unref();
     const waitForNode = () => {
       if (!isRunning(child)) {
-        console.log("Waiting for blockchain node ...");
+        console.log("Waiting for Ganache ...");
         setTimeout(() => {
           waitForNode();
         }, 250);
@@ -126,19 +131,22 @@ function spawnNetwork(packageManager) {
 }
 
 /**
- * Kills a spawned blockchain node instance
+ * Kills a ganache process (port 8545)
+ * @param {*} nodeChild 
  */
 function killNetwork(nodeChild) {
   if (sumoConfig.network === "ganache") {
     if (process.platform === "win32") {
       spawn("taskkill", ["/pid", nodeChild.pid, "/f", "/t"]);
     }
-    else if (process.platform === "linux" || process.platform === "darwin") {
+    else if (process.platform === "linux") {
       spawn("fuser", ["-k", "8545/tcp"]);
-    } 
-    else {
-      nodeChild.kill("SIGHUP");
-    } 
+    }
+    else if (process.platform === "darwin") {
+      let lsofProcess = spawnSync("lsof", ["-i:8545", "-t"]);
+      let ganachePid = lsofProcess.stdout.toString().trim();
+      spawn("kill", [ganachePid]);
+    }
     utils.cleanTmp();
   }
 }

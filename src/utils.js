@@ -97,7 +97,7 @@ function restore() {
 function cleanBuildDir() {
   const buildDir = getBuildDir();
   fsExtra.emptyDirSync(buildDir);
-  console.log("Build directory cleaned.");
+  console.log("Build directory cleaned");
 }
 
 /**
@@ -106,7 +106,7 @@ function cleanBuildDir() {
 function cleanResultsDir() {
   if (fs.existsSync(config.resultsDir)) {
     fsExtra.emptyDirSync(config.resultsDir);
-    console.log("Results directory cleaned.\n");
+    console.log("Results directory cleaned\n");
     setupResultsDir();
   }
 }
@@ -117,12 +117,16 @@ function cleanResultsDir() {
 function cleanTmp() {
   var dir = os.tmpdir();
   fs.readdirSync(dir).forEach(f => {
-    if (f.substring(0, 4) === 'tmp-') {
-      rimraf.sync(`${dir}/${f}`)
-      //console.log(f + ' deleted')
+    if (f.substring(0, 4) === 'tmp-' || f.startsWith("ganache")) {
+      try {
+        rimraf.sync(`${dir}/${f}`)
+        //console.log(f + ' deleted')
+      } catch (error) {
+        //console.log(error);
+      }
     }
   });
-  console.log("Ganache temporary files deleted.");
+  console.log("Ganache killed and temp files deleted\n");
 }
 
 //Checks the package manager used by the SUT

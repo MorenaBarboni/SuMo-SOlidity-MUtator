@@ -31,7 +31,7 @@ Reporter.prototype.chalkMutant = function (mutant) {
 }
 
 Reporter.prototype.logPretest = function () {
-  console.log(chalk.yellow.bold("Running pre-test 🔎"));
+  console.log(chalk.yellow.bold("Running pre-test 🔎\n"));
 };
 
 /**
@@ -65,15 +65,17 @@ Reporter.prototype.logAndSaveConfigDirs = function (contractsDir, testDir, build
  * @param {*} tests list of tests to be run
  */
 Reporter.prototype.logSelectedFiles = function (contracts, tests) {
-  const nc = contracts.length;
+  const numContracts = contracts.length;
+  const numTests = tests.length;
+
   console.log(chalk.yellow.bold("Selecting Contract and Test Files\n"))
 
-  if (nc == 0) {
-    console.log("Contracts to be mutated : " + chalk.green("none"));
+  if (numContracts === 0) {
+    console.log("Contracts to be mutated : " + chalk.red("None"));
   }
   else {
-    console.log("Contracts to be mutated : (" + nc + "):");
-    fs.appendFileSync(reportTxt, ">>> SELECTED FILES \n\nContracts to be mutated : (" + nc + "):\n", function (err) {
+    console.log("Contracts to be mutated : (" + numContracts + "):");
+    fs.appendFileSync(reportTxt, ">>> SELECTED FILES \n\nContracts to be mutated : (" + numContracts + "):\n", function (err) {
       if (err) return console.log(err);
     });
 
@@ -88,32 +90,31 @@ Reporter.prototype.logSelectedFiles = function (contracts, tests) {
   }
   console.log();
 
-  if (!tests) {
-    console.log("Tests to be run : " + chalk.green("all"));
-    console.log();
-  }
+  if (numTests == 0) console.log("Tests to be run : " + chalk.red("None"));
   else {
-    const nt = tests.length;
-    if (nt == 0) console.log("Tests to be run : " + chalk.green("none"));
-    else {
-      console.log("Tests to be run : (" + nt + "):");
-      fs.appendFileSync(reportTxt, "Tests to be run : (" + nt + "):\n", function (err) {
+    console.log("Tests to be run : (" + numTests + "):");
+    fs.appendFileSync(reportTxt, "Tests to be run : (" + numTests + "):\n", function (err) {
+      if (err) return console.log(err);
+    });
+
+    tests.forEach((t) => {
+      console.log(
+        "\t" + path.parse(t).dir + "/" + chalk.bold(path.basename(t))
+      );
+      fs.appendFileSync(reportTxt, "\t" + "- " + path.parse(t).dir + "/" + path.basename(t) + '\n', function (err) {
         if (err) return console.log(err);
       });
 
-      tests.forEach((t) => {
-        console.log(
-          "\t" + path.parse(t).dir + "/" + chalk.bold(path.basename(t))
-        );
-        fs.appendFileSync(reportTxt, "\t" + "- " + path.parse(t).dir + "/" + path.basename(t) + '\n', function (err) {
-          if (err) return console.log(err);
-        });
-
-      });
-    }
-    console.log();
+    });
   }
-  if (nc > 0) {
+  console.log();
+  if (sumoConfig.testingFramework === "custom" && sumoConfig.skipTests.length > 0) {
+    console.log(chalk.yellow("WARNING: You are using a CUSTOM testing framework - SKIPTESTS will be ignored."));
+    console.log(chalk.yellow("\n         To skip some tests you can either:"))
+    console.log(chalk.yellow("         - specify the test files to be run in your \"test\" script;\n         - remove the test files to be skipped from the test folder.\n\n"))
+  }
+
+  if (numContracts > 0) {
     fs.appendFileSync(reportTxt, "\n\n>>> GENERATED MUTANTS \n", function (err) {
       if (err) return console.log(err);
     });
@@ -160,7 +161,7 @@ Reporter.prototype.logCompile = function (mutant) {
 
 Reporter.prototype.logTest = function (mutant) {
 
-  console.log("Mutant successfully compiled.\n");
+  console.log("Mutant successfully compiled\n");
 
   console.log(chalk.yellow("Applying mutation ") + this.chalkMutant(mutant) + " to " + mutant.fileName());
   process.stdout.write(mutant.diff());
@@ -176,21 +177,21 @@ Reporter.prototype.mutantStatus = function (mutant) {
   switch (mutant.status) {
     case "killed":
       this.killed.push(mutant);
-      console.log("\n>💀 Mutant " + this.chalkMutant(mutant) + " was killed by the tests.");
+      console.log("\n💀 Mutant " + this.chalkMutant(mutant) + " was killed by the tests.");
       fs.writeFileSync(killedDir + "/" + mutant.fileName() + '-' + mutant.hash() + ".json", mutant.toJson(), function (err) {
         if (err) return console.log(err);
       });
       break;
     case "live":
       this.survived.push(mutant);
-      console.log("\n🐛 Mutant " + this.chalkMutant(mutant) + " survived testing.");
+      console.log("\n🐛 Mutant " + this.chalkMutant(mutant) + " survived testing");
       fs.writeFileSync(liveDir + "/" + mutant.fileName() + '-' + mutant.hash() + ".json", mutant.toJson(), function (err) {
         if (err) return console.log(err);
       });
       break;
     case "stillborn":
       this.stillborn.push(mutant);
-      console.log("Mutant " + this.chalkMutant(mutant) + " is stillborn.");
+      console.log("Mutant " + this.chalkMutant(mutant) + " is stillborn");
       fs.writeFileSync(stillbornDir + "/" + mutant.fileName() + '-' + mutant.hash() + ".json", mutant.toJson(), function (err) {
         if (err) return console.log(err);
       });
@@ -198,7 +199,7 @@ Reporter.prototype.mutantStatus = function (mutant) {
     case "equivalent":
       this.equivalent.push(mutant);
       console.log(
-        "Mutant " + this.chalkMutant(mutant) + " is equivalent."
+        "Mutant " + this.chalkMutant(mutant) + " is equivalent"
       );
       fs.writeFileSync(equivalentDir + "/" + mutant.fileName() + '-' + mutant.hash() + ".json", mutant.toJson(), function (err) {
         if (err) return console.log(err);
@@ -207,7 +208,7 @@ Reporter.prototype.mutantStatus = function (mutant) {
     case "timedout":
       this.timedout.push(mutant);
       console.log(
-        "Mutant " + this.chalkMutant(mutant) + " has timed out after " + (sumoConfig.testingTimeOutInSec) / 60 + " minutes."
+        "Mutant " + this.chalkMutant(mutant) + " has timed out after " + (sumoConfig.testingTimeOutInSec) / 60 + " minutes"
       );
       fs.writeFileSync(timedoutDir + "/" + mutant.fileName() + '-' + mutant.hash() + ".json", mutant.toJson(), function (err) {
         if (err) return console.log(err);
@@ -216,7 +217,7 @@ Reporter.prototype.mutantStatus = function (mutant) {
     case "redundant":
       this.redundant.push(mutant);
       console.log(
-        "Mutant " + this.chalkMutant(mutant) + " is redundant."
+        "Mutant " + this.chalkMutant(mutant) + " is redundant"
       );
       fs.writeFileSync(redundantDir + "/" + mutant.fileName() + '-' + mutant.hash() + ".json", mutant.toJson(), function (err) {
         if (err) return console.log(err);
@@ -249,7 +250,7 @@ Reporter.prototype.logAndSaveTestSummary = function (time) {
     if (err) return console.log(err);
   })
 
-  console.log("\n" + chalk.yellow.bold("Mutation Testing completed in " + time + " minutes. 👋"))
+  console.log("\n" + chalk.yellow.bold("Mutation Testing completed in " + time + " minutes 👋"))
   console.log("Test Summary saved to .sumo/results/summary.csv \n ")
   console.log(
     "SuMo generated " + totalMutants + " mutants: \n" +
@@ -258,7 +259,7 @@ Reporter.prototype.logAndSaveTestSummary = function (time) {
     "- " + this.stillborn.length + " stillborn; \n" +
     "- " + this.equivalent.length + " equivalent; \n" +
     "- " + this.redundant.length + " redundant; \n" +
-    "- " + this.timedout.length + " timed-out; \n"
+    "- " + this.timedout.length + " timed-out. \n"
   );
   if (mutationScore >= 80) {
     console.log(chalk.bold("Mutation Score") + ": " + chalk.bold.green(mutationScore + " %"));
