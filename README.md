@@ -47,9 +47,10 @@ These fields specify what testing framework and blockchain simulator SuMo should
   * ```ganache```: use the Ganache installation of the SUT;
   * ```none```: do not use a blockchain simulator;
 * ```testingFramework```: the testing framework to be used for compiling and testing the smart contracts. Available options are:
+  * ```brownie```: use a global/local installation of Brownie;
   * ```forge```: use a global installation of Forge;
-  * ```truffle```: use the Truffle installation of the SUT;
   * ```hardhat```: use the Hardhat installation of the SUT;
+  * ```truffle```: use the Truffle installation of the SUT;
   * ```custom```: use a custom compile and test script specified in the package.json of the SUT.
 
 Note that:
@@ -58,14 +59,20 @@ Note that:
   * The smart contracts will be compiled with a minimal compile command  (e.g., ```truffle compile``` );
   * The smart contracts will be tested with a minimal test command followed by the bail option, and (optionally) by a list of test files to be executed (e.g., ```truffle test ...testFiles -b```) .
 
+* When choosing ```brownie```:
+  * SuMo will rely on a local/global ```brownie``` installation;
+  * The smart contracts will be compiled with a minimal compile command  (e.g., ```brownie compile``` );
+  * The smart contracts will be tested with a minimal test command followed by the exitfirst option, and (optionally) by a list of test files to be executed (e.g., ```brownie test ...testFiles --exitfirst```) .
+
 * When choosing ```forge``` :
   * SuMo will rely on the global installation of ```foundry```;
   * The smart contracts will be compiled with a minimal compile command  (e.g., ```forge build```);
   * The smart contracts will be tested with a minimal test command, optionally followed by a list of test files to be executed (e.g., ```forge test ...testFiles```).
   
 * When choosing ```custom```: 
-  * SuMo will invoke the ```compile``` and ```test``` script defined in your ```package.json```. This allows you to customize the scripts and have more control over the testing process; 
+  * SuMo will invoke the ```compile``` and ```test``` script defined in your ```package.json```. This allows you to customize both scripts and have more control over the testing process; 
   * The ```skipTests``` list will be overridden by the ```test``` script in your ```package.json```. To skip some test files, you can either: 1) append the specific test files you want to run to your ```test``` script, or 2) remove the test files to be skipped from the test folder.
+  * The ```--bail```/```--exitfirst``` option should be added to the test script to speed up mutation testing. 
 
 ## Trivial Compiler Equivalence
 
@@ -90,14 +97,26 @@ If your ```testingFramework``` is ```truffle``` or ```hardhat```, you must add t
       }
   }
 ```
-##### 2) TCE for Forge
+
+##### 2)TCE for Brownie
+If your ```testingFramework``` is ```brownie```, you must add the following to your ```brownie-config.yaml``` file:
+
+```
+compiler:
+    solc:
+        optimize: true
+        runs: 200
+```
+
+##### 3) TCE for Forge
 If your ```testingFramework``` is ```forge```  you must add the following to your ```foundry.toml``` file:
 
 ```
 optimizer = true
+optimizer-runs = 200
 ```
 
-##### 3) TCE for Hybrid Test Suites
+##### 4) TCE for Hybrid Test Suites
 If your ```testingFramework``` is ```custom``` but you still rely on a single testing framework you can refer to the previous sections.
 
 However, if you are using ```custom``` to evaluate hybrid test suites (e.g., ```forge``` and ```hardhat```) you must make sure that the sumo configuration is consistent.

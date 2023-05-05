@@ -26,7 +26,7 @@ const config = {
   mutOpsConfig: rootDir + "/node_modules/@morenabarboni/sumo/src/operators.config.json",
   contractsGlob: '/**/*.sol',
   packageManagerGlob: ['/package-lock.json', '/yarn.lock'],
-  testsGlob: '/**/*.{js,sol,ts}',
+  testsGlob: '/**/*.{js,sol,ts,py}',
 }
 
 /**
@@ -187,13 +187,23 @@ function getTestDir() {
     else {
       return rootDir + "/" + sumoConfig.testDir;
     }
-  } else {
-    if (!fs.existsSync(rootDir + "/test")) {
+  }
+  //Check default build dir
+  else {
+    let possibleTestDirs = ["/test", "/tests"]
+    let foundDir = null;
+    for (let i = 0; i < possibleTestDirs.length; i++) {
+      const dir = possibleTestDirs[i];
+      if (fs.existsSync(rootDir + dir)) {
+        foundDir = rootDir + dir;
+        break;
+      }
+    }
+    if (foundDir !== null) {
+      return foundDir;
+    } else {
       console.error(chalk.red("Error: No test directory found at " + rootDir + "/test"));
       process.exit(1);
-    }
-    else {
-      return rootDir + "/test";
     }
   }
 }

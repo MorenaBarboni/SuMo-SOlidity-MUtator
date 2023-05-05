@@ -25,6 +25,10 @@ function spawnCompile(packageManager) {
   else if (testingFramework === "hardhat") {
     compileChild = spawnSync(executeCmd, ["hardhat", "compile"], { stdio: "inherit", cwd: rootDir });
   }
+  //Brownie
+  else if (testingFramework === "brownie") {
+    compileChild = spawnSync("brownie", ["compile"], { stdio: "inherit", cwd: rootDir });
+  }
   //Forge
   else if (testingFramework === "forge") {
     compileChild = spawnSync(testingFramework, ["build"], { stdio: "inherit", cwd: rootDir });
@@ -59,6 +63,14 @@ function spawnTest(packageManager, testFiles) {
       testChild = spawnSync(executeCmd, ["truffle", "test", "-b"], { stdio: "inherit", cwd: rootDir, timeout: testingTimeOutInSec * 1000 });
     } else {
       testChild = spawnSync(executeCmd, ["truffle", "test", "-b", ...testFiles], { stdio: "inherit", cwd: rootDir, timeout: testingTimeOutInSec * 1000 });
+    }
+  }
+  //Brownie
+  else if (testingFramework === "brownie") {
+    if (skipTests.length === 0) {
+      testChild = spawnSync("brownie", ["test", "--exitfirst"], { stdio: "inherit", cwd: rootDir, timeout: testingTimeOutInSec * 1000 });
+    } else {
+      testChild = spawnSync("brownie", ["test", ...testFiles, "--exitfirst"], { stdio: "inherit", cwd: rootDir, timeout: testingTimeOutInSec * 1000 });
     }
   }
   //Hardhat

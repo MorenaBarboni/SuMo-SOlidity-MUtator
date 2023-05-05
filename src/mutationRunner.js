@@ -77,8 +77,9 @@ const mutGen = new mutationGenerator.CompositeOperator([
 function prepare(callback) {
   reporter.logPrepareCheck();
 
-  if (sumoConfig.testingFramework !== "truffle" && sumoConfig.testingFramework !== "hardhat" && sumoConfig.testingFramework !== "forge" && sumoConfig.testingFramework !== "custom") {
-    console.error(chalk.red("Error: The specified testing framework is not valid. \n The available options are:\n - truffle \n - hardhat \n - forge \n - custom"));
+  if (sumoConfig.testingFramework !== "truffle" && sumoConfig.testingFramework !== "hardhat"
+    && sumoConfig.testingFramework !== "forge" && sumoConfig.testingFramework !== "brownie" && sumoConfig.testingFramework !== "custom") {
+    console.error(chalk.red("Error: The specified testing framework is not valid. \n The available options are:\n - brownie \n - hardhat \n - forge \n - truffle \n - custom"));
     process.exit(1);
   }
 
