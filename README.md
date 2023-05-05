@@ -137,9 +137,9 @@ If you make SuMo use hardhat to compile the contracts, make sure that the ```bui
 Before starting the mutation process you can choose which mutation operators to use:
 * ```npx/yarn sumo list``` shows the currently enabled mutation operators
 * ```npx/yarn sumo enable``` enables all the mutation operators
-* ```npx/yarn sumo enable [ID]``` enables the mutation operator ID
+* ```npx/yarn sumo enable ID``` enables the mutation operator(s) by ID
 * ```npx/yarn sumo disable``` disables all the mutation operators
-* ```npx/yarn sumo disable [ID]``` disables the mutation operator ID
+* ```npx/yarn sumo disable ID``` disables the mutation operator(s) by ID
 
 #### Viewing the available mutations
 Once everything is set up you can use:

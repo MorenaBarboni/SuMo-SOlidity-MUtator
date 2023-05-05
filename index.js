@@ -31,26 +31,26 @@ yargs
     })
   }, mutationRunner.diff)
   .command('list', 'print list of enabled mutation operators', mutationRunner.list)
-  .command('enable [ID]', 'enable a mutation operator', (yargs) => {
+  .command('enable [ID..]', 'enable one or more mutation operators', (yargs) => {
     yargs
       .positional('ID', {
         type: 'string',
-        describe: 'ID of the mutation operator to be enabled',
+        describe: 'ID of the mutation operator(s) to be enabled',
       })
   }, (argv) => {
     mutationRunner.enable(argv.ID)
   })
-  .command('disable [ID]', 'disable a mutation operator', (yargs) => {
+  .command('disable [ID..]', 'disable one or more mutation operators', (yargs) => {
     yargs
       .positional('ID', {
         type: 'string',
-        describe: 'ID of the mutation operator to be disabled.',
+        describe: 'ID of the mutation operator(s) to be disabled.',
       })
   }, (argv) => {
     mutationRunner.disable(argv.ID)
-  }) 
-  .command('restore', 'restore SUT files', (argv) => {
+  })
+  .command('restore', 'restore the SUT files', (argv) => {
     utils.restore()
   })
-   .help()
+  .help()
   .argv

@@ -343,41 +343,55 @@ function enabledOperators() {
   console.log(mutGen.getEnabledOperators());
 }
 
-//Enables a mutation operator
+/**
+ * Enable one or more mutation operators
+ * @param {*} ID a list of operator IDs to be enabled
+ */
 function enableOperator(ID) {
-  //Enable all operators
-  if (!ID) {
+  if (ID.length === 0) {
     var success = mutGen.enableAll();
     if (success)
       console.log("\nAll mutation operators enabled.\n");
     else
       console.error(chalk.red("\nError.\n"));
   } else {
-    //Enable operator ID
-    var success = mutGen.enable(ID);
-    if (success)
-      console.log("\n" + chalk.bold.yellow(ID) + " enabled.\n");
-    else
-      console.error(chalk.red("\nError: " + ID + " does not exist.\n"));
+    console.log()
+    ID.forEach(operatorID => {
+      //Enable operator ID
+      var success = mutGen.enable(operatorID);
+      if (success)
+        console.log(chalk.bold.yellow(operatorID) + " enabled.");
+      else
+        console.error(chalk.red("Error: " + operatorID + " does not exist."));
+    });
+    console.log()
   }
 }
 
-//Disables a mutation operator 
+/**
+ * Disable one or more mutation operators
+ * @param {*} ID a list of operator IDs to be disabled
+ */
 function disableOperator(ID) {
   //Disable all operators
-  if (!ID) {
+  if (ID.length === 0) {
     var success = mutGen.disableAll();
     if (success)
       console.log("\nAll mutation operators disabled.\n");
     else
       console.error(chalk.red("\nError.\n"));
-  } else {
-    //Disable operator ID
-    var success = mutGen.disable(ID);
-    if (success)
-      console.log("\n" + chalk.bold.yellow(ID) + " disabled.\n");
-    else
-      console.error(chalk.red("\nError: " + ID + " does not exist.\n"));
+  }
+  else {
+    console.log()
+    ID.forEach(operatorID => {
+      //Enable operator ID
+      var success = mutGen.disable(operatorID);
+      if (success)
+        console.log(chalk.bold.yellow(operatorID) + " disabled.");
+      else
+        console.error(chalk.red("Error: " + operatorID + " does not exist."));
+    });
+    console.log()
   }
 }
 
