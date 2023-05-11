@@ -7,6 +7,6 @@ module.exports = {
   testingTimeOutInSec: 300,
   network: "none",
   testingFramework: "truffle",
-  optimized: false,
+  minimal: false,
   tce: false,
 }

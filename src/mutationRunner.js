@@ -345,24 +345,46 @@ function enabledOperators() {
 
 /**
  * Enable one or more mutation operators
- * @param {*} ID a list of operator IDs to be enabled
+ * @param {*} args a list of operators to be enabled. 
+ * The list can include simple operator IDs, or cluster names (i.e., default or optimization).
+ * If the list is empty, all the mutation operators are enabled.
  */
-function enableOperator(ID) {
-  if (ID.length === 0) {
+function enableOperator(args) {
+  let optCluster = ["DLR","FVR","VVR"]
+  //Enable all operators
+  if (args.length === 0) {
     var success = mutGen.enableAll();
     if (success)
       console.log("\nAll mutation operators enabled.\n");
     else
       console.error(chalk.red("\nError.\n"));
-  } else {
+  }
+  //Enable optimization cluster
+  else if (args[0] === "optimization") {
+    mutGen.disableAll();
+    optCluster.forEach(ID => {
+      mutGen.enable(ID);
+    });
+    console.log("\nOptimization cluster enabled.\n");
+  }
+  //Enable default cluster
+  else if (args[0] === "standard") {
+    mutGen.enableAll();
+    optCluster.forEach(ID => {
+      mutGen.disable(ID);
+    });
+    console.log("\nStandard cluster enabled.\n");
+  }
+  //Enable operator(s) by ID
+  else {
     console.log()
-    ID.forEach(operatorID => {
+    args.forEach(ID => {
       //Enable operator ID
-      var success = mutGen.enable(operatorID);
+      var success = mutGen.enable(ID);
       if (success)
-        console.log(chalk.bold.yellow(operatorID) + " enabled.");
+        console.log(chalk.bold.yellow(ID) + " enabled.");
       else
-        console.error(chalk.red("Error: " + operatorID + " does not exist."));
+        console.error(chalk.red("Error: " + ID + " does not exist."));
     });
     console.log()
   }
@@ -370,26 +392,28 @@ function enableOperator(ID) {
 
 /**
  * Disable one or more mutation operators
- * @param {*} ID a list of operator IDs to be disabled
+ * @param {*} args a list of operators to be enabled. 
+ * The list can include simple operator IDs, or cluster names (i.e., default or optimization).
+ * If the list is empty, all the mutation operators are disabled.
  */
-function disableOperator(ID) {
-  //Disable all operators
-  if (ID.length === 0) {
+function disableOperator(args) {
+  //Enable all operators
+  if (args.length === 0) {
     var success = mutGen.disableAll();
     if (success)
       console.log("\nAll mutation operators disabled.\n");
     else
       console.error(chalk.red("\nError.\n"));
   }
+  //Disable operator(s) by ID
   else {
     console.log()
-    ID.forEach(operatorID => {
-      //Enable operator ID
-      var success = mutGen.disable(operatorID);
+    args.forEach(ID => {
+      var success = mutGen.disable(ID);
       if (success)
-        console.log(chalk.bold.yellow(operatorID) + " disabled.");
+        console.log(chalk.bold.yellow(ID) + " disabled.");
       else
-        console.error(chalk.red("Error: " + operatorID + " does not exist."));
+        console.error(chalk.red("Error: " + ID + " does not exist."));
     });
     console.log()
   }

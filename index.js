@@ -35,7 +35,7 @@ yargs
     yargs
       .positional('ID', {
         type: 'string',
-        describe: 'ID of the mutation operator(s) to be enabled',
+        describe: 'List of IDs of mutation operators to be enabled. ',
       })
   }, (argv) => {
     mutationRunner.enable(argv.ID)
@@ -44,7 +44,7 @@ yargs
     yargs
       .positional('ID', {
         type: 'string',
-        describe: 'ID of the mutation operator(s) to be disabled.',
+        describe: 'List of IDs of mutation operators to be disabled.',
       })
   }, (argv) => {
     mutationRunner.disable(argv.ID)

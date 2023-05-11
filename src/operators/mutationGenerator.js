@@ -23,19 +23,19 @@ var SFROperator
 var VUROperator
 var VVROperator
 
-if (config.optimized) {
-  AOROperator = require('./optimized/assignment-replacement')
-  BOROperator = require('./optimized/binary-replacement')
-  EROperator = require('./optimized/enum-replacement')
-  FVROperator = require('./optimized/function-visibility-replacement')
-  GVROperator = require('./optimized/global-variable-replacement')
-  MODOperator = require('./optimized/modifier-deletion')
-  MOIOperator = require('./optimized/modifier-insertion')
-  MOROperator = require('./optimized/modifier-replacement')
-  RVSOperator = require('./optimized/return-values-swap')
-  SFROperator = require('./optimized/safemath-function-replacement')
-  VUROperator = require('./optimized/variable-unit-replacement')
-  VVROperator = require('./optimized/variable-visibility-replacement')
+if (config.minimal) {
+  AOROperator = require('./minimal/assignment-replacement')
+  BOROperator = require('./minimal/binary-replacement')
+  EROperator = require('./minimal/enum-replacement')
+  FVROperator = require('./minimal/function-visibility-replacement')
+  GVROperator = require('./minimal/global-variable-replacement')
+  MODOperator = require('./minimal/modifier-deletion')
+  MOIOperator = require('./minimal/modifier-insertion')
+  MOROperator = require('./minimal/modifier-replacement')
+  RVSOperator = require('./minimal/return-values-swap')
+  SFROperator = require('./minimal/safemath-function-replacement')
+  VUROperator = require('./minimal/variable-unit-replacement')
+  VVROperator = require('./minimal/variable-visibility-replacement')
 } else {
   AOROperator = require('./assignment-replacement')
   BOROperator = require('./binary-replacement')
@@ -147,7 +147,12 @@ CompositeOperator.prototype.getEnabledOperators = function () {
   return printString
 }
 
-//Enables a mutation operator
+
+/**
+ * Enables a mutation operator by ID
+ * @param {*} ID the operator ID
+ * @returns success status
+ */
 CompositeOperator.prototype.enable = function (ID) {
   var exists = Object.entries(mutOpsConfig)
     .find(pair => pair[0] === ID);
@@ -173,7 +178,11 @@ CompositeOperator.prototype.enableAll = function () {
   return true
 }
 
-//Disables a mutation operator
+/**
+ * Disables a mutation operator by ID
+ * @param {*} ID the operator ID
+ * @returns success status
+ */
 CompositeOperator.prototype.disable = function (ID) {
   var exists = Object.entries(mutOpsConfig)
     .find(pair => pair[0] === ID);

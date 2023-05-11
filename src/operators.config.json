@@ -8,14 +8,14 @@
     "CBD": true,
     "CCD": true,
     "CSC": true,
-    "DLR": true,
+    "DLR": false,
     "DOD": true,
     "ECS": true,
     "EED": true,
     "EHC": true,
     "ER": true,
     "ETR": true,
-    "FVR": true,
+    "FVR": false,
     "GVR": true,
     "HLR": true,
     "ILR": true,
@@ -42,5 +42,5 @@
     "TOR": true,
     "UORD": true,
     "VUR": true,
-    "VVR": true
+    "VVR": false
 }
