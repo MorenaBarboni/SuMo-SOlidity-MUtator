@@ -41,7 +41,8 @@ MOIOperator.prototype.getMutations = function (file, source, visit) {
         /*If the function is not decorated */
         if (fNode.modifiers.length === 0 && fNode.body) {
           /*If the function is not special */
-          if (fNode.body && !fNode.isConstructor && !fNode.isReceiveEther && !fNode.isFallback) {
+          if (fNode.body && !fNode.isConstructor && !fNode.isReceiveEther && !fNode.isFallback
+            && (!fNode.stateMutability || (fNode.stateMutability !== "pure" && fNode.stateMutability !== "view"))) {
 
             //Cycle the available modifiers nodes
             for (let i = 0; i < modifiersNodes.length; i++) {

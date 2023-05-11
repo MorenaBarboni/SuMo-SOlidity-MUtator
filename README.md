@@ -6,7 +6,6 @@ SuMo was designed to run mutation testing on Solidity projects in a NodeJS envir
 
 # Table of Contents
 * [Installation and configuration](https://github.com/MorenaBarboni/SuMo-SOlidity-MUtator#installation-and-configuration)
-* [Configuration](https://github.com/MorenaBarboni/SuMo-SOlidity-MUtator#configuration)
 * [CLI Usage](https://github.com/MorenaBarboni/SuMo-SOlidity-MUtator#cli-usage)
 * [Trivial Compiler Equivalence](https://github.com/MorenaBarboni/SuMo-SOlidity-MUtator#trivial-compiler-equivalence)
 * [Mutation Operators](https://github.com/MorenaBarboni/SuMo-SOlidity-MUtator#mutation-operators-)
