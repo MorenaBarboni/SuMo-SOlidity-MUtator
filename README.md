@@ -37,7 +37,7 @@ module.exports = {
 ```
 
 ### 1) SUT directories
-These (optional) fields idenitfy relevant project directories.
+These (optional) fields identify relevant project directories.
 * ```contractsDir```: relative path to the directory where the contracts to be mutated are located (contracts by default);
 * ```testDir```: relative path to the directory where the tests to be evaluated are located (test by default);
 * ```buildDir```: relative path to the directory where the artifacts of the compilation will be saved (build, out or artifacts by default);
