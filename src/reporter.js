@@ -39,10 +39,9 @@ Reporter.prototype.logPretest = function () {
  * @param {*} contracts list of contracts to be mutated
  * @param {*} tests list of tests to be run
  */
-Reporter.prototype.logPrepareCheck = function () {
+Reporter.prototype.logSetup = function () {
   console.log(chalk.yellow.bold("\nChecking project configuration\n"));
 }
-
 
 /**
  * Prints the project folders and saves them to report.txt
@@ -125,23 +124,18 @@ Reporter.prototype.logStartMutationTesting = function () {
   console.log(chalk.yellow.bold("Starting Mutation Testing 👾"))
 };
 
-Reporter.prototype.logPreflightSummary = function (mutations, genTime, operators) {
+Reporter.prototype.logLookup = function (mutations, genTime, operators) {
 
-  console.log(chalk.yellow.bold("Preflight") + " ✈️");
+  console.log(chalk.yellow.bold("Lookup") + " 🧬");
 
-  //Print diff for each mutation
-  /* for (const mutation of mutations) {
-     process.stdout.write(mutation.diff());
-   }*/
-
-  const preflight = mutations.length + " mutation(s) found in " + genTime + " seconds \n" +
+  const lookup = mutations.length + " mutation(s) found in " + genTime + " seconds \n" +
     "Generated mutations saved to .sumo/results/generated.csv \n"
 
-  fs.appendFileSync(reportTxt, "\n\n>>> PREFLIGHT SUMMARY \n\n" + preflight + "- SuMo preflight done.\n", function (err) {
+  fs.appendFileSync(reportTxt, "\n\n>>> LOOKUP SUMMARY \n\n" + lookup + "\n", function (err) {
     if (err) return console.log(err);
   });
 
-  console.log(operators + "\n\n" + preflight);
+  console.log(operators + "\n\n" + lookup);
 };
 
 /**
@@ -302,7 +296,7 @@ Reporter.prototype.logAndSaveTestSummary = function (time) {
 
   printString = printString + "\n\n MUTATION SCORE = " + mutationScore;
 
-  fs.appendFileSync(reportTxt, printString + "\n\n- " + totalMutants + " mutant(s) tested in " + time + " minutes." + "\n- SuMo test done.", { "flags": "a" }, function (err) {
+  fs.appendFileSync(reportTxt, printString + "\n\n- " + totalMutants + " mutant(s) tested in " + time + " minutes.", { "flags": "a" }, function (err) {
     if (err) return console.log(err);
   });
 };

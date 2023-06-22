@@ -23,6 +23,9 @@ var SFROperator
 var VUROperator
 var VVROperator
 
+/**
+ * Minimal rules
+ */
 if (config.minimal) {
   AOROperator = require('./minimal/assignment-replacement')
   BOROperator = require('./minimal/binary-replacement')
@@ -37,54 +40,54 @@ if (config.minimal) {
   VUROperator = require('./minimal/variable-unit-replacement')
   VVROperator = require('./minimal/variable-visibility-replacement')
 } else {
-  AOROperator = require('./assignment-replacement')
-  BOROperator = require('./binary-replacement')
-  EROperator = require('./enum-replacement')
-  FVROperator = require('./function-visibility-replacement')
-  GVROperator = require('./global-variable-replacement')
-  MODOperator = require('./modifier-deletion')
-  MOIOperator = require('./modifier-insertion')
-  MOROperator = require('./modifier-replacement')
-  RVSOperator = require('./return-values-swap')
-  SFROperator = require('./safemath-function-replacement')
-  VUROperator = require('./variable-unit-replacement')
-  VVROperator = require('./variable-visibility-replacement')
+  AOROperator = require('./standard/assignment-replacement')
+  BOROperator = require('./standard/binary-replacement')
+  EROperator = require('./standard/enum-replacement')
+  FVROperator = require('./standard/function-visibility-replacement')
+  GVROperator = require('./standard/global-variable-replacement')
+  MODOperator = require('./standard/modifier-deletion')
+  MOIOperator = require('./standard/modifier-insertion')
+  MOROperator = require('./standard/modifier-replacement')
+  RVSOperator = require('./standard/return-values-swap')
+  SFROperator = require('./standard/safemath-function-replacement')
+  VUROperator = require('./standard/variable-unit-replacement')
+  VVROperator = require('./standard/variable-visibility-replacement')
 }
 
-const ACMOperator = require('./argument-change-overloaded-call')
-const AVROperator = require('./address-value-replacement')
-const BCRDOperator = require('./break-continue-replacement')
-const BLROperator = require('./boolean-literal-replacement')
-const CBDOperator = require('./catch-block-deletion')
-const CCDOperator = require('./constructor-deletion')
-const CSCOperator = require('./conditional-statement-change')
-const DLROperator = require('./data-location-replacement')
-const DODOperator = require('./delete-operator-deletion')
-const ECSOperator = require('./explicit-conversion-smaller')
-const EEDOperator = require('./event-emission-deletion')
-const EHCOperator = require('./exception-handling-change')
-const ETROperator = require('./ether-transfer-function-replacement')
-const ICMOperator = require('./increments-mirror')
-const ILROperator = require('./integer-literal-replacement')
-const LSCOperator = require('./loop-statement-change')
-const HLROperator = require('./hex-literal-replacement')
-const MCROperator = require('./math-crypto-function-replacement')
-const MOCOperator = require('./modifier-order-change')
-const OLFDOperator = require('./overloaded-function-deletion')
-const OMDOperator = require('./overridden-modifier-deletion')
-const ORFDOperator = require('./overridden-function-deletion')
-const PKDOperator = require('./payable-deletion')
-const RSDOperator = require('./return-statement-deletion')
-const SCECOperator = require('./switch-call-expression-casting')
-const SFDOperator = require('./selfdestruct-deletion')
-const SFIOperator = require('./selfdestruct-insertion')
-const SKDOperator = require('./super-keyword-deletion')
-const SKIOperator = require('./super-keyword-insertion')
-const SLROperator = require('./string-literal-replacement')
-const TOROperator = require('./transaction-origin-replacement')
-const UORDOperator = require('./unary-replacement')
+const ACMOperator = require('./standard/argument-change-overloaded-call')
+const AVROperator = require('./standard/address-value-replacement')
+const BCRDOperator = require('./standard/break-continue-replacement')
+const BLROperator = require('./standard/boolean-literal-replacement')
+const CBDOperator = require('./standard/catch-block-deletion')
+const CCDOperator = require('./standard/constructor-deletion')
+const CSCOperator = require('./standard/conditional-statement-change')
+const DLROperator = require('./standard/data-location-replacement')
+const DODOperator = require('./standard/delete-operator-deletion')
+const ECSOperator = require('./standard/explicit-conversion-smaller')
+const EEDOperator = require('./standard/event-emission-deletion')
+const EHCOperator = require('./standard/exception-handling-change')
+const ETROperator = require('./standard/ether-transfer-function-replacement')
+const ICMOperator = require('./standard/increments-mirror')
+const ILROperator = require('./standard/integer-literal-replacement')
+const LSCOperator = require('./standard/loop-statement-change')
+const HLROperator = require('./standard/hex-literal-replacement')
+const MCROperator = require('./standard/math-crypto-function-replacement')
+const MOCOperator = require('./standard/modifier-order-change')
+const OLFDOperator = require('./standard/overloaded-function-deletion')
+const OMDOperator = require('./standard/overridden-modifier-deletion')
+const ORFDOperator = require('./standard/overridden-function-deletion')
+const PKDOperator = require('./standard/payable-deletion')
+const RSDOperator = require('./standard/return-statement-deletion')
+const SCECOperator = require('./standard/switch-call-expression-casting')
+const SFDOperator = require('./standard/selfdestruct-deletion')
+const SFIOperator = require('./standard/selfdestruct-insertion')
+const SKDOperator = require('./standard/super-keyword-deletion')
+const SKIOperator = require('./standard/super-keyword-insertion')
+const SLROperator = require('./standard/string-literal-replacement')
+const TOROperator = require('./standard/transaction-origin-replacement')
+const UORDOperator = require('./standard/unary-replacement')
 
-function CompositeOperator(operators) {
+function MutationOperators(operators) {
   this.operators = operators
 }
 
@@ -96,7 +99,7 @@ function CompositeOperator(operators) {
  * @param {*} overwrite  overwrite the generated mutation reports
  * @returns 
  */
-CompositeOperator.prototype.getMutations = function (file, source, visit, overwrite) {
+MutationOperators.prototype.getMutations = function (file, source, visit, overwrite) {
   let mutations = []
   const fileString = "\n Mutants generated for file: " + file + ": \n";
   var mutantString = "";
@@ -123,7 +126,7 @@ CompositeOperator.prototype.getMutations = function (file, source, visit, overwr
 }
 
 //Show information about enabled mutation operators
-CompositeOperator.prototype.getEnabledOperators = function () {
+MutationOperators.prototype.getEnabledOperators = function () {
   var printString;
   var enabled = Object.entries(mutOpsConfig)
     .filter(pair => pair[1] === true);
@@ -153,7 +156,7 @@ CompositeOperator.prototype.getEnabledOperators = function () {
  * @param {*} ID the operator ID
  * @returns success status
  */
-CompositeOperator.prototype.enable = function (ID) {
+MutationOperators.prototype.enable = function (ID) {
   var exists = Object.entries(mutOpsConfig)
     .find(pair => pair[0] === ID);
 
@@ -168,7 +171,7 @@ CompositeOperator.prototype.enable = function (ID) {
 }
 
 //Enables all mutation operators
-CompositeOperator.prototype.enableAll = function () {
+MutationOperators.prototype.enableAll = function () {
   Object.entries(mutOpsConfig).forEach(pair => {
     mutOpsConfig[pair[0]] = true;
   });
@@ -183,7 +186,7 @@ CompositeOperator.prototype.enableAll = function () {
  * @param {*} ID the operator ID
  * @returns success status
  */
-CompositeOperator.prototype.disable = function (ID) {
+MutationOperators.prototype.disable = function (ID) {
   var exists = Object.entries(mutOpsConfig)
     .find(pair => pair[0] === ID);
 
@@ -198,7 +201,7 @@ CompositeOperator.prototype.disable = function (ID) {
 }
 
 //Disables all mutation operators
-CompositeOperator.prototype.disableAll = function () {
+MutationOperators.prototype.disableAll = function () {
   Object.entries(mutOpsConfig).forEach(pair => {
     mutOpsConfig[pair[0]] = false;
   });
@@ -253,5 +256,5 @@ module.exports = {
   UORDOperator: UORDOperator,
   VUROperator: VUROperator,
   VVROperator: VVROperator,
-  CompositeOperator: CompositeOperator,
+  MutationOperators: MutationOperators,
 }

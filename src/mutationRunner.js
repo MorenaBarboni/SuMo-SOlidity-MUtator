@@ -3,13 +3,13 @@ const chalk = require('chalk')
 const fs = require('fs')
 const fse = require('fs-extra');
 const glob = require('glob')
+const mutationGenerator = require("./operators/mutationGenerator");
 const parser = require('@solidity-parser/parser')
 var path = require('path');
 const Reporter = require('./reporter')
 const TceRunner = require('./tceRunner')
-const utils = require('./utils')
 const testingInterface = require("./testingInterface");
-const mutationGenerator = require("./operators/mutationGenerator");
+const utils = require('./utils')
 
 //SuMo configuration
 const rootDir = appRoot.toString().replaceAll("\\", "/");
@@ -26,56 +26,21 @@ var buildDir;
 
 const reporter = new Reporter()
 const tceRunner = new TceRunner()
+const mutGen = new mutationGenerator.MutationOperators([
+  "ACM", "AOR", "AVR", "BCRD", "BLR", "BOR", "CBD", "CCD", "CSC", "DLR",
+  "DOD", "ECS", "EED", "EHC", "ER", "ETR", "FVR", "GVR", "HLR", "ILR",
+  "ICM", "LSC", "PKD", "MCR", "MOC", "MOD", "MOI", "MOR", "OLFD", "OMD",
+  "ORFD", "RSD", "RVS", "SCEC", "SFI", "SFD", "SFR", "SKD", "SKI", "SLR",
+  "TOR", "UORD", "VUR", "VVR"
+].map(operator => new mutationGenerator[`${operator}Operator`]()));
 
-const mutGen = new mutationGenerator.CompositeOperator([
-  new mutationGenerator.ACMOperator(),
-  new mutationGenerator.AOROperator(),
-  new mutationGenerator.AVROperator(),
-  new mutationGenerator.BCRDOperator(),
-  new mutationGenerator.BLROperator(),
-  new mutationGenerator.BOROperator(),
-  new mutationGenerator.CBDOperator(),
-  new mutationGenerator.CCDOperator(),
-  new mutationGenerator.CSCOperator(),
-  new mutationGenerator.DLROperator(),
-  new mutationGenerator.DODOperator(),
-  new mutationGenerator.ECSOperator(),
-  new mutationGenerator.EEDOperator(),
-  new mutationGenerator.EHCOperator(),
-  new mutationGenerator.EROperator(),
-  new mutationGenerator.ETROperator(),
-  new mutationGenerator.FVROperator(),
-  new mutationGenerator.GVROperator(),
-  new mutationGenerator.HLROperator(),
-  new mutationGenerator.ILROperator(),
-  new mutationGenerator.ICMOperator(),
-  new mutationGenerator.LSCOperator(),
-  new mutationGenerator.PKDOperator(),
-  new mutationGenerator.MCROperator(),
-  new mutationGenerator.MOCOperator(),
-  new mutationGenerator.MODOperator(),
-  new mutationGenerator.MOIOperator(),
-  new mutationGenerator.MOROperator(),
-  new mutationGenerator.OLFDOperator(),
-  new mutationGenerator.OMDOperator(),
-  new mutationGenerator.ORFDOperator(),
-  new mutationGenerator.RSDOperator(),
-  new mutationGenerator.RVSOperator(),
-  new mutationGenerator.SCECOperator(),
-  new mutationGenerator.SFIOperator(),
-  new mutationGenerator.SFDOperator(),
-  new mutationGenerator.SFROperator(),
-  new mutationGenerator.SKDOperator(),
-  new mutationGenerator.SKIOperator(),
-  new mutationGenerator.SLROperator(),
-  new mutationGenerator.TOROperator(),
-  new mutationGenerator.UORDOperator(),
-  new mutationGenerator.VUROperator(),
-  new mutationGenerator.VVROperator()
-])
 
-function prepare(callback) {
-  reporter.logPrepareCheck();
+/**
+ * Setup operations
+ * @param {*} callback 
+ */
+function setup(callback) {
+  reporter.logSetup();
 
   if (sumoConfig.testingFramework !== "truffle" && sumoConfig.testingFramework !== "hardhat"
     && sumoConfig.testingFramework !== "forge" && sumoConfig.testingFramework !== "brownie" && sumoConfig.testingFramework !== "custom") {
@@ -110,8 +75,8 @@ function prepare(callback) {
 /**
  * Shows a summary of the available mutants without starting the testing process.
  */
-function preflight() {
-  prepare(() =>
+function lookup() {
+  setup(() =>
     glob(contractsDir + contractsGlob, (err, contracts) => {
       if (err) throw err;
       glob(testDir + testsGlob, (err, tests) => {
@@ -119,7 +84,7 @@ function preflight() {
         let contractsUnderMutation = contractSelection(contracts);
         let testsToBeRun = testSelection(tests);
         reporter.logSelectedFiles(contractsUnderMutation, testsToBeRun);
-        generateAllMutations(contractsUnderMutation, true)
+        generateMutations(contractsUnderMutation, true)
       })
     })
   );
@@ -130,7 +95,7 @@ function preflight() {
  * saves the generated .sol mutants to file.
  */
 function mutate() {
-  prepare(() =>
+  setup(() =>
     glob(contractsDir + contractsGlob, (err, contracts) => {
       if (err) throw err;
       glob(testDir + testsGlob, (err, tests) => {
@@ -138,7 +103,7 @@ function mutate() {
         let contractsUnderMutation = contractSelection(contracts);
         let testsToBeRun = testSelection(tests);
         reporter.logSelectedFiles(contractsUnderMutation, testsToBeRun);
-        const mutations = generateAllMutations(contractsUnderMutation, true);
+        const mutations = generateMutations(contractsUnderMutation, true);
         for (const mutation of mutations) {
           mutation.save();
         }
@@ -153,28 +118,31 @@ function mutate() {
  *  @param files The smart contracts to be mutated
  *  @param overwrite Overwrite the generated mutation reports
  */
-function generateAllMutations(files, overwrite) {
+function generateMutations(files, overwrite) {
   let mutations = []
-  var startTime = Date.now()
+  const startTime = Date.now()
+  const enabledOperators = mutGen.getEnabledOperators();
+
   for (const file of files) {
-    const source = fs.readFileSync(file, 'utf8')
-    const ast = parser.parse(source, { range: true, loc: true })
-    const visit = parser.visit.bind(parser, ast)
-    mutations = mutations.concat(mutGen.getMutations(file, source, visit, overwrite))
+    const source = fs.readFileSync(file, 'utf8');
+    const ast = parser.parse(source, { range: true, loc: true });
+    const visit = parser.visit.bind(parser, ast);
+    mutations.push(...mutGen.getMutations(file, source, visit, overwrite));
   }
   if (overwrite) {
-    var generationTime = (Date.now() - startTime) / 1000
+    const generationTime = (Date.now() - startTime) / 1000;
     reporter.saveGeneratedMutantsCsv(mutations);
-    reporter.logPreflightSummary(mutations, generationTime, mutGen.getEnabledOperators())
+    reporter.logLookup(mutations, generationTime, enabledOperators);
   }
-  return mutations
+
+  return mutations;
 }
 
 /**
  * Entry point for pre-test
  */
 function runPreTest() {
-  prepare(() =>
+  setup(() =>
     glob(contractsDir + contractsGlob, (err, contracts) => {
       if (err) throw err;
       glob(testDir + testsGlob, (err, tests) => {
@@ -234,10 +202,10 @@ function preTest(contractsUnderMutation, testsToBeRun) {
 /**
  * Starts the mutation testing process
  * @param startHash hash of the first mutant to be tested
- * @param endHash hash of the last mutant to be tested * 
+ * @param endHash hash of the last mutant to be tested 
  */
 function test(startHash, endHash) {
-  prepare(() =>
+  setup(() =>
     glob(contractsDir + contractsGlob, (err, contracts) => {
       if (err) throw err;
       glob(testDir + testsGlob, (err, tests) => {
@@ -258,7 +226,7 @@ function test(startHash, endHash) {
         }
 
         //Generate mutations
-        var mutations = generateAllMutations(contractsUnderMutation, true)
+        var mutations = generateMutations(contractsUnderMutation, true)
         if (startHash !== "first") {
           let startIndex = mutations.indexOf(mutations.find(m => m.id === startHash));
           if (startIndex != -1) {
@@ -294,10 +262,11 @@ function test(startHash, endHash) {
 }
 
 /**
- * The <b>runTest</b> function compile and test each mutant, assigning them a certain status
+ * The <b>runTest</b> function compiles and tests each mutant, assigning them a certain status
  * @param mutations An array of all mutants
  * @param file The name of the mutated contract
- */
+ * @param file The test files to be run
+ **/
 function runTest(mutations, file, testsToBeRun) {
   const mutantBytecodeMap = new Map();
 
@@ -346,47 +315,19 @@ function enabledOperators() {
 /**
  * Enable one or more mutation operators
  * @param {*} args a list of operators to be enabled. 
- * The list can include simple operator IDs, or cluster names (i.e., default or optimization).
  * If the list is empty, all the mutation operators are enabled.
  */
 function enableOperator(args) {
-  let optCluster = ["DLR","FVR","VVR"]
-  //Enable all operators
   if (args.length === 0) {
-    var success = mutGen.enableAll();
-    if (success)
-      console.log("\nAll mutation operators enabled.\n");
-    else
-      console.error(chalk.red("\nError.\n"));
-  }
-  //Enable optimization cluster
-  else if (args[0] === "optimization") {
-    mutGen.disableAll();
-    optCluster.forEach(ID => {
-      mutGen.enable(ID);
-    });
-    console.log("\nOptimization cluster enabled.\n");
-  }
-  //Enable default cluster
-  else if (args[0] === "standard") {
-    mutGen.enableAll();
-    optCluster.forEach(ID => {
-      mutGen.disable(ID);
-    });
-    console.log("\nStandard cluster enabled.\n");
-  }
-  //Enable operator(s) by ID
-  else {
-    console.log()
+    const success = mutGen.enableAll();
+    console.log(success ? "\nAll mutation operators enabled.\n" : "\nError.\n");
+  } else {
+    console.log();
     args.forEach(ID => {
-      //Enable operator ID
-      var success = mutGen.enable(ID);
-      if (success)
-        console.log(chalk.bold.yellow(ID) + " enabled.");
-      else
-        console.error(chalk.red("Error: " + ID + " does not exist."));
+      const success = mutGen.enable(ID);
+      console.log(success ? chalk.bold.yellow(ID) + " enabled." : chalk.red("Error: " + ID + " does not exist."));
     });
-    console.log()
+    console.log();
   }
 }
 
@@ -397,55 +338,17 @@ function enableOperator(args) {
  * If the list is empty, all the mutation operators are disabled.
  */
 function disableOperator(args) {
-  //Enable all operators
   if (args.length === 0) {
-    var success = mutGen.disableAll();
-    if (success)
-      console.log("\nAll mutation operators disabled.\n");
-    else
-      console.error(chalk.red("\nError.\n"));
-  }
-  //Disable operator(s) by ID
-  else {
-    console.log()
+    const success = mutGen.disableAll();
+    console.log(success ? "\nAll mutation operators disabled.\n" : "\nError.\n");
+  } else {
+    console.log();
     args.forEach(ID => {
-      var success = mutGen.disable(ID);
-      if (success)
-        console.log(chalk.bold.yellow(ID) + " disabled.");
-      else
-        console.error(chalk.red("Error: " + ID + " does not exist."));
+      const success = mutGen.disable(ID);
+      console.log(success ? chalk.bold.yellow(ID) + " disabled." : chalk.red("Error: " + ID + " does not exist."));
     });
-    console.log()
+    console.log();
   }
-}
-
-function mutationsByHash(mutations) {
-  return mutations.reduce((obj, mutation) => {
-    obj[mutation.hash()] = mutation
-    return obj
-  }, {})
-}
-
-/**
- * Prints the diff between a mutant and the original contract
- * @param {*} argv the hash of the mutant
- */
-function diff(argv) {
-  prepare(() =>
-    glob(contractsDir + contractsGlob, (err, contracts) => {
-      if (err) {
-        console.log(err);
-        process.exit(0);
-      }
-      const mutations = generateAllMutations(contracts, false)
-      const index = mutationsByHash(mutations)
-      if (!index[argv.hash]) {
-        console.error(chalk.red('\nError: Mutation ' + argv.hash + ' not found.'))
-        process.exit(1)
-      }
-      console.log(index[argv.hash].diff())
-    })
-  )
 }
 
 /**
@@ -499,11 +402,10 @@ function testSelection(files) {
 }
 
 module.exports = {
-  preflight, preflight,
+  lookup: lookup,
   mutate: mutate,
   pretest: runPreTest,
   test: test,
-  diff: diff,
   list: enabledOperators,
   enable: enableOperator,
   disable: disableOperator

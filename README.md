@@ -90,25 +90,23 @@ Before starting the mutation process you can choose which mutation operators to 
 * ```npx/yarn sumo list``` shows the currently enabled mutation operators
 * ```npx/yarn sumo enable``` enables all the mutation operators
 * ```npx/yarn sumo enable ID1 ID2 ...``` enables the mutation operator(s) by ID
-* ```npx/yarn sumo enable clusterName``` enables the mutation operator(s) belonging to a specific cluster (i.e., default, optimization)
 * ```npx/yarn sumo disable``` disables all the mutation operators
 * ```npx/yarn sumo disable ID1 ID2 ...``` disables the mutation operator(s) by ID
 
 ### Viewing the available mutations
 Once everything is set up you can use:
-* ```npx/yarn sumo preflight``` To view the available mutations and save a preliminary report  to ./sumo/report.txt
-* ```npx/yarn sumo mutate``` To view the available mutations, save a preliminary report  to ./sumo/report.txt, and save a copy of each mutant to ./sumo/mutants
-* ```npx/yarn sumo diff <hash>``` To view the difference between the mutant identified by hash and its original contract
+* ```npx/yarn sumo lookup``` To view the available mutations and save a preliminary report to ./sumo/generated.csv
+* ```npx/yarn sumo mutate``` To save a copy of each mutant to ./sumo/mutants
 
 ### Running Mutation Testing
 Use:
 * ```npx/yarn sumo pretest``` To ensure that the test suite can be successfully evaluated before running mutation testing.
 * ```npx/yarn sumo test <startHash> <endHash>``` To launch the mutation testing process; You can optionally choose an interval of mutants to be tested by sepcifying ```startHash``` and ```endHash```.
-* ```npx/yarn sumo restore``` To restore the SUT files to a clean version if you suddenly interrupt the mutation process. Note that the restore command overwrites the content of the SUT with the files stored in the ```.sumo/baseline``` folder.
+* ```npx/yarn sumo restore``` To restore the SUT files to a clean version if you suddenly interrupt the mutation process. Note that the restore command overwrites the content of the SUT with the files stored in the ```sumo/baseline``` folder.
 If you need to restore the project files, make sure to do so before performing other operations as the baseline is automatically refreshed on subsequent preflight or test runs.
 
 ### Viewing the results
-SuMo automatically creates a ```.sumo\results``` folder in the root directory of the project with the following reports: <br/>
+SuMo automatically creates a ```sumo\results``` folder in the root directory of the project with the following reports: <br/>
 * ```report.txt``` Provides information about the whole testing process
 * ```operators.xlsx``` Provides the results of the mutation testing process for each operator
 * ```generated.csv``` Provides detailed information about the generated mutants
@@ -190,67 +188,59 @@ Some mutation operators foresee a **minimal** version:
 
 By default, SuMo employs the **extended** operators. However, you can enable the minimal rules from the ```sumo-config.js``` file.
 
-## Mutation Operator Clusters
-The mutation operators are currently split in two clusters:
-* The **standard** cluster includes operators that aim to improve the fault-detection capabilities of the test suite. 
-* The **optimization** cluster includes operators that can help to find code optimization opportunities (e.g., the data location of a variable).
-
-By default, SuMo employs the **standard** cluster. However, you can enable/disable single mutation operators or entire clusters with the SuMo CLI.
-
-
 ## Traditional Mutation Operators
 
-| Operator | Name | Mutation Example | Cluster | Minimal version available |
-| ------ | ------ |  ------ |  ------ | :----: |
-| ACM| Argument Change of overloaded Method call | ```overloadedFunc(a,b);``` &rarr; ```overloadedFunc(a,b,c);``` | standard | N |
-| AOR | Assignment Operator Replacement | ```+= ``` &rarr;  ```=``` | standard | Y |
-| BCRD | Break and Continue Replacement <br /> and Deletion | ```break``` &rarr; <br /> ```continue``` &rarr; ```break``` | standard | N |
-| BLR | Boolean Literal Replacement | ```true``` &rarr; ```false``` | standard | N |
-| BOR | Binary Operator Replacement | ```+``` &rarr; ```-``` <br /> ```<``` &rarr; ```>=``` | standard | Y |
-| CBD | Catch Block Deletion | ```catch{}``` &rarr; ```/*catch{}*/``` | standard | N |
-| CSC | Conditional Statement Change | ```if(condition)``` &rarr; ```if(false)``` <br /> ```else{}``` &rarr; ```/*else{}*/```  | standard | N |
-| ER | Enum Replacemet |  ```enum.member1``` &rarr; ```enum.member2``` | standard | Y |
-| ECS | Explicit Conversion to Smaller type | ```uint256``` &rarr; ```uint8``` | standard | N |
-| HLR | Hexadecimal Literal Replacement | ```hex\"01\"``` &rarr; ```hex\"random\"```| standard | N |
-| ICM | Increments Mirror | ```-=``` &rarr; ```=-``` | standard | N |
-| ILR | Integer Literal Replacement | ```1``` &rarr; ```0``` | standard | N |
-| LCS | Loop Statement Change | ```while(condition)``` &rarr; ```while(false)``` | standard | N |
-| OLFD | Overloaded Function Deletion | ```function overloadedF(){}``` &rarr; ```/*function overloadedF(){}*/``` | standard | N |
-| ORFD | Overridden Function Deletion | ```function f() override {}``` &rarr; ```/*function f() override {}*/``` | standard | N |
-| SKI | Super Keyword Insertion | ```x = getData()``` &rarr; ```x = super.getData()``` | standard | N |
-| SKD | Super Keyword Deletion | ```x = super.getData()``` &rarr; ```x = getData()``` | standard | N |
-| SLR | String Literal Replacement | ```"string"``` &rarr; ```""```  | standard | N |
-| UORD | Unary Operator Replacement and Deletion | ```++``` &rarr; ```--```  <br /> ```!``` &rarr; ``` ``` | standard | N |
+| Operator | Name | Mutation Example |  Minimal version available |
+| ------ | ------ |  ------ | :----: |
+| ACM| Argument Change of overloaded Method call | ```overloadedFunc(a,b);``` &rarr; ```overloadedFunc(a,b,c);``` |  N |
+| AOR | Assignment Operator Replacement | ```+= ``` &rarr;  ```=``` |  Y |
+| BCRD | Break and Continue Replacement <br /> and Deletion | ```break``` &rarr; <br /> ```continue``` &rarr; ```break``` |  N |
+| BLR | Boolean Literal Replacement | ```true``` &rarr; ```false``` |  N |
+| BOR | Binary Operator Replacement | ```+``` &rarr; ```-``` <br /> ```<``` &rarr; ```>=``` |  Y |
+| CBD | Catch Block Deletion | ```catch{}``` &rarr; ```/*catch{}*/``` |  N |
+| CSC | Conditional Statement Change | ```if(condition)``` &rarr; ```if(false)``` <br /> ```else{}``` &rarr; ```/*else{}*/```  |  N |
+| ER | Enum Replacemet |  ```enum.member1``` &rarr; ```enum.member2``` |  Y |
+| ECS | Explicit Conversion to Smaller type | ```uint256``` &rarr; ```uint8``` |  N |
+| HLR | Hexadecimal Literal Replacement | ```hex\"01\"``` &rarr; ```hex\"random\"```|  N |
+| ICM | Increments Mirror | ```-=``` &rarr; ```=-``` |  N |
+| ILR | Integer Literal Replacement | ```1``` &rarr; ```0``` |  N |
+| LCS | Loop Statement Change | ```while(condition)``` &rarr; ```while(false)``` |  N |
+| OLFD | Overloaded Function Deletion | ```function overloadedF(){}``` &rarr; ```/*function overloadedF(){}*/``` |  N |
+| ORFD | Overridden Function Deletion | ```function f() override {}``` &rarr; ```/*function f() override {}*/``` |  N |
+| SKI | Super Keyword Insertion | ```x = getData()``` &rarr; ```x = super.getData()``` |  N |
+| SKD | Super Keyword Deletion | ```x = super.getData()``` &rarr; ```x = getData()``` |  N |
+| SLR | String Literal Replacement | ```"string"``` &rarr; ```""```  |  N |
+| UORD | Unary Operator Replacement and Deletion | ```++``` &rarr; ```--```  <br /> ```!``` &rarr; ``` ``` |  N |
 
 
 ## Solidity Mutation Operators
-| Operator | Name | Mutation Example | Cluster | Minimal version available |
-| ------ | ------ |  ------ |  ------ | :----: |
-| AVR | Address Value Replacement | ```0x67ED2e5dD3d0...``` &rarr; ``` address.this()```| standard | N |
-| CCD | Contract Constructor Deletion | ```constructor(){}``` &rarr; ```/*constructor(){}*/``` | standard | N |
-| DLR | Data Location Keyword Replacement | ```memory``` &rarr; ```storage``` | optimization | N |
-| DOD | Delete Operator Deletion | ```delete``` &rarr; | standard | N |
-| ETR | Ether Transfer function Replacement | ```delegatecall()``` &rarr; ```call()``` | standard | N |
-| EED |  Event Emission Deletion |  ```emit Deposit(...)``` &rarr; ```/*emit Deposit(...)*/``` | standard | N |
-| EHC | Exception Handling Change | ```require(...)``` &rarr; ```/*require(...)*/``` | standard | N |
-| FVR | Function Visibility Replacement | ```function f() public``` &rarr; ```function f() private``` | optimization | Y |
-| GVR | Global Variable Replacement | ```msg.value()``` &rarr; ```tx.gasprice()``` | standard | Y |
-| MCR | Mathematical and Cryptographic <br /> function Replacement | ```addmod``` &rarr; ```mulmod``` <br /> ```keccak256``` &rarr; ```sha256``` | standard | N |
-| MOD | Modifier Deletion | ```function f() onlyOwner``` &rarr; ```function f()``` | standard | Y |
-| MOI | Modifier Insertion | ```function f()``` &rarr; ```function f() onlyOwner``` | standard | Y |
-| MOC | Modifier Order Change |  ```function f() modA modB``` &rarr; ```function f() modB modA``` | standard | Y |
-| MOR | Modifier Replacement | ```function f() onlyOwner``` &rarr; ```function f() onlyAdmin``` | standard | Y |
-| OMD | Overridden Modifier Deletion | ```modifier m() override {}``` &rarr; ```/*modifier m() override {}*/``` | standard | N |
-| PKD | Payable Keyword Deletion | ```function f() payable``` &rarr; ```function f()``` | standard | N |
-| RSD | Return Statement Deletion | ```return amount;``` &rarr; ```//return amount;``` | standard | N |
-| RVS | Return Values Swap | ```return (1, "msg", 100);``` &rarr; ```return (100, "msg", 1);``` | standard | Y |
-| SFD | Selfdestruct Deletion |  ```selfdestruct();``` &rarr; ```//selfdestruct();``` | standard | N |
-| SFI | Selfdestruct Insertion | ```doSomething; selfdestruct();``` &rarr; ```selfdestruct(); doSomething;```  | standard | N |
-| SFR | SafeMath Function Replacement | ```SafeMath.add``` &rarr; ```SafeMath.sub``` | standard | Y |
-| SCEC | Switch Call Expression Casting | ```Contract c = Contract(0x86C9...);``` &rarr; ```Contract c = Contract(0x67ED...); ``` | standard | N |
-| TOR | Transaction Origin Replacement | ```msg.sender``` &rarr; ```tx.origin``` | standard | N |
-| VUR | Variable Unit Replacement | ```wei``` &rarr; ```ether```  <br /> ```minutes``` &rarr; ```hours``` | standard | Y |
-| VVR | Variable Visibility Replacement | ```uint private data;``` &rarr; ```uint public data;``` | optimization | Y |
+| Operator | Name | Mutation Example | Minimal version available |
+| ------ | ------ |  ------ | :----: |
+| AVR | Address Value Replacement | ```0x67ED2e5dD3d0...``` &rarr; ``` address.this()```|  N |
+| CCD | Contract Constructor Deletion | ```constructor(){}``` &rarr; ```/*constructor(){}*/``` |  N |
+| DLR | Data Location Keyword Replacement | ```memory``` &rarr; ```storage``` | N |
+| DOD | Delete Operator Deletion | ```delete``` &rarr; |  N |
+| ETR | Ether Transfer function Replacement | ```delegatecall()``` &rarr; ```call()``` |  N |
+| EED |  Event Emission Deletion |  ```emit Deposit(...)``` &rarr; ```/*emit Deposit(...)*/``` |  N |
+| EHC | Exception Handling Change | ```require(...)``` &rarr; ```/*require(...)*/``` |  N |
+| FVR | Function Visibility Replacement | ```function f() public``` &rarr; ```function f() private``` |  Y |
+| GVR | Global Variable Replacement | ```msg.value()``` &rarr; ```tx.gasprice()``` |  Y |
+| MCR | Mathematical and Cryptographic <br /> function Replacement | ```addmod``` &rarr; ```mulmod``` <br /> ```keccak256``` &rarr; ```sha256``` |  N |
+| MOD | Modifier Deletion | ```function f() onlyOwner``` &rarr; ```function f()``` |  Y |
+| MOI | Modifier Insertion | ```function f()``` &rarr; ```function f() onlyOwner``` |  Y |
+| MOC | Modifier Order Change |  ```function f() modA modB``` &rarr; ```function f() modB modA``` |  Y |
+| MOR | Modifier Replacement | ```function f() onlyOwner``` &rarr; ```function f() onlyAdmin``` |  Y |
+| OMD | Overridden Modifier Deletion | ```modifier m() override {}``` &rarr; ```/*modifier m() override {}*/``` |  N |
+| PKD | Payable Keyword Deletion | ```function f() payable``` &rarr; ```function f()``` |  N |
+| RSD | Return Statement Deletion | ```return amount;``` &rarr; ```//return amount;``` |  N |
+| RVS | Return Values Swap | ```return (1, "msg", 100);``` &rarr; ```return (100, "msg", 1);``` |  Y |
+| SFD | Selfdestruct Deletion |  ```selfdestruct();``` &rarr; ```//selfdestruct();``` |  N |
+| SFI | Selfdestruct Insertion | ```doSomething; selfdestruct();``` &rarr; ```selfdestruct(); doSomething;```  |  N |
+| SFR | SafeMath Function Replacement | ```SafeMath.add``` &rarr; ```SafeMath.sub``` |  Y |
+| SCEC | Switch Call Expression Casting | ```Contract c = Contract(0x86C9...);``` &rarr; ```Contract c = Contract(0x67ED...); ``` |  N |
+| TOR | Transaction Origin Replacement | ```msg.sender``` &rarr; ```tx.origin``` |  N |
+| VUR | Variable Unit Replacement | ```wei``` &rarr; ```ether```  <br /> ```minutes``` &rarr; ```hours``` |  Y |
+| VVR | Variable Visibility Replacement | ```uint private data;``` &rarr; ```uint public data;``` |  Y |
 
 
 # Publications

@@ -11,18 +11,18 @@ const sumoConfig = require(rootDir + "/sumo-config");
 
 //Static configuration
 const config = {
-  sumoDir: rootDir + "/.sumo",
+  sumoDir: rootDir + "/sumo",
   sumoInstallPath: rootDir + "/node_modules/@morenabarboni/sumo",
-  liveDir: rootDir + "/.sumo/results/live",
-  redundantDir: rootDir + "/.sumo/results/redundant",
-  stillbornDir: rootDir + "/.sumo/results/stillborn",
-  timedoutDir: rootDir + "/.sumo/results/timedout",
-  killedDir: rootDir + "/.sumo/results/killed",
-  equivalentDir: rootDir + "/.sumo/results/equivalent",
-  mutantsDir: rootDir + "/.sumo/results/mutants",
-  reportTxt: rootDir + "/.sumo/results/report.txt",
-  resultsDir: rootDir + "/.sumo/results",
-  baselineDir: rootDir + "/.sumo/baseline",
+  liveDir: rootDir + "/sumo/results/live",
+  redundantDir: rootDir + "/sumo/results/redundant",
+  stillbornDir: rootDir + "/sumo/results/stillborn",
+  timedoutDir: rootDir + "/sumo/results/timedout",
+  killedDir: rootDir + "/sumo/results/killed",
+  equivalentDir: rootDir + "/sumo/results/equivalent",
+  mutantsDir: rootDir + "/sumo/results/mutants",
+  reportTxt: rootDir + "/sumo/results/report.txt",
+  resultsDir: rootDir + "/sumo/results",
+  baselineDir: rootDir + "/sumo/baseline",
   mutOpsConfig: rootDir + "/node_modules/@morenabarboni/sumo/src/operators.config.json",
   contractsGlob: '/**/*.sol',
   packageManagerGlob: ['/package-lock.json', '/yarn.lock'],
@@ -56,7 +56,7 @@ function restore() {
       if (err) throw err;
 
       for (const file of files) {
-        let relativeFilePath = file.split(".sumo/baseline/contracts")[1];
+        let relativeFilePath = file.split("sumo/baseline/contracts")[1];
         let fileDir = path.dirname(relativeFilePath);
         fs.mkdir(contractsDir + fileDir, { recursive: true }, function (err) {
           if (err) return cb(err);
@@ -73,7 +73,7 @@ function restore() {
       if (err) throw err;
 
       for (const file of files) {
-        let relativeFilePath = file.split(".sumo/baseline/test")[1];
+        let relativeFilePath = file.split("sumo/baseline/test")[1];
         let fileDir = path.dirname(relativeFilePath);
         fs.mkdir(testDir + fileDir, { recursive: true }, function (err) {
           if (err) return cb(err);

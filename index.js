@@ -6,8 +6,8 @@ const utils = require('./src/utils')
 
 yargs
   .usage('$0 <cmd> [args]')
-  .command('preflight', 'run preflight', mutationRunner.preflight)
-  .command('mutate', 'save mutants to file', mutationRunner.mutate)
+  .command('lookup', 'generate the mutations without starting the testing process', mutationRunner.lookup)
+  .command('mutate', 'generate the mutations and save each mutated contract to file', mutationRunner.mutate)
   .command('pretest', 'run pretest', mutationRunner.pretest)
   .command('test [startHash] [endHash]', 'run mutation testing', (yargs) => {
     yargs
@@ -24,12 +24,6 @@ yargs
   }, (argv) => {
     mutationRunner.test(argv.startHash, argv.endHash)
   })
-  .command('diff <hash>', 'show diff for a given hash', (yargs) => {
-    yargs.positional('hash', {
-      type: 'string',
-      describe: 'hash of mutant'
-    })
-  }, mutationRunner.diff)
   .command('list', 'print list of enabled mutation operators', mutationRunner.list)
   .command('enable [ID..]', 'enable one or more mutation operators', (yargs) => {
     yargs
@@ -49,8 +43,6 @@ yargs
   }, (argv) => {
     mutationRunner.disable(argv.ID)
   })
-  .command('restore', 'restore the SUT files', (argv) => {
-    utils.restore()
-  })
+  .command('restore', 'restore the SUT files', utils.restore)
   .help()
   .argv
