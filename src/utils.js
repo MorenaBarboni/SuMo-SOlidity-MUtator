@@ -155,22 +155,22 @@ function getPackageManager() {
  * @returns the path of the contracts directory
  */
 function getContractsDir() {
-  if (sumoConfig.contractsDir && sumoConfig.contractsDir.replace(/\s/g, "") !== "") {
-    if (!fs.existsSync(rootDir + "/" + sumoConfig.contractsDir)) {
-      console.error(chalk.red("Error: The specified contract directory " + rootDir + "/" + sumoConfig.contractsDir + " does not exist."));
-      process.exit(1);
-    }
-    else {
-      return rootDir + "/" + sumoConfig.contractsDir;
-    }
+  const validContractsDirs = [
+    sumoConfig.contractsDir && sumoConfig.contractsDir !== '' ? "/" + sumoConfig.contractsDir : null,
+    "/contracts",
+    "/src"
+  ];
+
+  const foundDir = validContractsDirs.find(dir => {
+    const fullPath = rootDir + dir;
+    return dir && dir.replace(/\s/g, "") !== "" && fs.existsSync(fullPath);
+  });
+
+  if (foundDir) {
+    return rootDir + foundDir;
   } else {
-    if (!fs.existsSync(rootDir + "/contracts")) {
-      console.log("Error: No contracts directory found at " + rootDir + "/contracts")
-      process.exit(1);
-    }
-    else {
-      return rootDir + "/contracts";
-    }
+    console.error(chalk.red("Error: No valid contract directory found in " + rootDir + ".\nPlease specify a contract directory in your sumo-config.js"));
+    process.exit(1);
   }
 }
 
@@ -179,67 +179,53 @@ function getContractsDir() {
  * @returns the path of the test directory
  */
 function getTestDir() {
-  if (sumoConfig.testDir && sumoConfig.testDir.replace(/\s/g, "") !== "") {
-    if (!fs.existsSync(rootDir + "/" + sumoConfig.testDir)) {
-      console.error(chalk.red("Error: The specified test directory " + rootDir + "/" + sumoConfig.contractsDir + " does not exist."));
-      process.exit(1);
-    }
-    else {
-      return rootDir + "/" + sumoConfig.testDir;
-    }
-  }
-  //Check default build dir
-  else {
-    let possibleTestDirs = ["/test", "/tests"]
-    let foundDir = null;
-    for (let i = 0; i < possibleTestDirs.length; i++) {
-      const dir = possibleTestDirs[i];
-      if (fs.existsSync(rootDir + dir)) {
-        foundDir = rootDir + dir;
-        break;
-      }
-    }
-    if (foundDir !== null) {
-      return foundDir;
-    } else {
-      console.error(chalk.red("Error: No test directory found at " + rootDir + "/test"));
-      process.exit(1);
-    }
+  const validTestDirs = [
+    sumoConfig.testDir && sumoConfig.testDir !== '' ? "/" + sumoConfig.testDir : null,
+    "/test",
+    "/tests"
+  ];
+
+  const foundDir = validTestDirs.find(dir => {
+    const fullPath = rootDir + dir;
+    return dir && dir.replace(/\s/g, "") !== "" && fs.existsSync(fullPath);
+  });
+
+  if (foundDir) {
+    return rootDir + foundDir;
+  } else {
+    console.error(chalk.red("Error: No valid test directory found in " + rootDir + ".\nPlease specify a test directory in your sumo-config.js"));
+    process.exit(1);
   }
 }
+
+
 
 /**
  * Get the build directory
  * @returns the path of the build directory
  */
 function getBuildDir() {
-  //Check user-defined build dir
-  if (sumoConfig.buildDir && sumoConfig.buildDir.replace(/\s/g, "") !== "") {
-    if (!fs.existsSync(rootDir + "/" + sumoConfig.buildDir)) {
-      console.error(chalk.red("Error: The specified build directory " + rootDir + "/" + sumoConfig.buildDir + " does not exist."));
-      process.exit(1);
-    }
-    else {
-      return rootDir + "/" + sumoConfig.buildDir;
-    }
-  }
-  //Check default build dir
-  else {
-    let possibleBuilDirs = ["/build/artifacts/contracts", "/build/artifacts", "/build", "/output", "/out", "/artifacts/contracts", "/artifacts"]
-    let foundDir = null;
-    for (let i = 0; i < possibleBuilDirs.length; i++) {
-      const dir = possibleBuilDirs[i];
-      if (fs.existsSync(rootDir + dir)) {
-        foundDir = rootDir + dir;
-        break;
-      }
-    }
-    if (foundDir !== null) {
-      return foundDir;
-    } else {
-      console.error(chalk.red("Error: No valid build directory found in " + rootDir + ".\n Please compile your contracts and/or specify a build directory in your sumo-config.js"));
-      process.exit(1);
-    }
+  const validBuildDirs = [
+    sumoConfig.buildDir && sumoConfig.buildDir !== '' ? "/" + sumoConfig.buildDir : null,
+    "/build/artifacts/contracts",
+    "/build/artifacts",
+    "/build",
+    "/output",
+    "/out",
+    "/artifacts/contracts",
+    "/artifacts"
+  ];
+
+  const foundDir = validBuildDirs.find(dir => {
+    const fullPath = rootDir + dir;
+    return dir && dir.replace(/\s/g, "") !== "" && fs.existsSync(fullPath);
+  });
+
+  if (foundDir) {
+    return rootDir + foundDir;
+  } else {
+    console.error(chalk.red("Error: No valid build directory found in " + rootDir + ".\nPlease compile your contracts and/or specify a build directory in your sumo-config.js"));
+    process.exit(1);
   }
 }
 
