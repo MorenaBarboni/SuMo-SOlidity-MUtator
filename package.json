@@ -1,7 +1,7 @@
 {
   "author": "Morena Barboni",
   "name": "@morenabarboni/sumo",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "A mutation testing tool for Ethereum smart contracts",
   "main": "index.js",
   "bin": {
@@ -21,7 +21,7 @@
     "chalk": "^4.1.2",
     "diff": "^5.0.0",
     "excel4node": "^1.7.2",
-    "eth-mutants": "0.1.1",
+    "glob": "8.1.0",
     "fast-csv": "4.3.6",
     "fs-extra": "^10.1.0",
     "postinstall": "^0.8.0",
