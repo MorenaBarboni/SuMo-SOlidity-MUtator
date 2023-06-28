@@ -132,6 +132,7 @@ function generateMutations(files, overwrite) {
   if (overwrite) {
     const generationTime = (Date.now() - startTime) / 1000;
     reporter.saveGeneratedMutantsCsv(mutations);
+    reporter.saveGeneratedMutationsJson(mutations);
     reporter.logLookup(mutations, generationTime, enabledOperators);
   }
 
@@ -248,6 +249,7 @@ function test(startHash, endHash) {
 
         //Compile and test each mutant
         reporter.logStartMutationTesting();
+        reporter.setupResultsCsv();
         var startTime = Date.now();
 
         for (const contractUnderMutation of contractsUnderMutation) {
@@ -270,9 +272,11 @@ function test(startHash, endHash) {
 function runTest(mutations, file, testsToBeRun) {
   const mutantBytecodeMap = new Map();
 
-  for (var mutation of mutations) {
+  for (let i = 0; i < mutations.length; i++) {
+    let mutation = mutations[i];
     if ((path.parse(mutation.file).name) === (path.parse(file).name)) {
       let startTestTime = Date.now();
+      reporter.logMutationProgress(i + 1, mutations.length, mutation);
       let nodeChild = testingInterface.spawnNetwork(packageManager);
       mutation.apply();
       reporter.logCompile(mutation);
