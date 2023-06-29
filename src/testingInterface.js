@@ -84,7 +84,7 @@ function spawnTest(packageManager, testFiles) {
   //Forge
   else if (testingFramework === "forge") {
     if (skipTests.length === 0) {
-      testChild = spawnSync("forge", ['t'], { stdio: "inherit", cwd: rootDir, timeout: testingTimeOutInSec * 1000 });
+      testChild = spawnSync("forge", ['t', "--fail-fast"], { stdio: "inherit", cwd: rootDir, timeout: testingTimeOutInSec * 1000 });
     } else {
       let relativeTestfiles = []
       for (let i = 0; i < testFiles.length; i++) {

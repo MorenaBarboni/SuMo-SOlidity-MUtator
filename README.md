@@ -5,7 +5,8 @@ SuMo was designed to run mutation testing on Solidity projects in a NodeJS envir
 
 
 # Table of Contents
-* [Installation and configuration](https://github.com/MorenaBarboni/SuMo-SOlidity-MUtator#installation-and-configuration)
+* [Installation](https://github.com/MorenaBarboni/SuMo-SOlidity-MUtator#installation)
+* [Configuration](https://github.com/MorenaBarboni/SuMo-SOlidity-MUtator#configuration)
 * [CLI Usage](https://github.com/MorenaBarboni/SuMo-SOlidity-MUtator#cli-usage)
 * [Trivial Compiler Equivalence](https://github.com/MorenaBarboni/SuMo-SOlidity-MUtator#trivial-compiler-equivalence)
 * [Mutation Operators](https://github.com/MorenaBarboni/SuMo-SOlidity-MUtator#mutation-operators-)
@@ -13,10 +14,11 @@ SuMo was designed to run mutation testing on Solidity projects in a NodeJS envir
 
 
 
-# Installation and Configuration
+# Installation
 
 To install sumo run ```npm install @morenabarboni/sumo```
 
+# Configuration ⚙️
 Before using SuMo you must specify your desired configuration in a [sumo-config.js](https://github.com/MorenaBarboni/SuMo-SOlidity-MUtator/blob/master/src/sumo-config.js) in the root directory of your project. The ```sumo-config.js``` is automatically generated upon installation.
 
 Here's a simple example of ```sumo-config.js```:
@@ -38,50 +40,61 @@ module.exports = {
 
 ### 1) SUT directories
 These (optional) fields identify relevant project directories.
-* ```contractsDir```: relative path to the directory where the contracts to be mutated are located (contracts by default);
-* ```testDir```: relative path to the directory where the tests to be evaluated are located (test by default);
-* ```buildDir```: relative path to the directory where the artifacts of the compilation will be saved (build, out or artifacts by default);
- 
+
+| Field | Description | Default Value |
+| ------ | ------ |  :----: |
+| ```contractsDir```| relative path to the directory of the contracts to be mutated | ```contracts``` |
+ | ```testDir```| relative path to the directory of the tests to be evaluated | ```test```/```tests``` | 
+ | ```buildDir```| relative path to the directory of the compilation artifacts | ```build```/```out```/```artifacts``` |  |  
+| | | |
+
 ### 2) Mutation Process
 These fields allow to configure the mutation testing process:
-* ```minimal```: employ minimal mutation rules (false by default),
-* ```skipContracts```: array of relative paths to contract files (or folders) that must be ignored by SuMo during mutation testing;
-*  ```skipTests```:   array of relative paths to test files (or folders) that must be ignored by SuMo;
-* ```tce```: enable the Trivial Compiler Equivalence (false by default);
-* ```testingTimeOutInSec```: after how many seconds a mutant is marked as timed-out during testing (300 by default).
+
+| Field | Description | Default Value |
+| ------ | ------ |  :----: |
+| ```minimal```| use minimal mutation rules | ```false``` |
+ | ```skipContracts```| blacklist of relative paths to contract files (or folders) | ```[]``` | 
+| ```skipTests```| blacklist of relative paths to test files (or folders) | ```[]``` |
+| ```tce```| use the Trivial Compiler Equivalence | ```false``` |    
+| ```testingTimeOutInSec```| seconds after which a mutant is marked as timed-out during testing | ```300``` |  
+| | | |
+
 
 ### 3) Testing Interface
 These fields specify what testing framework and blockchain simulator SuMo should use to conduct mutation testing:
-* ```network```: the blockchain simulator to be used. Available options are:
-  * ```ganache```: use the Ganache installation of the SUT;
-  * ```none```: do not use a blockchain simulator;
-* ```testingFramework```: the testing framework to be used for compiling and testing the smart contracts. Available options are:
-  * ```brownie```: use a global/local installation of Brownie;
-  * ```forge```: use a global installation of Forge;
-  * ```hardhat```: use the Hardhat installation of the SUT;
-  * ```truffle```: use the Truffle installation of the SUT;
-  * ```custom```: use a custom compile and test script specified in the package.json of the SUT.
 
-### Note that ...
-* When choosing ```truffle``` or ```hardhat```:
-  * SuMo will rely on the local ```truffle``` or ```hardhat``` package installed in the project;
-  * The smart contracts will be compiled with a minimal compile command  (e.g., ```truffle compile``` );
-  * The smart contracts will be tested with a minimal test command followed by the bail option, and (optionally) by a list of test files to be executed (e.g., ```truffle test ...testFiles -b```) .
+| Field | Description | Available Options | Default Value | 
+| ------ | ------ | ------ |   :----: |
+| ```network```| the blockchain simulator to be used | ```ganache```, ```none```  | ```none```|
+| ```testingFramework```| the testing framework to be used for compiling and testing the smart contracts | ```brownie```, ```forge```, ```hardhat```, ```truffle```, ```custom```  | ```truffle```|
+| | | | |
 
-* When choosing ```brownie```:
-  * SuMo will rely on a local/global ```brownie``` installation;
-  * The smart contracts will be compiled with a minimal compile command  (e.g., ```brownie compile``` );
-  * The smart contracts will be tested with a minimal test command followed by the exitfirst option, and (optionally) by a list of test files to be executed (e.g., ```brownie test ...testFiles --exitfirst```) .
 
-* When choosing ```forge``` :
-  * SuMo will rely on the global installation of ```foundry```;
-  * The smart contracts will be compiled with a minimal compile command  (e.g., ```forge build```);
-  * The smart contracts will be tested with a minimal test command, optionally followed by a list of test files to be executed (e.g., ```forge test ...testFiles```).
-  
+#### **Truffle** and **Hardhat**
+When choosing ```truffle``` or ```hardhat```:
+* SuMo will rely on the local ```truffle``` or ```hardhat``` package installed in the project;
+* The smart contracts will be compiled with a minimal compile command  (e.g., ```truffle compile``` );
+* The smart contracts will be tested with a minimal test command followed by the bail argument, and (optionally) by a list of test files to be executed (e.g., ```truffle test ...testFiles -b```) .
+
+#### **Brownie**
+When choosing ```brownie```:
+* SuMo will rely on a local/global ```brownie``` installation;
+* The smart contracts will be compiled with a minimal compile command  (e.g., ```brownie compile``` );
+* The smart contracts will be tested with a minimal test command followed by the exitfirst argument, and (optionally) by a list of test files to be executed (e.g., ```brownie test ...testFiles --exitfirst```) .
+
+#### **Forge**
+When choosing ```forge``` :
+* SuMo will rely on the global installation of ```foundry```;
+* The smart contracts will be compiled with a minimal compile command  (e.g., ```forge build```);
+* The smart contracts will be tested with a minimal test command followed by the fail-fast argument, and (optionally) by a list of test files to be executed (e.g., ```forge test ...testFiles --fail-fast```).
+* Make sure that your ```forge``` installation is up-to-date to enable ```--fail-fast```.
+
+#### **Custom**
 * When choosing ```custom```: 
   * SuMo will invoke the ```compile``` and ```test``` script defined in your ```package.json```. This allows you to customize both scripts and have more control over the testing process; 
   * The ```skipTests``` list will be overridden by the ```test``` script in your ```package.json```. To skip some test files, you can either: 1) append the specific test files you want to run to your ```test``` script, or 2) remove the test files to be skipped from the test folder.
-  * The ```--bail```/```--exitfirst``` option should be added to the test script to speed up mutation testing. 
+  * The ```--bail```/```--exitfirst```/```--fail-fast``` option should be added to the test script to speed up mutation testing. 
 
 # CLI Usage
 
@@ -172,7 +185,7 @@ For example, consider the following package.json scripts:
 ```
  scripts: {
     compile: "hardhat compile",
-    test "hardhat test --bail && forge test"
+    test "hardhat test --bail && forge test --fail-fast"
  }
 ```
 If you make SuMo use hardhat to compile the contracts, make sure that the ```buildDir``` points to the hardhat compiled artifacts and not to the forge ones, and vice versa.
