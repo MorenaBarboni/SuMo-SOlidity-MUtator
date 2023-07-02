@@ -18,7 +18,7 @@ CBDOperator.prototype.getMutations = function(file, source, visit) {
           lineStart = c.loc.start.line;
           lineEnd = c.loc.end.line;
           var original = source.slice(start, end);
-          var replacement = "/*" + original + "*/";
+          var replacement = "";
           mutations.push(new Mutation(file, start, end, lineStart, lineEnd, original, replacement, this.ID));
         });
       }

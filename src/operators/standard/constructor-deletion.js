@@ -16,7 +16,7 @@ CCDOperator.prototype.getMutations = function(file, source, visit) {
         var lineStart = node.loc.start.line;
         var lineEnd = node.loc.end.line;
         const original = source.slice(start, end);
-        const replacement = "/* " + original + " */";
+        const replacement = "";
         mutations.push(new Mutation(file, start, end, lineStart, lineEnd, original, replacement, this.ID));
       }
     }
