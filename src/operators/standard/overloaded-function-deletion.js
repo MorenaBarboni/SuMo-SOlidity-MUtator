@@ -45,7 +45,7 @@ OLFDOperator.prototype.getMutations = function(file, source, visit) {
         const startLine = node.loc.start.line;
         const endLine = node.loc.end.line; 
         const original = source.slice(start, end);
-        const replacement = "/*" + original + "*/";
+        const replacement = "";
         mutations.push(new Mutation(file, start, end, startLine, endLine, original, replacement, ID));
       }
     });
