@@ -6,7 +6,7 @@ SuMo was designed to run mutation testing on Solidity projects in a NodeJS envir
 
 # Table of Contents
 * [Installation](https://github.com/MorenaBarboni/SuMo-SOlidity-MUtator#installation)
-* [Configuration](https://github.com/MorenaBarboni/SuMo-SOlidity-MUtator#configuration)
+* [Configuration](https://github.com/MorenaBarboni/SuMo-SOlidity-MUtator#configuration-)
 * [CLI Usage](https://github.com/MorenaBarboni/SuMo-SOlidity-MUtator#cli-usage)
 * [Trivial Compiler Equivalence](https://github.com/MorenaBarboni/SuMo-SOlidity-MUtator#trivial-compiler-equivalence)
 * [Mutation Operators](https://github.com/MorenaBarboni/SuMo-SOlidity-MUtator#mutation-operators-)
@@ -46,7 +46,6 @@ These (optional) fields identify relevant project directories.
 | ```contractsDir```| relative path to the directory of the contracts to be mutated | ```contracts``` |
  | ```testDir```| relative path to the directory of the tests to be evaluated | ```test```/```tests``` | 
  | ```buildDir```| relative path to the directory of the compilation artifacts | ```build```/```out```/```artifacts``` |  |  
-| | | |
 
 ### 2) Mutation Process
 These fields allow to configure the mutation testing process:
@@ -58,8 +57,6 @@ These fields allow to configure the mutation testing process:
 | ```skipTests```| blacklist of relative paths to test files (or folders) | ```[]``` |
 | ```tce```| use the Trivial Compiler Equivalence | ```false``` |    
 | ```testingTimeOutInSec```| seconds after which a mutant is marked as timed-out during testing | ```300``` |  
-| | | |
-
 
 ### 3) Testing Interface
 These fields specify what testing framework and blockchain simulator SuMo should use to conduct mutation testing:
@@ -68,7 +65,6 @@ These fields specify what testing framework and blockchain simulator SuMo should
 | ------ | ------ | ------ |   :----: |
 | ```network```| the blockchain simulator to be used | ```ganache```, ```none```  | ```none```|
 | ```testingFramework```| the testing framework to be used for compiling and testing the smart contracts | ```brownie```, ```forge```, ```hardhat```, ```truffle```, ```custom```  | ```truffle```|
-| | | | |
 
 
 #### **Truffle** and **Hardhat**
@@ -98,27 +94,33 @@ When choosing ```forge``` :
 
 # CLI Usage
 
-### Selecting Mutation Operators
+## Selecting the Mutation Operators
+
 Before starting the mutation process you can choose which mutation operators to use:
-* ```npx/yarn sumo list``` shows the currently enabled mutation operators
-* ```npx/yarn sumo enable``` enables all the mutation operators
-* ```npx/yarn sumo enable ID1 ID2 ...``` enables the mutation operator(s) by ID
-* ```npx/yarn sumo disable``` disables all the mutation operators
-* ```npx/yarn sumo disable ID1 ID2 ...``` disables the mutation operator(s) by ID
 
-### Viewing the available mutations
-Once everything is set up you can use:
-* ```npx/yarn sumo lookup``` To view the available mutations and save a preliminary report to ./sumo/generated.csv
-* ```npx/yarn sumo mutate``` To save a copy of each mutant to ./sumo/mutants
+| Command       | Description                        | Usage                    | Example                             |
+|---------------|------------------------------------|--------------------------|-------------------------------------|
+| `list`    | Shows the enabled mutation operators. | `npx/yarn sumo list` | `$ npx sumo list`  |
+| `enable`    | Enables one or more mutation operators. If no operator IDs are specified, all of them are enabled. | `npx/yarn sumo enable [...ID]` | `$ npx sumo enable` <br> `$ npx sumo enable AOR BOR` |
+| `disable`    | Disables one or more mutation operators. If no operator IDs are specified, all of them are disabled. | `npx/yarn sumo disable [...ID]` | `$ npx sumo disable` <br> `$ npx sumo disable FVR` |
 
-### Running Mutation Testing
-Use:
-* ```npx/yarn sumo pretest``` To ensure that the test suite can be successfully evaluated before running mutation testing.
-* ```npx/yarn sumo test <startHash> <endHash>``` To launch the mutation testing process; You can optionally choose an interval of mutants to be tested by sepcifying ```startHash``` and ```endHash```.
-* ```npx/yarn sumo restore``` To restore the SUT files to a clean version if you suddenly interrupt the mutation process. Note that the restore command overwrites the content of the SUT with the files stored in the ```sumo/baseline``` folder.
-If you need to restore the project files, make sure to do so before performing other operations as the baseline is automatically refreshed on subsequent preflight or test runs.
+## Viewing the available mutations
 
-### Viewing the results
+| Command       | Description                        | Usage                    | Example                             |
+|---------------|------------------------------------|--------------------------|-------------------------------------|
+| `lookup`    | Generates the mutations and saves them to ./sumo/generated.csv without starting mutation testing. | `npx/yarn sumo lookup` | `$ npx sumo lookup` |
+| `mutate`    | Generates the mutations and saves a copy of each `.sol` mutant to  to ./sumo/mutants. | `npx/yarn sumo mutate` | `$ npx sumo mutate` |
+
+## Running Mutation Testing
+
+
+| Command       | Description                        | Usage                    | Example                             |
+|---------------|------------------------------------|--------------------------|-------------------------------------|
+| `pretest`    | Runs the test suite on the original smart contracts to check if all tests pass and can be successfully evaluated. Pretest is automatically run when `sumo test` is executed. | `npx/yarn sumo pretest` | `$ npx sumo pretest` |
+| `test`    | Starts the mutation testing process. You can optionally choose an interval of mutants to be tested by sepcifying ```<startHash>``` and ```<endHash>```.| `npx/yarn sumo test <startHash> <endHash>` | `$ npx sumo test` <br> `$ npx sumo test mbc5e8f56 mbg5t86o6`|
+| `restore`    | Restores the SUT files to a clean version. This should be executed if you suddenly interrupt the mutation process. Note that the restore command overwrites your codebase with the files stored in the ```sumo/baseline``` folder. If you need to restore the project files, make sure to do so before performing other operations as the baseline is automatically refreshed on subsequent preflight or test runs.| `$ npx/yarn sumo restore` | `$ npx sumo restore`|
+
+## Viewing the results
 SuMo automatically creates a ```sumo\results``` folder in the root directory of the project with the following reports: <br/>
 * ```report.txt``` Provides information about the whole testing process
 * ```operators.xlsx``` Provides the results of the mutation testing process for each operator
@@ -210,16 +212,16 @@ By default, SuMo employs the **extended** operators. However, you can enable the
 | BCRD | Break and Continue Replacement <br /> and Deletion | ```break``` &rarr; <br /> ```continue``` &rarr; ```break``` |  N |
 | BLR | Boolean Literal Replacement | ```true``` &rarr; ```false``` |  N |
 | BOR | Binary Operator Replacement | ```+``` &rarr; ```-``` <br /> ```<``` &rarr; ```>=``` |  Y |
-| CBD | Catch Block Deletion | ```catch{}``` &rarr; ```/*catch{}*/``` |  N |
-| CSC | Conditional Statement Change | ```if(condition)``` &rarr; ```if(false)``` <br /> ```else{}``` &rarr; ```/*else{}*/```  |  N |
+| CBD | Catch Block Deletion | ```catch{}``` &rarr; ``` ``` |  N |
+| CSC | Conditional Statement Change | ```if(condition)``` &rarr; ```if(false)``` <br /> ```else{}``` &rarr; ``` ```  |  N |
 | ER | Enum Replacemet |  ```enum.member1``` &rarr; ```enum.member2``` |  Y |
 | ECS | Explicit Conversion to Smaller type | ```uint256``` &rarr; ```uint8``` |  N |
 | HLR | Hexadecimal Literal Replacement | ```hex\"01\"``` &rarr; ```hex\"random\"```|  N |
 | ICM | Increments Mirror | ```-=``` &rarr; ```=-``` |  N |
 | ILR | Integer Literal Replacement | ```1``` &rarr; ```0``` |  N |
 | LCS | Loop Statement Change | ```while(condition)``` &rarr; ```while(false)``` |  N |
-| OLFD | Overloaded Function Deletion | ```function overloadedF(){}``` &rarr; ```/*function overloadedF(){}*/``` |  N |
-| ORFD | Overridden Function Deletion | ```function f() override {}``` &rarr; ```/*function f() override {}*/``` |  N |
+| OLFD | Overloaded Function Deletion | ```function overloadedF(){}``` &rarr; ``` ``` |  N |
+| ORFD | Overridden Function Deletion | ```function f() override {}``` &rarr; ``` ``` |  N |
 | SKI | Super Keyword Insertion | ```x = getData()``` &rarr; ```x = super.getData()``` |  N |
 | SKD | Super Keyword Deletion | ```x = super.getData()``` &rarr; ```x = getData()``` |  N |
 | SLR | String Literal Replacement | ```"string"``` &rarr; ```""```  |  N |
@@ -230,7 +232,7 @@ By default, SuMo employs the **extended** operators. However, you can enable the
 | Operator | Name | Mutation Example | Minimal version available |
 | ------ | ------ |  ------ | :----: |
 | AVR | Address Value Replacement | ```0x67ED2e5dD3d0...``` &rarr; ``` address.this()```|  N |
-| CCD | Contract Constructor Deletion | ```constructor(){}``` &rarr; ```/*constructor(){}*/``` |  N |
+| CCD | Contract Constructor Deletion | ```constructor(){}``` &rarr; ``` ``` |  N |
 | DLR | Data Location Keyword Replacement | ```memory``` &rarr; ```storage``` | N |
 | DOD | Delete Operator Deletion | ```delete``` &rarr; |  N |
 | ETR | Ether Transfer function Replacement | ```delegatecall()``` &rarr; ```call()``` |  N |
@@ -243,7 +245,7 @@ By default, SuMo employs the **extended** operators. However, you can enable the
 | MOI | Modifier Insertion | ```function f()``` &rarr; ```function f() onlyOwner``` |  Y |
 | MOC | Modifier Order Change |  ```function f() modA modB``` &rarr; ```function f() modB modA``` |  Y |
 | MOR | Modifier Replacement | ```function f() onlyOwner``` &rarr; ```function f() onlyAdmin``` |  Y |
-| OMD | Overridden Modifier Deletion | ```modifier m() override {}``` &rarr; ```/*modifier m() override {}*/``` |  N |
+| OMD | Overridden Modifier Deletion | ```modifier m() override {}``` &rarr; ``` ``` |  N |
 | PKD | Payable Keyword Deletion | ```function f() payable``` &rarr; ```function f()``` |  N |
 | RSD | Return Statement Deletion | ```return amount;``` &rarr; ```//return amount;``` |  N |
 | RVS | Return Values Swap | ```return (1, "msg", 100);``` &rarr; ```return (100, "msg", 1);``` |  Y |

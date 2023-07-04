@@ -1,8 +1,12 @@
 {
   "author": "Morena Barboni",
   "name": "@morenabarboni/sumo",
-  "version": "2.2.1",
+  "version": "2.3.0",
   "description": "A mutation testing tool for Ethereum smart contracts",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MorenaBarboni/SuMo-SOlidity-MUtator.git"
+  },  
   "main": "index.js",
   "bin": {
     "sumo": "./index.js"
