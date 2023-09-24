@@ -2,16 +2,15 @@ const chalk = require('chalk')
 const fs = require('fs')
 var excel = require('excel4node');
 const fse = require('fs-extra');
-const moment = require('moment');
 const path = require("path");
 const utils = require('./utils');
 const appRoot = require('app-root-path');
 const rootDir = appRoot.toString().replaceAll("\\", "/");
-const sumoDir = utils.config.sumoDir;
 const sumoConfig = require(rootDir + "/sumo-config");
 const mutOpsConfig = require(utils.config.mutOpsConfig);
 const reportTxt = utils.config.reportTxt;
 const resultsDir = utils.config.resultsDir;
+const Papa = require('papaparse');
 
 function Reporter() {
   this.operators = Object.entries(mutOpsConfig);
@@ -348,58 +347,63 @@ Reporter.prototype.logAndSaveTestSummary = function (time) {
 
 //Save generated mutations to csv
 Reporter.prototype.saveGeneratedMutantsCsv = function (mutations) {
-
-  fs.writeFileSync(resultsDir + "/results.csv", "Hash$File$Operator$Start$End$StartLine$EndLine$Original$Replacement; \n", function (err) {
-    if (err) return console.log(err);
-  })
+  const csvData = [];
+  csvData.push(["Hash", "File", "Operator", "Start", "End", "StartLine", "EndLine", "Original", "Replacement", "Status", "Time(ms)"]);
 
   mutations.forEach(m => {
-    var originalString = m.original.toString();
-    originalString = originalString.replace(/[\n\r]/g, '');
+    const originalString = m.original.toString().replace(/[\n\r]/g, '');
+    const replaceString = m.replace.toString().replace(/[\n\r]/g, '');
 
-    var replaceString = m.replace.toString();
-    replaceString = replaceString.replace(/[\n\r]/g, '');
+    // Push the mutation data as an array to the CSV data
+    csvData.push([
+      m.hash(),
+      m.file,
+      m.operator,
+      m.start,
+      m.end,
+      m.startLine,
+      m.endLine,
+      originalString,
+      replaceString,
+      "untested",
+      "0"
+    ]);
+  });
 
-    const row = m.hash() + '$' + m.file + '$' + m.operator + '$' + m.start + '$' + m.end + '$' + m.startLine + '$' + m.endLine + '$' + originalString + '\n';
-    fs.appendFileSync(resultsDir + "/results.csv", row, function (err) {
-      if (err) return console.log(err);
-    })
+  // Convert the CSV data array to a CSV string
+  const csvString = Papa.unparse(csvData);
+
+  // Write the CSV string to a file
+  fs.writeFileSync(resultsDir + "/results.csv", csvString, function (err) {
+    if (err) return console.log(err);
   });
 }
 
-
-//Setup results.csv sync log
-Reporter.prototype.setupResultsCsv = function () {
-  let newData = "Hash$File$Operator$Start$End$StartLine$EndLine$Original$Replacement$Status$Time(s);";
-  //If the file already exists (created during mutations generation), the old header is replaced with the new one
-  if (fs.existsSync(resultsDir + "/results.csv")) {
-    const existingData = fs.readFileSync(resultsDir + "/results.csv", "utf8");
-    newData = existingData.replace(new RegExp(`^Hash.+`, "m"), newData);
-  }
-  fs.writeFileSync(resultsDir + "/results.csv", newData, function (err) {
-    if (err) return console.log(err);
-  })
-}
 
 /**
- * Save the test results of the current mutant to the results.csv synchronous log
- * @param {*} mutant mutant object
- * @param {*} hashOfRedundant optional hash of the mutant to which the current mutant is redundant
+ * Update the status and testingTime of the currently tested mutant to the results.csv synchronous log
+ * @param {*} mutant tested mutant object
  */
 Reporter.prototype.saveResultsCsv = function (mutant) {
-  var originalString = mutant.original;
-  originalString = originalString.replace(/[\n\r]/g, '');
-  var replaceString = mutant.replace;
-  replaceString = replaceString.replace(/[\n\r]/g, '');
-  const row = mutant.hash() + '$' + mutant.file + '$' + mutant.operator + '$' + mutant.start + '$' + mutant.end + '$' +
-    mutant.startLine + '$' + mutant.endLine + '$' + originalString + '$' + replaceString + '$' + mutant.status + '$' + mutant.testingTime + '\n';
-  const existingData = fs.readFileSync(resultsDir + "/results.csv", "utf8");
-  const newData = existingData.replace(new RegExp(`^${mutant.hash()}\\$.+`, "m"), row.replace(/[\n\r]/g, ''));
-  fs.writeFileSync(resultsDir + "/results.csv", newData, function (err) {
-    if (err) return console.log(err);
-  });
-}
+  const filePath = resultsDir + "/results.csv";
+  if (fs.existsSync(filePath)) {
+    const existingData = fs.readFileSync(filePath, "utf8");
+    const parsedData = Papa.parse(existingData, { header: true });
 
+    // Check if the mutant's data already exists in the CSV
+    const mutantIndex = parsedData.data.findIndex(item => item.Hash === mutant.hash());
+
+    if (mutantIndex !== -1) {
+      // If the mutant's data exists, update it
+      parsedData.data[mutantIndex]["Status"] = mutant.status;
+      parsedData.data[mutantIndex]["Time(ms)"] = mutant.testingTime;
+    }
+
+    fs.writeFileSync(filePath, Papa.unparse(parsedData.data, { header: true }), function (err) {
+      if (err) return console.log(err);
+    });
+  }
+};
 
 /*Saves results for each operator to operators.xlsx */
 Reporter.prototype.saveOperatorsResults = function () {
