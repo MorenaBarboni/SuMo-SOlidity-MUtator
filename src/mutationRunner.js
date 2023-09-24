@@ -178,8 +178,6 @@ function preTest(contractsUnderMutation, testsToBeRun) {
     process.exit(1)
   }
 
-  reporter.setupResultsCsv();
-
   let nodeChild = testingInterface.spawnNetwork(packageManager);
   const isCompiled = testingInterface.spawnCompile(packageManager);
 
@@ -249,7 +247,6 @@ function test(startHash, endHash) {
 
         //Compile and test each mutant
         reporter.logStartMutationTesting();
-        reporter.setupResultsCsv();
         var startTime = Date.now();
 
         for (const contractUnderMutation of contractsUnderMutation) {
