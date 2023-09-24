@@ -13,14 +13,8 @@ const sumoConfig = require(rootDir + "/sumo-config");
 const config = {
   sumoDir: rootDir + "/sumo",
   sumoInstallPath: rootDir + "/node_modules/@morenabarboni/sumo",
-  liveDir: rootDir + "/sumo/results/live",
-  redundantDir: rootDir + "/sumo/results/redundant",
-  stillbornDir: rootDir + "/sumo/results/stillborn",
-  timedoutDir: rootDir + "/sumo/results/timedout",
-  killedDir: rootDir + "/sumo/results/killed",
-  equivalentDir: rootDir + "/sumo/results/equivalent",
   mutantsDir: rootDir + "/sumo/results/mutants",
-  reportTxt: rootDir + "/sumo/results/report.txt",
+  reportTxt: rootDir + "/sumo/results/sumo-log.txt",
   resultsDir: rootDir + "/sumo/results",
   baselineDir: rootDir + "/sumo/baseline",
   mutOpsConfig: rootDir + "/node_modules/@morenabarboni/sumo/src/operators.config.json",
@@ -33,8 +27,7 @@ const config = {
  * Prepares the results directory
  */
 function setupResultsDir() {
-  let resultDirs = [config.resultsDir, config.liveDir, config.killedDir, config.redundantDir,
-  config.equivalentDir, config.timedoutDir, config.stillbornDir, config.mutantsDir];
+  let resultDirs = [config.resultsDir, config.mutantsDir];
   resultDirs.forEach(dir => {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir);

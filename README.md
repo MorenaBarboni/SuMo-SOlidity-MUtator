@@ -122,18 +122,10 @@ Before starting the mutation process you can choose which mutation operators to 
 
 ## Viewing the results
 SuMo automatically creates a ```sumo\results``` folder in the root directory of the project with the following reports: <br/>
-* ```report.txt``` Provides information about the whole testing process
-* ```operators.xlsx``` Provides the results of the mutation testing process for each operator
-* ```generated.csv``` Provides detailed information about the generated mutants
-* ```results.csv``` Provides the mutation testing results for each mutant. This synchronous log is updated each time a mutant is assigned a status
-*  ```summary.csv``` Provides a summary of the mutation testing results
-* ```\alive``` Mutants that survived testing
-* ```\killed``` Mutants killed by tests
-* ```\equivalent``` Equivalent mutants discarded by the TCE
-* ```\redundant``` Redundant mutants discarded by the TCE
-* ```\stillborn``` Stillborn mutants
-* ```\timedout``` Timedout mutants
-* ```\mutants``` Mutated contracts
+* ```operators.xlsx``` Results of the mutation testing process grouped by operator
+* ```results.csv``` Results of the mutation testing process for each mutant. This synchronous log is updated each time a mutant is assigned a status
+* ```sumo-log.txt``` Logs info about the mutation testing process
+* ```\mutants``` Mutated ```.sol``` contracts generated with ```sumo mutate```
 
 # Trivial Compiler Equivalence
 

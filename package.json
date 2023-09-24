@@ -1,7 +1,7 @@
 {
   "author": "Morena Barboni",
   "name": "@morenabarboni/sumo",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "description": "A mutation testing tool for Ethereum smart contracts",
   "repository": {
     "type": "git",
@@ -28,6 +28,7 @@
     "glob": "8.1.0",
     "fast-csv": "4.3.6",
     "fs-extra": "^10.1.0",
+    "moment": "2.29.4",
     "postinstall": "^0.8.0",
     "recursive-copy": "^2.0.14",
     "sha1": "^1.1.1",
