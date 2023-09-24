@@ -1,7 +1,7 @@
 {
   "author": "Morena Barboni",
   "name": "@morenabarboni/sumo",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "description": "A mutation testing tool for Ethereum smart contracts",
   "repository": {
     "type": "git",
