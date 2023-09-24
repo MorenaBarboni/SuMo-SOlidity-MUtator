@@ -5,7 +5,8 @@ SuMo was designed to run mutation testing on Solidity projects in a NodeJS envir
 
 
 # Table of Contents
-* [Installation and configuration](https://github.com/MorenaBarboni/SuMo-SOlidity-MUtator#installation-and-configuration)
+* [Installation](https://github.com/MorenaBarboni/SuMo-SOlidity-MUtator#installation)
+* [Configuration](https://github.com/MorenaBarboni/SuMo-SOlidity-MUtator#configuration-)
 * [CLI Usage](https://github.com/MorenaBarboni/SuMo-SOlidity-MUtator#cli-usage)
 * [Trivial Compiler Equivalence](https://github.com/MorenaBarboni/SuMo-SOlidity-MUtator#trivial-compiler-equivalence)
 * [Mutation Operators](https://github.com/MorenaBarboni/SuMo-SOlidity-MUtator#mutation-operators-)
@@ -13,10 +14,11 @@ SuMo was designed to run mutation testing on Solidity projects in a NodeJS envir
 
 
 
-# Installation and Configuration
+# Installation
 
 To install sumo run ```npm install @morenabarboni/sumo```
 
+# Configuration ⚙️
 Before using SuMo you must specify your desired configuration in a [sumo-config.js](https://github.com/MorenaBarboni/SuMo-SOlidity-MUtator/blob/master/src/sumo-config.js) in the root directory of your project. The ```sumo-config.js``` is automatically generated upon installation.
 
 Here's a simple example of ```sumo-config.js```:
@@ -38,74 +40,87 @@ module.exports = {
 
 ### 1) SUT directories
 These (optional) fields identify relevant project directories.
-* ```contractsDir```: relative path to the directory where the contracts to be mutated are located (contracts by default);
-* ```testDir```: relative path to the directory where the tests to be evaluated are located (test by default);
-* ```buildDir```: relative path to the directory where the artifacts of the compilation will be saved (build, out or artifacts by default);
- 
+
+| Field | Description | Default Value |
+| ------ | ------ |  :----: |
+| ```contractsDir```| relative path to the directory of the contracts to be mutated | ```contracts``` |
+ | ```testDir```| relative path to the directory of the tests to be evaluated | ```test```/```tests``` | 
+ | ```buildDir```| relative path to the directory of the compilation artifacts | ```build```/```out```/```artifacts``` |  |  
+
 ### 2) Mutation Process
 These fields allow to configure the mutation testing process:
-* ```minimal```: employ minimal mutation rules (false by default),
-* ```skipContracts```: array of relative paths to contract files (or folders) that must be ignored by SuMo during mutation testing;
-*  ```skipTests```:   array of relative paths to test files (or folders) that must be ignored by SuMo;
-* ```tce```: enable the Trivial Compiler Equivalence (false by default);
-* ```testingTimeOutInSec```: after how many seconds a mutant is marked as timed-out during testing (300 by default).
+
+| Field | Description | Default Value |
+| ------ | ------ |  :----: |
+| ```minimal```| use minimal mutation rules | ```false``` |
+ | ```skipContracts```| blacklist of relative paths to contract files (or folders) | ```[]``` | 
+| ```skipTests```| blacklist of relative paths to test files (or folders) | ```[]``` |
+| ```tce```| use the Trivial Compiler Equivalence | ```false``` |    
+| ```testingTimeOutInSec```| seconds after which a mutant is marked as timed-out during testing | ```300``` |  
 
 ### 3) Testing Interface
 These fields specify what testing framework and blockchain simulator SuMo should use to conduct mutation testing:
-* ```network```: the blockchain simulator to be used. Available options are:
-  * ```ganache```: use the Ganache installation of the SUT;
-  * ```none```: do not use a blockchain simulator;
-* ```testingFramework```: the testing framework to be used for compiling and testing the smart contracts. Available options are:
-  * ```brownie```: use a global/local installation of Brownie;
-  * ```forge```: use a global installation of Forge;
-  * ```hardhat```: use the Hardhat installation of the SUT;
-  * ```truffle```: use the Truffle installation of the SUT;
-  * ```custom```: use a custom compile and test script specified in the package.json of the SUT.
 
-### Note that ...
-* When choosing ```truffle``` or ```hardhat```:
-  * SuMo will rely on the local ```truffle``` or ```hardhat``` package installed in the project;
-  * The smart contracts will be compiled with a minimal compile command  (e.g., ```truffle compile``` );
-  * The smart contracts will be tested with a minimal test command followed by the bail option, and (optionally) by a list of test files to be executed (e.g., ```truffle test ...testFiles -b```) .
+| Field | Description | Available Options | Default Value | 
+| ------ | ------ | ------ |   :----: |
+| ```network```| the blockchain simulator to be used | ```ganache```, ```none```  | ```none```|
+| ```testingFramework```| the testing framework to be used for compiling and testing the smart contracts | ```brownie```, ```forge```, ```hardhat```, ```truffle```, ```custom```  | ```truffle```|
 
-* When choosing ```brownie```:
-  * SuMo will rely on a local/global ```brownie``` installation;
-  * The smart contracts will be compiled with a minimal compile command  (e.g., ```brownie compile``` );
-  * The smart contracts will be tested with a minimal test command followed by the exitfirst option, and (optionally) by a list of test files to be executed (e.g., ```brownie test ...testFiles --exitfirst```) .
 
-* When choosing ```forge``` :
-  * SuMo will rely on the global installation of ```foundry```;
-  * The smart contracts will be compiled with a minimal compile command  (e.g., ```forge build```);
-  * The smart contracts will be tested with a minimal test command, optionally followed by a list of test files to be executed (e.g., ```forge test ...testFiles```).
-  
+#### **Truffle** and **Hardhat**
+When choosing ```truffle``` or ```hardhat```:
+* SuMo will rely on the local ```truffle``` or ```hardhat``` package installed in the project;
+* The smart contracts will be compiled with a minimal compile command  (e.g., ```truffle compile``` );
+* The smart contracts will be tested with a minimal test command followed by the bail argument, and (optionally) by a list of test files to be executed (e.g., ```truffle test ...testFiles -b```) .
+
+#### **Brownie**
+When choosing ```brownie```:
+* SuMo will rely on a local/global ```brownie``` installation;
+* The smart contracts will be compiled with a minimal compile command  (e.g., ```brownie compile``` );
+* The smart contracts will be tested with a minimal test command followed by the exitfirst argument, and (optionally) by a list of test files to be executed (e.g., ```brownie test ...testFiles --exitfirst```) .
+
+#### **Forge**
+When choosing ```forge``` :
+* SuMo will rely on the global installation of ```foundry```;
+* The smart contracts will be compiled with a minimal compile command  (e.g., ```forge build```);
+* The smart contracts will be tested with a minimal test command followed by the fail-fast argument, and (optionally) by a list of test files to be executed (e.g., ```forge test ...testFiles --fail-fast```).
+* Make sure that your ```forge``` installation is up-to-date to enable ```--fail-fast```.
+
+#### **Custom**
 * When choosing ```custom```: 
   * SuMo will invoke the ```compile``` and ```test``` script defined in your ```package.json```. This allows you to customize both scripts and have more control over the testing process; 
   * The ```skipTests``` list will be overridden by the ```test``` script in your ```package.json```. To skip some test files, you can either: 1) append the specific test files you want to run to your ```test``` script, or 2) remove the test files to be skipped from the test folder.
-  * The ```--bail```/```--exitfirst``` option should be added to the test script to speed up mutation testing. 
+  * The ```--bail```/```--exitfirst```/```--fail-fast``` option should be added to the test script to speed up mutation testing. 
 
 # CLI Usage
 
-### Selecting Mutation Operators
+## Selecting the Mutation Operators
+
 Before starting the mutation process you can choose which mutation operators to use:
-* ```npx/yarn sumo list``` shows the currently enabled mutation operators
-* ```npx/yarn sumo enable``` enables all the mutation operators
-* ```npx/yarn sumo enable ID1 ID2 ...``` enables the mutation operator(s) by ID
-* ```npx/yarn sumo disable``` disables all the mutation operators
-* ```npx/yarn sumo disable ID1 ID2 ...``` disables the mutation operator(s) by ID
 
-### Viewing the available mutations
-Once everything is set up you can use:
-* ```npx/yarn sumo lookup``` To view the available mutations and save a preliminary report to ./sumo/generated.csv
-* ```npx/yarn sumo mutate``` To save a copy of each mutant to ./sumo/mutants
+| Command       | Description                        | Usage                    | Example                             |
+|---------------|------------------------------------|--------------------------|-------------------------------------|
+| `list`    | Shows the enabled mutation operators. | `npx/yarn sumo list` | `$ npx sumo list`  |
+| `enable`    | Enables one or more mutation operators. If no operator IDs are specified, all of them are enabled. | `npx/yarn sumo enable [...ID]` | `$ npx sumo enable` <br> `$ npx sumo enable AOR BOR` |
+| `disable`    | Disables one or more mutation operators. If no operator IDs are specified, all of them are disabled. | `npx/yarn sumo disable [...ID]` | `$ npx sumo disable` <br> `$ npx sumo disable FVR` |
 
-### Running Mutation Testing
-Use:
-* ```npx/yarn sumo pretest``` To ensure that the test suite can be successfully evaluated before running mutation testing.
-* ```npx/yarn sumo test <startHash> <endHash>``` To launch the mutation testing process; You can optionally choose an interval of mutants to be tested by sepcifying ```startHash``` and ```endHash```.
-* ```npx/yarn sumo restore``` To restore the SUT files to a clean version if you suddenly interrupt the mutation process. Note that the restore command overwrites the content of the SUT with the files stored in the ```sumo/baseline``` folder.
-If you need to restore the project files, make sure to do so before performing other operations as the baseline is automatically refreshed on subsequent preflight or test runs.
+## Viewing the available mutations
 
-### Viewing the results
+| Command       | Description                        | Usage                    | Example                             |
+|---------------|------------------------------------|--------------------------|-------------------------------------|
+| `lookup`    | Generates the mutations and saves them to ./sumo/generated.csv without starting mutation testing. | `npx/yarn sumo lookup` | `$ npx sumo lookup` |
+| `mutate`    | Generates the mutations and saves a copy of each `.sol` mutant to  to ./sumo/mutants. | `npx/yarn sumo mutate` | `$ npx sumo mutate` |
+
+## Running Mutation Testing
+
+
+| Command       | Description                        | Usage                    | Example                             |
+|---------------|------------------------------------|--------------------------|-------------------------------------|
+| `pretest`    | Runs the test suite on the original smart contracts to check if all tests pass and can be successfully evaluated. Pretest is automatically run when `sumo test` is executed. | `npx/yarn sumo pretest` | `$ npx sumo pretest` |
+| `test`    | Starts the mutation testing process. You can optionally choose an interval of mutants to be tested by sepcifying ```<startHash>``` and ```<endHash>```.| `npx/yarn sumo test <startHash> <endHash>` | `$ npx sumo test` <br> `$ npx sumo test mbc5e8f56 mbg5t86o6`|
+| `restore`    | Restores the SUT files to a clean version. This should be executed if you suddenly interrupt the mutation process. Note that the restore command overwrites your codebase with the files stored in the ```sumo/baseline``` folder. If you need to restore the project files, make sure to do so before performing other operations as the baseline is automatically refreshed on subsequent preflight or test runs.| `$ npx/yarn sumo restore` | `$ npx sumo restore`|
+
+## Viewing the results
 SuMo automatically creates a ```sumo\results``` folder in the root directory of the project with the following reports: <br/>
 * ```operators.xlsx``` Results of the mutation testing process grouped by operator
 * ```results.csv``` Results of the mutation testing process for each mutant. This synchronous log is updated each time a mutant is assigned a status
@@ -164,7 +179,7 @@ For example, consider the following package.json scripts:
 ```
  scripts: {
     compile: "hardhat compile",
-    test "hardhat test --bail && forge test"
+    test "hardhat test --bail && forge test --fail-fast"
  }
 ```
 If you make SuMo use hardhat to compile the contracts, make sure that the ```buildDir``` points to the hardhat compiled artifacts and not to the forge ones, and vice versa.
@@ -189,16 +204,16 @@ By default, SuMo employs the **extended** operators. However, you can enable the
 | BCRD | Break and Continue Replacement <br /> and Deletion | ```break``` &rarr; <br /> ```continue``` &rarr; ```break``` |  N |
 | BLR | Boolean Literal Replacement | ```true``` &rarr; ```false``` |  N |
 | BOR | Binary Operator Replacement | ```+``` &rarr; ```-``` <br /> ```<``` &rarr; ```>=``` |  Y |
-| CBD | Catch Block Deletion | ```catch{}``` &rarr; ```/*catch{}*/``` |  N |
-| CSC | Conditional Statement Change | ```if(condition)``` &rarr; ```if(false)``` <br /> ```else{}``` &rarr; ```/*else{}*/```  |  N |
+| CBD | Catch Block Deletion | ```catch{}``` &rarr; ``` ``` |  N |
+| CSC | Conditional Statement Change | ```if(condition)``` &rarr; ```if(false)``` <br /> ```else{}``` &rarr; ``` ```  |  N |
 | ER | Enum Replacemet |  ```enum.member1``` &rarr; ```enum.member2``` |  Y |
 | ECS | Explicit Conversion to Smaller type | ```uint256``` &rarr; ```uint8``` |  N |
 | HLR | Hexadecimal Literal Replacement | ```hex\"01\"``` &rarr; ```hex\"random\"```|  N |
 | ICM | Increments Mirror | ```-=``` &rarr; ```=-``` |  N |
 | ILR | Integer Literal Replacement | ```1``` &rarr; ```0``` |  N |
 | LCS | Loop Statement Change | ```while(condition)``` &rarr; ```while(false)``` |  N |
-| OLFD | Overloaded Function Deletion | ```function overloadedF(){}``` &rarr; ```/*function overloadedF(){}*/``` |  N |
-| ORFD | Overridden Function Deletion | ```function f() override {}``` &rarr; ```/*function f() override {}*/``` |  N |
+| OLFD | Overloaded Function Deletion | ```function overloadedF(){}``` &rarr; ``` ``` |  N |
+| ORFD | Overridden Function Deletion | ```function f() override {}``` &rarr; ``` ``` |  N |
 | SKI | Super Keyword Insertion | ```x = getData()``` &rarr; ```x = super.getData()``` |  N |
 | SKD | Super Keyword Deletion | ```x = super.getData()``` &rarr; ```x = getData()``` |  N |
 | SLR | String Literal Replacement | ```"string"``` &rarr; ```""```  |  N |
@@ -209,7 +224,7 @@ By default, SuMo employs the **extended** operators. However, you can enable the
 | Operator | Name | Mutation Example | Minimal version available |
 | ------ | ------ |  ------ | :----: |
 | AVR | Address Value Replacement | ```0x67ED2e5dD3d0...``` &rarr; ``` address.this()```|  N |
-| CCD | Contract Constructor Deletion | ```constructor(){}``` &rarr; ```/*constructor(){}*/``` |  N |
+| CCD | Contract Constructor Deletion | ```constructor(){}``` &rarr; ``` ``` |  N |
 | DLR | Data Location Keyword Replacement | ```memory``` &rarr; ```storage``` | N |
 | DOD | Delete Operator Deletion | ```delete``` &rarr; |  N |
 | ETR | Ether Transfer function Replacement | ```delegatecall()``` &rarr; ```call()``` |  N |
@@ -222,7 +237,7 @@ By default, SuMo employs the **extended** operators. However, you can enable the
 | MOI | Modifier Insertion | ```function f()``` &rarr; ```function f() onlyOwner``` |  Y |
 | MOC | Modifier Order Change |  ```function f() modA modB``` &rarr; ```function f() modB modA``` |  Y |
 | MOR | Modifier Replacement | ```function f() onlyOwner``` &rarr; ```function f() onlyAdmin``` |  Y |
-| OMD | Overridden Modifier Deletion | ```modifier m() override {}``` &rarr; ```/*modifier m() override {}*/``` |  N |
+| OMD | Overridden Modifier Deletion | ```modifier m() override {}``` &rarr; ``` ``` |  N |
 | PKD | Payable Keyword Deletion | ```function f() payable``` &rarr; ```function f()``` |  N |
 | RSD | Return Statement Deletion | ```return amount;``` &rarr; ```//return amount;``` |  N |
 | RVS | Return Values Swap | ```return (1, "msg", 100);``` &rarr; ```return (100, "msg", 1);``` |  Y |

@@ -19,7 +19,7 @@ OMDOperator.prototype.getMutations = function(file, source, visit) {
               const startLine = node.loc.start.line;
               const endLine = node.loc.end.line; 
               var original = source.slice(start, end);
-              replacement = "/*" + original + "*/";
+              replacement = "";
               mutations.push(new Mutation(file, start, end, startLine, endLine, original, replacement, this.ID));
             }
           }

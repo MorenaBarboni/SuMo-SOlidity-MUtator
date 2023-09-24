@@ -84,7 +84,7 @@ function spawnTest(packageManager, testFiles) {
   //Forge
   else if (testingFramework === "forge") {
     if (skipTests.length === 0) {
-      testChild = spawnSync("forge", ['t'], { stdio: "inherit", cwd: rootDir, timeout: testingTimeOutInSec * 1000 });
+      testChild = spawnSync("forge", ['t', '--fail-fast'], { stdio: "inherit", cwd: rootDir, timeout: testingTimeOutInSec * 1000 });
     } else {
       let relativeTestfiles = []
       for (let i = 0; i < testFiles.length; i++) {
@@ -92,7 +92,7 @@ function spawnTest(packageManager, testFiles) {
         relativeTestfiles.push(tf);
       }
       let arguments = "{" + relativeTestfiles.join() + '}';
-      testChild = spawnSync("forge", ['t', '--match-path', arguments], { stdio: "inherit", cwd: rootDir, timeout: testingTimeOutInSec * 1000 });
+      testChild = spawnSync("forge", ['t', '--fail-fast', '--match-path', arguments], { stdio: "inherit", cwd: rootDir, timeout: testingTimeOutInSec * 1000 });
     }
   }
   //Custom

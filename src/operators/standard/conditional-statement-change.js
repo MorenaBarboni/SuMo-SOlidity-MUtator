@@ -24,7 +24,7 @@ CSCOperator.prototype.getMutations = function(file, source, visit) {
         lineStart = node.trueBody.loc.start.line;
         lineEnd = node.falseBody.loc.end.line;
         original = source.slice(start, end);
-        var replacement = "/*" + original + "*/";
+        var replacement = "";
         mutations.push(new Mutation(file, start, end, lineStart, lineEnd, original, replacement, this.ID));
       }
 
