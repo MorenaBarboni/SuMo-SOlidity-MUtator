@@ -81,7 +81,7 @@ ILROperator.prototype.getMutations = function (file, source, visit) {
           if (num < Number.MAX_SAFE_INTEGER) {
             inc = num + 1;
             dec = num - 1;
-          } else {
+          } /*else {
             //Scientific notation
             if (node.number.toString().includes('e')) {
               let arr = node.number.toString().split("e");
@@ -99,7 +99,7 @@ ILROperator.prototype.getMutations = function (file, source, visit) {
               inc = BigInt(num + 1n);
               dec = BigInt(num - 1n);
             }
-          }
+          }*/
 
           mutations.push(new Mutation(file, start, end, startLine, endLine, original, dec + subdenomination, ID));
           mutations.push(new Mutation(file, start, end, startLine, endLine, original, inc + subdenomination, ID));
