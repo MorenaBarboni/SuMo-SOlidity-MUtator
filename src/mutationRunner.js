@@ -229,7 +229,7 @@ function test(startHash, endHash) {
         if (startHash !== "first") {
           let startIndex = mutations.indexOf(mutations.find(m => m.id === startHash));
           if (startIndex != -1) {
-            mutations = mutations.slice(startIndex, mutations.length - 1);
+            mutations = mutations.slice(startIndex, mutations.length);
           } else {
             console.error(chalk.red("Error: The specified start hash does not corrispond to any generated mutant."));
             process.exit(1);
