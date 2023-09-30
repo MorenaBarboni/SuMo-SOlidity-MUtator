@@ -59,52 +59,50 @@ ILROperator.prototype.getMutations = function (file, source, visit) {
         if (node.subdenomination) {
           subdenomination = " " + node.subdenomination;
         }
-        if (node.number == 1) {
-          var sliced = source.slice(node.range[0] - 1, node.range[0]);
-          if (sliced === "-") {
-            start = node.range[0] - 1;
-            original = source.slice(start, end);
-            mutations.push(new Mutation(file, start, end, startLine, endLine, original, "0" + subdenomination, ID));
-            mutations.push(new Mutation(file, start, end, startLine, endLine, original, "-2" + subdenomination, ID));
-          }
-          else {
-            mutations.push(new Mutation(file, start, end, startLine, endLine, original, "0" + subdenomination, ID));
-            mutations.push(new Mutation(file, start, end, startLine, endLine, original, "2" + subdenomination, ID));
-          }
-        } else if (node.number == 0) {
-          mutations.push(new Mutation(file, start, end, startLine, endLine, original, "1" + subdenomination, ID));
+        if (node.number.toString().includes('e') || node.number.toString().includes('E')) {
+          //Scientific notation
+          pushMutation(new Mutation(file, start, end, startLine, endLine, original, original + " + 1", ID));
+          pushMutation(new Mutation(file, start, end, startLine, endLine, original, original + " - 1", ID));
         } else {
-          var num = Number(node.number);
-          var inc;
-          var dec;
-
-          if (num < Number.MAX_SAFE_INTEGER) {
-            inc = num + 1;
-            dec = num - 1;
-          } /*else {
-            //Scientific notation
-            if (node.number.toString().includes('e')) {
-              let arr = node.number.toString().split("e");
-
-              let mantissa = arr[0]
-              let exponential = arr[1]
-              let incMant = BigInt(parseInt(mantissa));
-              incMant = incMant + 1n;
-              inc = incMant.toString() + 'e' + exponential.toString()
-              let decMant = BigInt(parseInt(mantissa));
-              decMant = decMant - 1n;
-              dec = decMant.toString() + 'e' + exponential.toString()
-            } else {
-              num = BigInt(node.number);
-              inc = BigInt(num + 1n);
-              dec = BigInt(num - 1n);
+          if (node.number == 1) {
+            var sliced = source.slice(node.range[0] - 1, node.range[0]);
+            if (sliced === "-") {
+              start = node.range[0] - 1;
+              original = source.slice(start, end);
+              pushMutation(new Mutation(file, start, end, startLine, endLine, original, "0" + subdenomination, ID));
+              pushMutation(new Mutation(file, start, end, startLine, endLine, original, "-2" + subdenomination, ID));
             }
-          }*/
+            else {
+              pushMutation(new Mutation(file, start, end, startLine, endLine, original, "0" + subdenomination, ID));
+              pushMutation(new Mutation(file, start, end, startLine, endLine, original, "2" + subdenomination, ID));
+            }
+          } else if (node.number == 0) {
+            pushMutation(new Mutation(file, start, end, startLine, endLine, original, "1" + subdenomination, ID));
+          } else {
+            var num = Number(node.number);
+            var inc;
+            var dec;
 
-          mutations.push(new Mutation(file, start, end, startLine, endLine, original, dec + subdenomination, ID));
-          mutations.push(new Mutation(file, start, end, startLine, endLine, original, inc + subdenomination, ID));
+            if (num < Number.MAX_SAFE_INTEGER) {
+              inc = num + 1;
+              dec = num - 1;
+            }
+
+            pushMutation(new Mutation(file, start, end, startLine, endLine, original, dec + subdenomination, ID));
+            pushMutation(new Mutation(file, start, end, startLine, endLine, original, inc + subdenomination, ID));
+          }
         }
       }
+    }
+  }
+
+  /**
+ * Add a mutation to the mutations list
+ * @param {*} mutation the mutation object
+ */
+  function pushMutation(mutation) {
+    if (!mutations.find(m => m.id === mutation.id)) {
+      mutations.push(mutation);
     }
   }
 
