@@ -119,6 +119,7 @@ MutationOperators.prototype.getMutations = function (file, source, visit, overwr
       mutations = mutations.concat(opMutations)
     }
   }
+  mutations = this.removeDuplicatesByHash(mutations);
   if (overwrite && mutantString != "") {
     reporter.saveGeneratedMutants(fileString, mutantString);
   }
@@ -209,6 +210,23 @@ MutationOperators.prototype.disableAll = function () {
     if (err) return false;
   });
   return true
+}
+
+//Remove duplicate mutants
+MutationOperators.prototype.removeDuplicatesByHash = function (mutations) {
+  const uniqueIds = {};
+  const result = [];
+
+  for (const obj of mutations) {
+    const id = obj["id"];
+
+    // Check if the ID is already in the lookup object
+    if (!uniqueIds[id]) {
+      uniqueIds[id] = true;
+      result.push(obj);
+    }
+  }
+  return result;
 }
 
 module.exports = {
