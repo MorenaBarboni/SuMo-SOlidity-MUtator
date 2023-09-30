@@ -36,7 +36,7 @@ Mutation.prototype.toJson = function () {
  *  @returns the mutant hash
  */
 Mutation.prototype.hash = function () {
-  const input = [path.basename(this.file), this.start, this.end, this.replace].join(':')
+  const input = [path.basename(this.file), this.start, this.end, this.original, this.replace, this.operator].join(':')
   return "m" + sha1(input).slice(0, 8)
 }
 
