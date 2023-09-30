@@ -117,7 +117,7 @@ Before starting the mutation process you can choose which mutation operators to 
 | Command       | Description                        | Usage                    | Example                             |
 |---------------|------------------------------------|--------------------------|-------------------------------------|
 | `pretest`    | Runs the test suite on the original smart contracts to check if all tests pass and can be successfully evaluated. Pretest is automatically run when `sumo test` is executed. | `npx/yarn sumo pretest` | `$ npx sumo pretest` |
-| `test`    | Starts the mutation testing process. You can optionally choose an interval of mutants to be tested by sepcifying ```<startHash>``` and ```<endHash>```.| `npx/yarn sumo test <startHash> <endHash>` | `$ npx sumo test` <br> `$ npx sumo test mbc5e8f56 mbg5t86o6`|
+| `test`    | Starts the mutation testing process. You can also choose a single mutant / an interval of mutants to be tested by sepcifying ```<startHash>``` and (optionally) ```<endHash>```.| `npx/yarn sumo test <startHash> <endHash>` | `$ npx sumo test` <br> `$ npx sumo test mbc5e8f56 mbg5t86o6`|
 | `restore`    | Restores the SUT files to a clean version. This should be executed if you suddenly interrupt the mutation process. Note that the restore command overwrites your codebase with the files stored in the ```sumo/baseline``` folder. If you need to restore the project files, make sure to do so before performing other operations as the baseline is automatically refreshed on subsequent preflight or test runs.| `$ npx/yarn sumo restore` | `$ npx sumo restore`|
 
 ## Viewing the results

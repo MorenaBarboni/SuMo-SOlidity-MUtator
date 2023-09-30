@@ -13,13 +13,13 @@ yargs
     yargs
       .positional('startHash', {
         type: 'string',
-        describe: '(optional) ID of the first mutant to be tested',
-        default: 'first'
+        describe: 'ID of the first mutant to be tested (optional)',
+        example: 'm46f345c9'
       })
       .positional('endHash', {
         type: 'string',
-        describe: '(optional) ID of the last mutant to be tested',
-        default: 'last'
+        describe: 'ID of the last mutant to be tested (optional)',
+        example: 'ma6c345c9'
       })
   }, (argv) => {
     mutationRunner.test(argv.startHash, argv.endHash)

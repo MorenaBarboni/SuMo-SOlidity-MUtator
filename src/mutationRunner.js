@@ -226,23 +226,21 @@ function test(startHash, endHash) {
 
         //Generate mutations
         var mutations = generateMutations(contractsUnderMutation, true)
-        if (startHash !== "first") {
+        if (startHash) {
           let startIndex = mutations.indexOf(mutations.find(m => m.id === startHash));
-          if (startIndex != -1) {
-            mutations = mutations.slice(startIndex, mutations.length);
-          } else {
+          if (startIndex === -1) {
             console.error(chalk.red("Error: The specified start hash does not corrispond to any generated mutant."));
             process.exit(1);
           }
-        }
-        if (endHash !== "last") {
-          let endIndex = mutations.indexOf(mutations.find(m => m.id === endHash));
-          if (endIndex != -1) {
-            mutations = mutations.slice(0, endIndex + 1);
-          } else {
-            console.error(chalk.red("Error: The specified end hash does not corrispond to any generated mutant."));
-            process.exit(1);
+          let endIndex = startIndex;
+          if (endHash) {
+            endIndex = mutations.indexOf(mutations.find(m => m.id === endHash));
+            if (endIndex === -1) {
+              console.error(chalk.red("Error: The specified end hash does not corrispond to any generated mutant."));
+              process.exit(1);
+            }
           }
+          mutations = mutations.slice(startIndex, endIndex + 1);
         }
 
         //Compile and test each mutant
