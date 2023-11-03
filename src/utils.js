@@ -20,7 +20,7 @@ const config = {
   mutOpsConfig: rootDir + "/node_modules/@morenabarboni/sumo/src/operators.config.json",
   contractsGlob: '/**/*.sol',
   packageManagerGlob: ['/package-lock.json', '/yarn.lock'],
-  testsGlob: '/**/*.{js,sol,ts,py}',
+  testsGlob: '/**/*.{js,mjs,sol,ts,py}',
 }
 
 /**
