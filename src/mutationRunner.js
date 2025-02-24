@@ -229,14 +229,14 @@ function test(startHash, endHash) {
         if (startHash) {
           let startIndex = mutations.indexOf(mutations.find(m => m.id === startHash));
           if (startIndex === -1) {
-            console.error(chalk.red("Error: The specified start hash does not corrispond to any generated mutant."));
+            console.error(chalk.red("Error: The specified start hash does not correspond to any generated mutant."));
             process.exit(1);
           }
           let endIndex = startIndex;
           if (endHash) {
             endIndex = mutations.indexOf(mutations.find(m => m.id === endHash));
             if (endIndex === -1) {
-              console.error(chalk.red("Error: The specified end hash does not corrispond to any generated mutant."));
+              console.error(chalk.red("Error: The specified end hash does not correspond to any generated mutant."));
               process.exit(1);
             }
           }
