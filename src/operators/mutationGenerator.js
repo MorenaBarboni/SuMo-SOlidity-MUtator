@@ -3,58 +3,48 @@ const fs = require('fs')
 const appRoot = require('app-root-path');
 const rootDir = appRoot;
 const utils = require("../utils");
-const mutOpsConfigPath = utils.config.mutOpsConfig
+const mutOpsConfigPath = utils.staticConf.mutOpsConfigPath
 const mutOpsConfig = require(mutOpsConfigPath)
 const config = require(rootDir + '/sumo-config')
-const Reporter = require('../reporter')
-const reporter = new Reporter()
+
 
 //Init operator version
-var AOROperator
-var BOROperator
-var EROperator
-var FVROperator
-var GVROperator
-var MODOperator;
-var MOIOperator;
-var MOROperator;
-var RVSOperator
-var SFROperator
-var VUROperator
-var VVROperator
+var BOROperator, EROperator, FVROperator, GVROperator, HLROperator, ILROperator,
+  MCROperator, MODOperator, MOIOperator, RVSOperator, UORDOperator, VVROperator;
 
 /**
  * Minimal rules
  */
-if (config.minimal) {
-  AOROperator = require('./minimal/assignment-replacement')
+if (config.minimalOperators) {
   BOROperator = require('./minimal/binary-replacement')
   EROperator = require('./minimal/enum-replacement')
   FVROperator = require('./minimal/function-visibility-replacement')
   GVROperator = require('./minimal/global-variable-replacement')
+  HLROperator = require('./minimal/hex-literal-replacement')
+  ILROperator = require('./minimal/integer-literal-replacement')
+  MCROperator = require('./minimal/math-crypto-function-replacement')
   MODOperator = require('./minimal/modifier-deletion')
   MOIOperator = require('./minimal/modifier-insertion')
-  MOROperator = require('./minimal/modifier-replacement')
   RVSOperator = require('./minimal/return-values-swap')
-  SFROperator = require('./minimal/safemath-function-replacement')
-  VUROperator = require('./minimal/variable-unit-replacement')
+  UORDOperator = require('./minimal/unary-replacement')
   VVROperator = require('./minimal/variable-visibility-replacement')
 } else {
-  AOROperator = require('./standard/assignment-replacement')
   BOROperator = require('./standard/binary-replacement')
   EROperator = require('./standard/enum-replacement')
   FVROperator = require('./standard/function-visibility-replacement')
   GVROperator = require('./standard/global-variable-replacement')
+  HLROperator = require('./standard/hex-literal-replacement')
+  ILROperator = require('./standard/integer-literal-replacement')
+  MCROperator = require('./standard/math-crypto-function-replacement')
   MODOperator = require('./standard/modifier-deletion')
   MOIOperator = require('./standard/modifier-insertion')
-  MOROperator = require('./standard/modifier-replacement')
   RVSOperator = require('./standard/return-values-swap')
-  SFROperator = require('./standard/safemath-function-replacement')
-  VUROperator = require('./standard/variable-unit-replacement')
+  UORDOperator = require('./standard/unary-replacement')
   VVROperator = require('./standard/variable-visibility-replacement')
 }
 
 const ACMOperator = require('./standard/argument-change-overloaded-call')
+const AOROperator = require('./standard/assignment-replacement')
 const AVROperator = require('./standard/address-value-replacement')
 const BCRDOperator = require('./standard/break-continue-replacement')
 const BLROperator = require('./standard/boolean-literal-replacement')
@@ -65,152 +55,151 @@ const DLROperator = require('./standard/data-location-replacement')
 const DODOperator = require('./standard/delete-operator-deletion')
 const ECSOperator = require('./standard/explicit-conversion-smaller')
 const EEDOperator = require('./standard/event-emission-deletion')
-const EHCOperator = require('./standard/exception-handling-change')
+const EHDOperator = require('./standard/exception-handling-deletion')
 const ETROperator = require('./standard/ether-transfer-function-replacement')
-const ICMOperator = require('./standard/increments-mirror')
-const ILROperator = require('./standard/integer-literal-replacement')
+const FCDOperator = require('./standard/function-call-deletion')
 const LSCOperator = require('./standard/loop-statement-change')
-const HLROperator = require('./standard/hex-literal-replacement')
-const MCROperator = require('./standard/math-crypto-function-replacement')
-const MOCOperator = require('./standard/modifier-order-change')
 const OLFDOperator = require('./standard/overloaded-function-deletion')
 const OMDOperator = require('./standard/overridden-modifier-deletion')
 const ORFDOperator = require('./standard/overridden-function-deletion')
 const PKDOperator = require('./standard/payable-deletion')
 const RSDOperator = require('./standard/return-statement-deletion')
-const SCECOperator = require('./standard/switch-call-expression-casting')
-const SFDOperator = require('./standard/selfdestruct-deletion')
-const SFIOperator = require('./standard/selfdestruct-insertion')
-const SKDOperator = require('./standard/super-keyword-deletion')
-const SKIOperator = require('./standard/super-keyword-insertion')
+const SCDOperator = require('./standard/selfdestruct-call-deletion')
+const SKROperator = require('./standard/super-keyword-replacement')
 const SLROperator = require('./standard/string-literal-replacement')
 const TOROperator = require('./standard/transaction-origin-replacement')
-const UORDOperator = require('./standard/unary-replacement')
-
-function MutationOperators(operators) {
-  this.operators = operators
-}
+const VUROperator = require('./standard/variable-unit-replacement')
 
 /**
- * Generates the mutations and saves them to report.
- * @param {*} file the path of the smart contract to be mutated
- * @param {*} source the content of the smart contract to be mutated
- * @param {*} visit the visitor
- * @param {*} overwrite  overwrite the generated mutation reports
- * @returns 
+ * MutationGenerator manages and applies mutation operators to smart contracts,
+ * generating mutants based on enabled mutation configurations.
  */
-MutationOperators.prototype.getMutations = function (file, source, visit, overwrite) {
-  let mutations = []
-  const fileString = "\n Mutants generated for file: " + file + ": \n";
-  var mutantString = "";
+class MutationGenerator {
 
-  for (const operator of this.operators) {
+   /**
+   * Constructs a MutationGenerator instance.
+   * @param {Array<object>} operators - Array of mutation operator instances.
+   */
+  constructor(operators) {
+    this.operators = operators;
+  }
+   /**
+   * Applies enabled mutation operators to a smart contract.
+   * @param {string} file - Path to the contract source file.
+   * @param {string} source - Source code of the contract.
+   * @param {Function} visit - Visitor function for traversing the AST.
+   * @returns {Array<object>} - Array of generated mutation objects.
+   */
+  getMutations(file, source, visit) {
+    let mutations = [];
 
-    var enabled = Object.entries(mutOpsConfig)
-      .find(pair => pair[0] === operator.ID && pair[1] === true);
+    for (const operator of this.operators) {
 
-    if (enabled) {
-      var opMutations = operator.getMutations(file, source, visit);
-      if (overwrite) {
-        opMutations.forEach(m => {
-          mutantString = mutantString + "- Mutant " + m.hash() + " was generated by " + operator.ID + " (" + operator.name + "). \n";
-        });
+      var enabled = Object.entries(mutOpsConfig)
+        .find(pair => pair[0] === operator.ID && pair[1] === true);
+
+      if (enabled) {
+        var opMutations = operator.getMutations(file, source, visit);
+        mutations = mutations.concat(opMutations);
       }
-      mutations = mutations.concat(opMutations)
     }
+    return mutations;
   }
-  if (overwrite && mutantString != "") {
-    reporter.saveGeneratedMutants(fileString, mutantString);
-  }
-  return mutations
-}
+  /**
+   * Returns a formatted string listing all currently enabled mutation operators.
+   * Includes their IDs and readable names.
+   * @returns {string} - Formatted output of enabled mutation operators.
+   */
+  getEnabledOperators() {
+    var printString;
+    var enabled = Object.entries(mutOpsConfig)
+      .filter(pair => pair[1] === true);
 
-//Show information about enabled mutation operators
-MutationOperators.prototype.getEnabledOperators = function () {
-  var printString;
-  var enabled = Object.entries(mutOpsConfig)
-    .filter(pair => pair[1] === true);
+    if (enabled.length > 0) {
+      //Print enabled operators info
+      printString = chalk.bold("\nEnabled Mutation Operators:\n\n");
 
-  if (enabled.length > 0) {
-    //Print enabled operators info
-    printString = chalk.bold("\nEnabled Mutation Operators:\n\n");
-
-    for (const entry of enabled) {
-      for (let i = 0; i < this.operators.length; i++) {
-        const operator = this.operators[i];
-        if (operator.ID === entry[0]) {
-          printString = printString + "> " + chalk.bold.yellow(operator.ID) + " (" + operator.name + ") \n"
-          break;
+      for (const entry of enabled) {
+        for (let i = 0; i < this.operators.length; i++) {
+          const operator = this.operators[i];
+          if (operator.ID === entry[0]) {
+            printString = printString + "> " + chalk.bold.yellow(operator.ID) + " (" + operator.name + ") \n";
+            break;
+          }
         }
       }
+    } else {
+      printString = chalk.red("Warning: No mutation operators enabled.\n");
     }
-  } else {
-    printString = chalk.red("Warning: No mutation operators enabled.\n");
+    return printString;
   }
-  return printString
-}
+ /**
+   * Enables a specific mutation operator by its ID.
+   * Updates the mutation operator config file accordingly.
+   * @param {string} ID - Mutation operator ID to enable.
+   * @returns {boolean} - True if enabled successfully, false if ID not found.
+   */
+  enable(ID) {
+    var exists = Object.entries(mutOpsConfig)
+      .find(pair => pair[0] === ID);
 
-
-/**
- * Enables a mutation operator by ID
- * @param {*} ID the operator ID
- * @returns success status
- */
-MutationOperators.prototype.enable = function (ID) {
-  var exists = Object.entries(mutOpsConfig)
-    .find(pair => pair[0] === ID);
-
-  if (exists) {
-    mutOpsConfig[ID] = true;
+    if (exists) {
+      mutOpsConfig[ID] = true;
+      fs.writeFileSync(mutOpsConfigPath, JSON.stringify(mutOpsConfig, null, 2), function writeJSON(err) {
+        if (err) return console.log(err);
+      });
+      return true;
+    }
+    return false;
+  }
+   /**
+   * Enables all mutation operators listed in the configuration.
+   * Updates the config file to reflect changes.
+   * @returns {boolean} - True if successful, false otherwise.
+   */
+  enableAll() {
+    Object.entries(mutOpsConfig).forEach(pair => {
+      mutOpsConfig[pair[0]] = true;
+    });
     fs.writeFileSync(mutOpsConfigPath, JSON.stringify(mutOpsConfig, null, 2), function writeJSON(err) {
-      if (err) return console.log(err);
+      if (err) return false;
     });
     return true;
   }
-  return false;
-}
+  /**
+   * Disables a specific mutation operator by its ID.
+   * Updates the mutation operator config file accordingly.
+   * @param {string} ID - Mutation operator ID to disable.
+   * @returns {boolean} - True if disabled successfully, false if ID not found.
+   */
+  disable(ID) {
+    var exists = Object.entries(mutOpsConfig)
+      .find(pair => pair[0] === ID);
 
-//Enables all mutation operators
-MutationOperators.prototype.enableAll = function () {
-  Object.entries(mutOpsConfig).forEach(pair => {
-    mutOpsConfig[pair[0]] = true;
-  });
-  fs.writeFileSync(mutOpsConfigPath, JSON.stringify(mutOpsConfig, null, 2), function writeJSON(err) {
-    if (err) return false;
-  });
-  return true
-}
-
-/**
- * Disables a mutation operator by ID
- * @param {*} ID the operator ID
- * @returns success status
- */
-MutationOperators.prototype.disable = function (ID) {
-  var exists = Object.entries(mutOpsConfig)
-    .find(pair => pair[0] === ID);
-
-  if (exists) {
-    mutOpsConfig[ID] = false;
+    if (exists) {
+      mutOpsConfig[ID] = false;
+      fs.writeFileSync(mutOpsConfigPath, JSON.stringify(mutOpsConfig, null, 2), function writeJSON(err) {
+        if (err) return console.log(err);
+      });
+      return true;
+    }
+    return false;
+  }
+   /**
+   * Disables all mutation operators listed in the configuration.
+   * Updates the config file to reflect changes.
+   * @returns {boolean} - True if successful, false otherwise.
+   */
+  disableAll() {
+    Object.entries(mutOpsConfig).forEach(pair => {
+      mutOpsConfig[pair[0]] = false;
+    });
     fs.writeFileSync(mutOpsConfigPath, JSON.stringify(mutOpsConfig, null, 2), function writeJSON(err) {
-      if (err) return console.log(err);
+      if (err) return false;
     });
     return true;
   }
-  return false;
 }
-
-//Disables all mutation operators
-MutationOperators.prototype.disableAll = function () {
-  Object.entries(mutOpsConfig).forEach(pair => {
-    mutOpsConfig[pair[0]] = false;
-  });
-  fs.writeFileSync(mutOpsConfigPath, JSON.stringify(mutOpsConfig, null, 2), function writeJSON(err) {
-    if (err) return false;
-  });
-  return true
-}
-
 module.exports = {
   ACMOperator: ACMOperator,
   AOROperator: AOROperator,
@@ -225,36 +214,30 @@ module.exports = {
   DODOperator: DODOperator,
   ECSOperator: ECSOperator,
   EEDOperator: EEDOperator,
-  EHCOperator: EHCOperator,
+  EHDOperator: EHDOperator,
   EROperator: EROperator,
   ETROperator: ETROperator,
+  FCDOperator: FCDOperator,
   FVROperator: FVROperator,
   GVROperator: GVROperator,
   HLROperator: HLROperator,
-  ICMOperator: ICMOperator,
   ILROperator: ILROperator,
   LSCOperator: LSCOperator,
   MCROperator: MCROperator,
-  MOCOperator: MOCOperator,
   MODOperator: MODOperator,
   MOIOperator: MOIOperator,
-  MOROperator: MOROperator,
   OLFDOperator: OLFDOperator,
   OMDOperator: OMDOperator,
   ORFDOperator: ORFDOperator,
   PKDOperator: PKDOperator,
   RSDOperator: RSDOperator,
   RVSOperator: RVSOperator,
-  SCECOperator: SCECOperator,
-  SFDOperator: SFDOperator,
-  SFIOperator: SFIOperator,
-  SFROperator: SFROperator,
-  SKDOperator: SKDOperator,
-  SKIOperator: SKIOperator,
+  SCDOperator: SCDOperator,
+  SKROperator: SKROperator,
   SLROperator: SLROperator,
   TOROperator: TOROperator,
   UORDOperator: UORDOperator,
   VUROperator: VUROperator,
   VVROperator: VVROperator,
-  MutationOperators: MutationOperators,
+  MutationGenerator: MutationGenerator,
 }

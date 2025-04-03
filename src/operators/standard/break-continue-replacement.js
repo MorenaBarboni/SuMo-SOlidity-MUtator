@@ -1,40 +1,53 @@
+const contextChecker = require("../contextChecker");
 const Mutation = require("../../mutation");
 
-function BCRDOperator() {
-  this.ID = "BCRD";
-  this.name = "break-continue-replacement-deletion";
-}
+class BCRDOperator {
+  constructor() {
+    this.ID = "BCRD";
+    this.name = "break-continue-replacement-deletion";
+  }
 
-BCRDOperator.prototype.getMutations = function(file, source, visit) {
-  const mutations = [];
+  getMutations(file, source, visit) {
+    const mutations = [];
 
-  visit({
-    BreakStatement: (node) => {
-      var start = node.range[0];
-      var end = node.range[1];
-      const startLine =  node.loc.start.line;
-      const endLine =  node.loc.end.line;
-      const original = source.slice(start, end)
-
-      mutations.push(new Mutation(file, start, end, startLine, endLine, original, "continue", this.ID));
-      mutations.push(new Mutation(file, start, end + 1, startLine, endLine, original, "", this.ID));
-
-    }
-  }),
     visit({
+      BreakStatement: (node) => {
+        const { range, loc } = node;
+        const start = range[0];
+        const end = range[1];
+        const startLine = loc.start.line;
+        const endLine = loc.end.line;
+        const functionName = contextChecker.getFunctionName(visit,startLine,endLine);
+        const original = source.slice(start, end);
+        pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, "continue", this.ID));
+        pushMutation(new Mutation(file, functionName, start, end + 1, startLine, endLine, original, "", this.ID));
+      },
       ContinueStatement: (node) => {
-        var start = node.range[0];
-        var end = node.range[1];
-        const startLine =  node.loc.start.line;
-        const endLine =  node.loc.end.line;
-        const original = source.slice(start, end)
+        const { range, loc } = node;
+        const start = range[0];
+        const end = range[1];
+        const startLine = loc.start.line;
+        const endLine = loc.end.line;
+        const functionName = contextChecker.getFunctionName(visit,startLine,endLine);
+        const original = source.slice(start, end);
 
-        mutations.push(new Mutation(file, start, end, startLine, endLine, original, "break", this.ID));
-        mutations.push(new Mutation(file, start, end + 1, startLine, endLine, original, "", this.ID));
+        pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, "break", this.ID));
+        pushMutation(new Mutation(file, functionName, start, end + 1, startLine, endLine, original, "", this.ID));
       }
     });
 
-  return mutations;
-};
+    /**
+     * Push a mutation to the generated mutations list
+     * @param {Object} mutation the mutation
+    */
+    function pushMutation(mutation) {
+      if (!mutations.find(m => m.id === mutation.id)) {
+        mutations.push(mutation);
+      }
+    }
+    return mutations;
+  }
+}
+
 
 module.exports = BCRDOperator;

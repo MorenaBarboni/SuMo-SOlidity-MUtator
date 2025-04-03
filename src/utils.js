@@ -1,33 +1,39 @@
-const fs = require("fs");
-const os = require("os");
+// External modules
+const appRoot = require('app-root-path');
 const chalk = require('chalk')
-const rimraf = require('rimraf')
+const fs = require("fs");
 const fsExtra = require("fs-extra");
 const glob = require("glob");
+const os = require("os");
 const path = require("path");
-const appRoot = require('app-root-path');
+const rimraf = require('rimraf');
+// SuMo configuration
 const rootDir = appRoot.toString().replaceAll("\\", "/");
+const libSumoDir = path.dirname(require.resolve('@morenabarboni/sumo'));
 const sumoConfig = require(rootDir + "/sumo-config");
 
-//Static configuration
-const config = {
+const staticConf = {
   sumoDir: rootDir + "/sumo",
   sumoInstallPath: rootDir + "/node_modules/@morenabarboni/sumo",
-  mutantsDir: rootDir + "/sumo/results/mutants",
-  reportTxt: rootDir + "/sumo/results/sumo-log.txt",
-  resultsDir: rootDir + "/sumo/results",
   baselineDir: rootDir + "/sumo/baseline",
-  mutOpsConfig: rootDir + "/node_modules/@morenabarboni/sumo/src/operators.config.json",
+  historyDir: rootDir + "/sumo/history",
+  mutantsDir: rootDir + "/sumo/results/mutants",
+  reportHtmlDir: libSumoDir + "/src/report-html",
+  resultsDir: rootDir + "/sumo/results",
+  mutationsJsonPath: rootDir + "/sumo/results/mutations.json",
+  mutOpsConfigPath: libSumoDir + "/src/operators.config.json",
+  sumoLogTxtPath: rootDir + "/sumo/results/sumo-log.txt",
   contractsGlob: '/**/*.sol',
+  testsGlob: '/**/*.{js,sol,ts,py}',
   packageManagerGlob: ['/package-lock.json', '/yarn.lock'],
-  testsGlob: '/**/*.{js,mjs,sol,ts,py}',
+  testingFrameworkGlob: ['/truffle-config.js', '/hardhat.config.js', '/hardhat.config.ts', '/foundry.toml', '/brownie-config.yaml'],
 }
 
 /**
  * Prepares the results directory
  */
 function setupResultsDir() {
-  let resultDirs = [config.resultsDir, config.mutantsDir];
+  let resultDirs = [staticConf.resultsDir, staticConf.mutantsDir];
   resultDirs.forEach(dir => {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir);
@@ -42,10 +48,10 @@ function restore() {
   const contractsDir = getContractsDir();
   const testDir = getTestDir();
 
-  if (fs.existsSync(config.baselineDir)) {
+  if (fs.existsSync(staticConf.baselineDir)) {
 
     //Restore contracts
-    glob(config.baselineDir + '/contracts' + config.contractsGlob, (err, files) => {
+    glob(staticConf.baselineDir + '/contracts' + staticConf.contractsGlob, (err, files) => {
       if (err) throw err;
 
       for (const file of files) {
@@ -62,7 +68,7 @@ function restore() {
     });
 
     //Restore tests
-    glob(config.baselineDir + '/test' + config.testsGlob, (err, files) => {
+    glob(staticConf.baselineDir + '/test' + staticConf.testsGlob, (err, files) => {
       if (err) throw err;
 
       for (const file of files) {
@@ -87,18 +93,19 @@ function restore() {
 /**
  * Cleans the build dir
  */
-function cleanBuildDir() {
-  const buildDir = getBuildDir();
-  fsExtra.emptyDirSync(buildDir);
-  console.log("Build directory cleaned");
+function cleanBuildDir(buildDirPath) {
+  if (fs.existsSync(buildDirPath)) {
+    fsExtra.emptyDirSync(buildDirPath);
+    console.log("Build directory cleaned");
+  }
 }
 
 /**
  * Cleans the results dir
  */
 function cleanResultsDir() {
-  if (fs.existsSync(config.resultsDir)) {
-    fsExtra.emptyDirSync(config.resultsDir);
+  if (fs.existsSync(staticConf.resultsDir)) {
+    fsExtra.emptyDirSync(staticConf.resultsDir);
     console.log("Results directory cleaned\n");
     setupResultsDir();
   }
@@ -122,34 +129,114 @@ function cleanTmp() {
   console.log("Ganache killed and temp files deleted\n");
 }
 
-//Checks the package manager used by the SUT
+/**
+ * Checks the package manager used by the System Under Test (SUT).
+ * @returns {string} The detected package manager ('npm' or 'yarn').
+ * @throws {Error} When a valid package manager cannot be detected.
+ */
 function getPackageManager() {
   let packageManager = null;
 
-  for (const lockFile of config.packageManagerGlob) {
+  for (const lockFile of staticConf.packageManagerGlob) {
     if (fs.existsSync(rootDir + lockFile)) {
-      if (lockFile.includes("yarn")) {
-        packageManager = "yarn";
-      } else {
-        packageManager = "npm";
-      }
+      packageManager = lockFile.includes("yarn") ? "yarn" : "npm";
       break;
     }
   }
   if (packageManager === null) {
-    console.error(chalk.red("Error: Cannot detect used package manager (the project does not include a valid lock file)."));
-    process.exit(1);
+    throw new Error(`Error: Cannot detect used package manager (the project does not include a valid lock file).`);
   }
   return packageManager;
 }
 
 /**
- * Get the contracts directory
+ * Checks the testing framework used by the SUT. If a testing framework is specified in the sumo-config.js, only 
+ * that framework will be used. If "auto" is specified, SuMo will looks for the test configuration files to determine
+ * which frameworks should be used. In case multiple config files are present, both frameworks will be used.
+ * @returns {string[]} An array containing the detected testing framework(s).
+ * @throws {Error} When a valid testing framework cannot be detected.
+ */
+function getTestingFrameworks() {
+  const sumoConfigTestingFramework = sumoConfig.testingFramework;
+  const validTestingFrameworks = ['auto', 'truffle', 'hardhat', 'forge', 'brownie', 'custom'];
+
+  if (!sumoConfigTestingFramework || sumoConfigTestingFramework === null || sumoConfigTestingFramework === undefined || sumoConfigTestingFramework === "") {
+    throw Error(chalk.red("Your sumo-config.js is incomplete: 'testingFramework' field missing"))
+  }
+
+  let detectedFrameworks = [];
+
+  //User-specified testing framework
+  if (sumoConfigTestingFramework !== "auto") {
+    if (validTestingFrameworks.includes(sumoConfigTestingFramework)) {
+      detectedFrameworks.push(sumoConfigTestingFramework);
+    } else {
+      throw new Error(`Unsupported testing framework "${sumoConfigTestingFramework}".`);
+    }
+  }
+  //Auto testing framework
+  else {
+    for (const testConfigFile of staticConf.testingFrameworkGlob) {
+      if (fs.existsSync(rootDir + testConfigFile)) {
+        if (testConfigFile.includes("truffle")) { detectedFrameworks.push("truffle"); }
+        else if (testConfigFile.includes("hardhat")) { detectedFrameworks.push("hardhat"); }
+        else if (testConfigFile.includes("foundry")) { detectedFrameworks.push("forge"); }
+        else if (testConfigFile.includes("brownie")) { detectedFrameworks.push("brownie"); }
+      }
+    }
+  }
+  //Prioritize frameworks so that the same framework is always used for compilation.
+  if (detectedFrameworks.length > 1) {
+    detectedFrameworks.sort((a, b) => b.localeCompare(a));
+  }
+  if (detectedFrameworks.length === 0) {
+    throw new Error(chalk.red(`Cannot automatically detect testing framework used in: ${rootDir}. You can either:\n- Add a valid test configuration file (e.g., foundry.toml) to your workspace and try again, or\n- Specify a valid testing framework in your sumo-config.js`));
+  }
+  return detectedFrameworks;
+}
+
+/**
+ * Selects the test files that can be executed by a specific testing framework
+ * based on their extension.  
+ * @param {string} testingFramework The testing framework
+ * @param {string[]} testFiles The list of test files
+ * @returns {string[]} Test files executable by testingFramework
+ * @throws {Error} If invalid input parameters are provided or an unsupported testing framework is specified
+ */
+function getTestsForFramework(testingFramework, testFiles) {
+  if (!testingFramework || !testFiles) { throw new Error("Error: Invalid input parameters."); }
+
+  let testFilesForFramework;
+
+  switch (testingFramework) {
+    case 'hardhat':
+    case 'truffle':
+      testFilesForFramework = testFiles.filter(file => file.endsWith('.js') || file.endsWith('.ts') || (file.endsWith('.sol') && !file.endsWith('.t.sol')));
+      break;
+    case 'brownie':
+      testFilesForFramework = testFiles.filter(file => file.endsWith('.py') && (file.includes('test_') || file.includes('_test')));
+      break;
+    case 'forge':
+      testFilesForFramework = testFiles.filter(file => file.endsWith('.t.sol'));
+      break;
+    default: throw new Error(`Error: Unsupported testing framework "${testingFramework}".`);
+  }
+  return testFilesForFramework;
+}
+
+/**
+ * Get the SUT's contracts directory
  * @returns the path of the contracts directory
  */
 function getContractsDir() {
+  const sumoConfigContractsDir = sumoConfig.contractsDir;
+
+  if (!sumoConfigContractsDir || sumoConfigContractsDir === null || sumoConfigContractsDir === undefined || sumoConfigContractsDir === "") {
+    throw Error(chalk.red("Error: sumo-config.js is incomplete: 'contractsDir' field missing"))
+  }
+
   const validContractsDirs = [
-    sumoConfig.contractsDir && sumoConfig.contractsDir !== '' ? "/" + sumoConfig.contractsDir : null,
+    sumoConfigContractsDir && sumoConfigContractsDir !== "auto" ? "/" + sumoConfigContractsDir : null,
     "/contracts",
     "/src"
   ];
@@ -168,12 +255,18 @@ function getContractsDir() {
 }
 
 /**
- * Get the test directory
+ * Get the SUT's test directory
  * @returns the path of the test directory
  */
 function getTestDir() {
+  const sumoConfigTestDir = sumoConfig.testDir;
+
+  if (!sumoConfigTestDir || sumoConfigTestDir === null || sumoConfigTestDir === undefined || sumoConfigTestDir === "") {
+    throw Error(chalk.red("Error: sumo-config.js is incomplete: 'testDir' field missing"))
+  }
+
   const validTestDirs = [
-    sumoConfig.testDir && sumoConfig.testDir !== '' ? "/" + sumoConfig.testDir : null,
+    sumoConfigTestDir && sumoConfigTestDir !== "auto" ? "/" + sumoConfigTestDir : null,
     "/test",
     "/tests"
   ];
@@ -191,47 +284,276 @@ function getTestDir() {
   }
 }
 
-
-
 /**
- * Get the build directory
+ * Get the SUT's build directory for the specific testing framework. 
+ * If buildDir is defined in the sumo-config.js, buildDir is returned.
+ * Otherwise, it looks for a valid buildDir in the framework's configuration file.
+ * If none is available, it looks for conventional build dir paths.
+ * @param {string} testingFramework - The testing framework
  * @returns the path of the build directory
  */
-function getBuildDir() {
-  const validBuildDirs = [
-    sumoConfig.buildDir && sumoConfig.buildDir !== '' ? "/" + sumoConfig.buildDir : null,
-    "/build/artifacts/contracts",
-    "/build/artifacts",
-    "/build",
-    "/output",
-    "/out",
-    "/artifacts/contracts",
-    "/artifacts"
-  ];
+function getBuildDir(testingFramework) {
+  let buildDir = null;
 
-  const foundDir = validBuildDirs.find(dir => {
-    const fullPath = rootDir + dir;
-    return dir && dir.replace(/\s/g, "") !== "" && fs.existsSync(fullPath);
-  });
+  //User-defined build-dir
+  if (sumoConfig.buildDir !== null && sumoConfig.buildDir !== undefined
+    && sumoConfig.buildDir !== "auto" && sumoConfig.buildDir !== "") {
+    buildDir = sumoConfig.buildDir;
+  }
+  //Framework-Config specified build dir
+  else if (sumoConfig.buildDir === "auto") {
+    if (testingFramework === "custom") {
+      throw new Error(chalk.red("You are using a custom test script: please specify a buildDir in your sumo-config.js"));
+    } else {
+      let validBuildDirs = [];
+      let buildPathMatch;
+      const frameworkConfigFileContent = readTestConfigFile(testingFramework);
 
-  if (foundDir) {
-    return rootDir + foundDir;
-  } else {
-    console.error(chalk.red("Error: No valid build directory found in " + rootDir + ".\nPlease compile your contracts and/or specify a build directory in your sumo-config.js"));
+      switch (testingFramework) {
+        case "hardhat":
+          if (frameworkConfigFileContent !== null) { buildPathMatch = frameworkConfigFileContent.match(/artifacts\s*:\s*['"](.*?)['"]/); }
+          validBuildDirs.push("build/artifacts/contracts", "build/artifacts", "artifacts/contracts", "build", "artifacts")
+          break;
+        case "forge":
+          if (frameworkConfigFileContent !== null) { buildPathMatch = frameworkConfigFileContent.match(/out\s*=\s*'([^']+)'/); }
+          validBuildDirs.push("out", "output", "forge-artifacts")
+          break;
+        case "truffle":
+          if (frameworkConfigFileContent !== null) { buildPathMatch = frameworkConfigFileContent.match(/contracts_build_directory\s*:\s*['"](.*?)['"]/); }
+          validBuildDirs.push("build/artifacts/contracts", "build/artifacts", "artifacts/contracts", "build", "artifacts", "output")
+          break;
+        case "brownie":
+          if (frameworkConfigFileContent !== null) { buildPathMatch = frameworkConfigFileContent.match(/build:\s+(\w+)/); }
+          validBuildDirs.push("build/artifacts/contracts", "build/artifacts", "build")
+          break;
+        default: throw new Error(chalk.red(`Unsupported testing framework "${testingFramework}".`));
+      }
+
+      //If the buld dir is found in the test config file, assign it
+      let testConfigBuildDir = buildPathMatch ? buildPathMatch[1] : null;
+      if (testConfigBuildDir !== null) { validBuildDirs.unshift(testConfigBuildDir); }
+
+      //Search for existing build dir
+      buildDir = validBuildDirs.find(dir => {
+        const fullPath = rootDir + "/" + dir;
+        return dir && dir.replace(/\s/g, "") !== "" && fs.existsSync(fullPath);
+      });
+    }
+  }
+  if (buildDir === null || buildDir === undefined) {
+    console.error(chalk.red("Error: No valid " + chalk.underline(testingFramework) + " build directory found in " + rootDir + ".\nPlease compile your contracts and/or specify a valid build directory for " + testingFramework + " in your sumo-config.js"));
     process.exit(1);
+  }
+  else {
+    if (fs.existsSync(rootDir + "/" + buildDir)) {
+      return rootDir + "/" + buildDir;
+    } else {
+      console.error(chalk.red("Error: Build directory " + rootDir + "/" + buildDir + " does not exist.\nPlease compile your contracts and/or specify a valid build directory for " + testingFramework + " in your sumo-config.js"));
+      process.exit(1);
+    }
   }
 }
 
+/**
+ * Get the list of of paths to test files/folders to be skipped from the sumo-config.js
+ * @returns the array of paths to test files/folders to be skipped
+ * @throws Error if the skipTests field is missing
+ */
+function getSkipTests() {
+  if (sumoConfig.skipTests === null || sumoConfig.skipTests === undefined || !sumoConfig.skipTests) {
+    throw Error(chalk.red("Your sumo-config.js is incomplete: 'skipTests' field missing"));
+  }
+  return sumoConfig.skipTests;
+}
+
+/**
+ * Get the list of paths to contract files/folders to be skipped from the sumo-config.js
+ * @returns the array of paths to contract files/folders to be skipped
+ * @throws Error if the skipContracts field is missing
+ */
+function getSkipContracts() {
+  if (!sumoConfig.skipContracts || sumoConfig.skipContracts === null || sumoConfig.skipContracts === undefined) {
+    throw Error(chalk.red("Your sumo-config.js is incomplete: 'skipContracts' field missing"));
+  }
+  return sumoConfig.skipContracts;
+}
+
+/**
+ * Get the minimalOperators option from the sumo-config.js
+ * @returns the minimalOperators option from the sumo-config.js
+ * @throws Error if the minimalOperators field is missing
+ */
+function getMinimalOperators() {
+  if (sumoConfig.minimalOperators === null || sumoConfig.minimalOperators === undefined) {
+    throw Error(chalk.red("Your sumo-config.js is incomplete: 'minimalOperators' field missing"));
+  }
+  return sumoConfig.minimalOperators;
+}
+
+/**
+ * Get the randomSampling option from the sumo-config.js
+ * @returns the randomSampling option from the sumo-config.js
+ * @throws Error if the randomSampling field is missing
+ */
+function getRandomSampling() {
+  if (sumoConfig.randomSampling === null || sumoConfig.randomSampling === undefined) {
+    throw Error(chalk.red("Your sumo-config.js is incomplete: 'randomSampling' field missing"));
+  }
+  return sumoConfig.randomSampling;
+}
+
+/**
+ * Get the randomMutants option from the sumo-config.js
+ * @returns the randomMutants option from the sumo-config.js
+ * @throws Error if the randomMutants field is missing
+ */
+function getRandomMutants() {
+  if (sumoConfig.randomMutants === null || sumoConfig.randomMutants === undefined) {
+    throw Error(chalk.red("Your sumo-config.js is incomplete: 'randomMutants' field missing"));
+  }
+  return sumoConfig.randomMutants;
+}
+
+
+/**
+ * Get the testing timeout in seconds from the sumo-config.js
+ * @returns the testingTimeOutInSec
+ * @throws Error if the testingTimeOutInSec field is missing
+ */
+function getTestingTimeout() {
+  if (sumoConfig.testingTimeOutInSec === null || sumoConfig.testingTimeOutInSec === undefined
+    || !sumoConfig.testingTimeOutInSec) {
+    throw Error(chalk.red("Your sumo-config.js is incomplete: 'testingTimeOutInSec' field missing"));
+  }
+  return sumoConfig.testingTimeOutInSec;
+}
+
+/**
+ * Try to read a configuration file for a given testing framework
+ * @param {string} testingFramework - The testing framework
+ * @returns - the text content of the configuration file, or null if not found
+ */
+function readTestConfigFile(testingFramework) {
+  let configFilesGlob = testingFramework === "forge" ? staticConf.testingFrameworkGlob.filter(f => f.includes("foundry")) : staticConf.testingFrameworkGlob.filter(f => f.includes(testingFramework));
+  let fileContent = null;
+
+  for (let i = 0; i < configFilesGlob.length; i++) {
+    const configFile = configFilesGlob[i];
+    if (fs.existsSync(rootDir + '/' + configFile)) {
+      fileContent = fs.readFileSync(rootDir + '/' + configFile, 'utf-8');
+      break;
+    }
+  }
+  return fileContent;
+}
+
+/**
+ * Gets the diff between two strings
+ * @param {String} str1 the first string
+ * @param {String} str2 the second string    
+ * @returns the diff between str1 and str2.
+ */
+function getStringDiff(str1, str2) {
+  // Split both strings into arrays of words
+  const words1 = str1.trim().split(/\s+/);
+  const words2 = str2.trim().split(/\s+/);
+
+  // Initialize indexes to compare from start and end
+  let start = 0;
+  let end1 = words1.length - 1;
+  let end2 = words2.length - 1;
+
+  // Find the first index where words differ from the start
+  while (start <= end1 && start <= end2 && words1[start] === words2[start]) {
+    start++;
+  }
+
+  // Find the last index where words differ from the end
+  while (end1 >= start && end2 >= start && words1[end1] === words2[end2]) {
+    end1--;
+    end2--;
+  }
+
+  // Collect the differing words from the first differing index to the last differing index
+  const diffFromFirst = words1.slice(start, end1 + 1).join(' ');
+  const diffFromSecond = words2.slice(start, end2 + 1).join(' ');
+
+  // Determine which difference to return based on which one is not empty
+  if (diffFromFirst.length > 0) {
+    return diffFromFirst;
+  } else {
+    return diffFromSecond;
+  }
+}
+
+/**
+ * Convert Window path to Unix path
+ * @param path - Path to convert
+ * @returns Converted path if OS is Windows, otherwise same path without changes
+ */
+function win32PathConverter(path) {
+  if (process.platform === "win32") {
+    if (path.charAt(0) === '/' || path.charAt(0) === '\\') {
+      path = path.substring(process.platform === "win32" ? 1 : 0);
+      path = path.charAt(0).toLowerCase() + path.slice(1);
+    }
+    return path.replace(/[\\/]+/g, '/');
+  } else {
+    return path;
+  }
+}
+
+/**
+ * Reads a JSON file synchronously and parses its content.
+ * @param {string} filePath - The path to the JSON file.
+ * @returns {Object|null} The parsed JSON data, or null if an error occurs.
+ */
+function readJSONFile(filePath) {
+  let jsonData;
+  try {
+    const data = fs.readFileSync(filePath, 'utf8');
+    jsonData = JSON.parse(data);
+  } catch (err) {
+    console.error('Error reading or parsing the file:', err);
+  }
+  return jsonData;
+}
+
+/**
+ * Deletes a JSON file synchronously.
+ * @param {string} filePath - The path to the JSON file.
+ */
+function deleteJSONFile(filePath) {
+  try {
+    // Delete the file
+    fs.unlinkSync(filePath);
+    //console.log('File deleted successfully');
+  } catch (err) {
+    console.error('Error deleting the file:', err);
+  }
+}
 
 module.exports = {
-  getBuildDir: getBuildDir,
-  getTestDir: getTestDir,
-  getContractsDir: getContractsDir,
-  setupResultsDir: setupResultsDir,
-  restore: restore,
+  staticConf: staticConf,
   cleanBuildDir: cleanBuildDir,
   cleanResultsDir: cleanResultsDir,
   cleanTmp: cleanTmp,
+  deleteJSONFile: deleteJSONFile,
+  getBuildDir: getBuildDir,
+  getContractsDir: getContractsDir,
+  getMinimalOperators: getMinimalOperators,
   getPackageManager: getPackageManager,
-  config: config
+  getRandomMutants: getRandomMutants,
+  getRandomSampling: getRandomSampling,
+  getSkipContracts: getSkipContracts,
+  getSkipTests: getSkipTests,
+  getStringDiff: getStringDiff,
+  getTestDir: getTestDir,
+  getTestingFrameworks: getTestingFrameworks,
+  getTestsForFramework: getTestsForFramework,
+  getTestingTimeout: getTestingTimeout,
+  readJSONFile: readJSONFile,
+  restore: restore,
+  setupResultsDir: setupResultsDir,
+  win32PathConverter: win32PathConverter
 };

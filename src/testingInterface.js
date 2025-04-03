@@ -1,114 +1,112 @@
+// External modules
 const appRoot = require('app-root-path');
 const chalk = require('chalk')
+const { spawnSync } = require("child_process");
+// Internal modules
 const utils = require('./utils')
-const { spawnSync, spawn } = require("child_process");
-const rootDir = appRoot.toString().replaceAll("\\", "/");
-const sumoConfig = require(rootDir + "/sumo-config");
-
-const testingTimeOutInSec = sumoConfig.testingTimeOutInSec
+const rootDir = utils.win32PathConverter(appRoot.toString());
 
 /**
-* Spawns a new compile process through the interface provided by the connected testing framework 
-* @param packageManager The package manager used within the SUT (npm or yarn)
-*/
-function spawnCompile(packageManager) {
-  let compileChild;
-  const testingFramework = sumoConfig.testingFramework;
-  const execute = (packageManager === "npm") ? "npx" : "yarn";
-  const executeCmd = (process.platform === "win32") ? execute + ".cmd" : execute;
+ * Spawns a new compile process through the interface provided by the connected testing framework 
+ * If multiple testing frameworks are specified, the compilation is defaulted to the first one
+ * @param {string[]} testingFrameworks - The list of testing frameworks used within the SUT
+ * @returns {boolean} Indicates whether the compilation process succeeded (true) or failed (false)
+ * @throws {Error} If an invalid testing framework is selected or if there's an issue during the compilation
+ */
+function spawnCompile(testingFrameworks) {
 
-  //Truffle
-  if (testingFramework === "truffle") {
-    compileChild = spawnSync(executeCmd, ["truffle", "compile"], { stdio: "inherit", cwd: rootDir });
+  if (!testingFrameworks || testingFrameworks.length === 0) {
+    throw new Error("Error: Invalid input parameters for the compilation process.");
   }
-  //Hardhat
-  else if (testingFramework === "hardhat") {
-    compileChild = spawnSync(executeCmd, ["hardhat", "compile"], { stdio: "inherit", cwd: rootDir });
+
+  const packageManager = utils.getPackageManager();
+
+  let compileChild;
+
+  //npx or yarn (.cmd if win32)
+  const packageRunner = (packageManager === "npm") ? "npx" : "yarn";
+  const packageRunnerCmd = (process.platform === "win32") ? packageRunner + ".cmd" : packageRunner;
+
+  //npm run-script or yarn run (.cmd if win32)
+  const packageManagerCmd = (process.platform === "win32") ? packageManager + ".cmd" : packageManager;
+  const runScriptCmd = (packageManager === "npm") ? "run-script" : "run";
+
+  let compileCommand;
+
+  switch (testingFrameworks[0]) {
+    case "hardhat": compileCommand = packageRunnerCmd + " hardhat compile";
+      break;
+    case "brownie": compileCommand = "brownie compile";
+      break;
+    case "forge": compileCommand = "forge build";
+      break;
+    case "custom": compileCommand = packageManagerCmd + " " + runScriptCmd + " compile";
+      break;
+    default: throw new Error(`Error: Unsupported testing framework "${testingFrameworks[0]}".`);
   }
-  //Brownie
-  else if (testingFramework === "brownie") {
-    compileChild = spawnSync("brownie", ["compile"], { stdio: "inherit", cwd: rootDir });
-  }
-  //Forge
-  else if (testingFramework === "forge") {
-    compileChild = spawnSync(testingFramework, ["build"], { stdio: "inherit", cwd: rootDir });
-  }
-  //Custom
-  else if (testingFramework === "custom") {
-    const run = (packageManager === "npm") ? "run-script" : "run";
-    const packageManagerCmd = (process.platform === "win32") ? packageManager + ".cmd" : packageManager;
-    compileChild = spawnSync(packageManagerCmd, [run, "compile"], { stdio: "inherit", cwd: rootDir });
-  } else {
-    console.log(chalk.red("Error: The selected testing framework is not valid."));
-    process.exit(1);
-  }
+
+  //Spawn compile command
+  console.log(chalk.dim(compileCommand));
+  compileChild = spawnSync(compileCommand, { stdio: "inherit", shell: true, cwd: rootDir });
+
   return compileChild.status === 0;
 }
 
 /**
-* Spawns a new test process through the interface provided by the connected testing framework 
-* @param packageManager The package manager used within the SUT (npm or yarn)
-*/
-function spawnTest(packageManager, testFiles) {
+ * Spawns a new test process through the interface provided by the connected testing framework 
+ * If multiple testing frameworks are specified, it builds a hybrid test script
+ * @param {string[]} testingFrameworks The list of testing framework(s) used within the SUT
+ * @param {string[]} testFiles The list of test files to be run
+ * @param {number} [testingTimeOutInSec=500] The timeout duration for the testing process in seconds retrieved from the sumo-config
+ * @returns {number} Status code indicating the result of the testing process
+ * @throws {Error} If an invalid testing framework is selected or if there's an issue during the testing process
+ */
+function spawnTest(testingFrameworks, testFiles) {
 
-  let testChild;
-  const testingFramework = sumoConfig.testingFramework;
-  const skipTests = sumoConfig.skipTests;
-  const execute = (packageManager === "npm") ? "npx" : "yarn";
-  const executeCmd = (process.platform === "win32") ? execute + ".cmd" : execute;
+  if (!testingFrameworks || testingFrameworks.length === 0) {
+    throw new Error("Error: Invalid input parameters for the testing process.");
+  }
 
-  //Truffle
-  if (testingFramework === "truffle") {
-    if (skipTests.length === 0) {
-      testChild = spawnSync(executeCmd, ["truffle", "test", "-b"], { stdio: "inherit", cwd: rootDir, timeout: testingTimeOutInSec * 1000 });
-    } else {
-      testChild = spawnSync(executeCmd, ["truffle", "test", "-b", ...testFiles], { stdio: "inherit", cwd: rootDir, timeout: testingTimeOutInSec * 1000 });
-    }
+  const packageManager = utils.getPackageManager();
+
+  //npx or yarn (.cmd if win32)
+  const packageRunner = (packageManager === "npm") ? "npx" : "yarn";
+  const packageRunnerCmd = (process.platform === "win32") ? packageRunner + ".cmd" : packageRunner;
+
+  //Build test script based on used testing frameworks
+  let testScript = buildTestScript(testingFrameworks, testFiles);
+  let testCommand;
+
+  //Hybrid
+  if (testingFrameworks.length > 1) {
+    //Append npx/yarn if script starts with hardhat
+    testCommand = (testScript.startsWith("hardhat")) ? `${packageRunnerCmd} ` + testScript : testScript;
   }
-  //Brownie
-  else if (testingFramework === "brownie") {
-    if (skipTests.length === 0) {
-      testChild = spawnSync("brownie", ["test", "--exitfirst"], { stdio: "inherit", cwd: rootDir, timeout: testingTimeOutInSec * 1000 });
-    } else {
-      testChild = spawnSync("brownie", ["test", ...testFiles, "--exitfirst"], { stdio: "inherit", cwd: rootDir, timeout: testingTimeOutInSec * 1000 });
-    }
+  //Hardhat-only
+  else if (testingFrameworks[0] === "hardhat") {
+    testCommand = `${packageRunnerCmd} ` + testScript;
   }
-  //Hardhat
-  else if (testingFramework === "hardhat") {
-    if (skipTests.length === 0) {
-      testChild = spawnSync(executeCmd, ["hardhat", "test", "--bail"], { stdio: "inherit", cwd: rootDir, timeout: testingTimeOutInSec * 1000 });
-    } else {
-      testChild = spawnSync(executeCmd, ["hardhat", "test", "--bail", ...testFiles], { stdio: "inherit", cwd: rootDir, timeout: testingTimeOutInSec * 1000 });
-    }
-  }
-  //Forge
-  else if (testingFramework === "forge") {
-    if (skipTests.length === 0) {
-      testChild = spawnSync("forge", ['t', '--fail-fast'], { stdio: "inherit", cwd: rootDir, timeout: testingTimeOutInSec * 1000 });
-    } else {
-      let relativeTestfiles = []
-      for (let i = 0; i < testFiles.length; i++) {
-        const tf = testFiles[i].split(rootDir + '/')[1];
-        relativeTestfiles.push(tf);
-      }
-      let arguments = "{" + relativeTestfiles.join() + '}';
-      testChild = spawnSync("forge", ['t', '--fail-fast', '--match-path', arguments], { stdio: "inherit", cwd: rootDir, timeout: testingTimeOutInSec * 1000 });
-    }
+  //Forge-only, Brownie-only
+  else if (testingFrameworks[0] === "forge" || testingFrameworks[0] === "brownie") {
+    testCommand = testScript;
   }
   //Custom
-  else if (testingFramework === "custom") {
+  else if (testingFrameworks.length === 1 && testingFrameworks[0] === "custom") {
     const run = (packageManager === "npm") ? "run-script" : "run";
     const packageManagerCmd = (process.platform === "win32") ? packageManager + ".cmd" : packageManager;
-    testChild = spawnSync(packageManagerCmd, [run, "test"], { stdio: "inherit", cwd: rootDir, timeout: (testingTimeOutInSec * 1000) });
+    testCommand = `${packageManagerCmd} ` + run + " test";
   }
   else {
-    console.log(chalk.red("Error: The selected testing framework is not valid."));
-    process.exit(1);
+    throw new Error("Error: The selected testing framework is not valid.");
   }
 
+  //Spawn test command
+  console.log(chalk.dim(testCommand))
+  const testChild = spawnSync(testCommand, { stdio: "inherit", shell: true, cwd: rootDir, timeout: utils.getTestingTimeout() * 1000 });
   let status;
+
   if (testChild.error && testChild.error.code === "ETIMEDOUT") {
-    status = 999;
+    status = 999; //Custom status code for timedout process
   } else {
     status = testChild.status;
   }
@@ -116,56 +114,59 @@ function spawnTest(packageManager, testFiles) {
 }
 
 /**
- * Spawns a new blockchain node instance
- * @param packageManager The package manager used within the SUT (npm or yarn) 
+ * Builds a test script based on the selected testingFramework(s). In case
+ * of multiple frameworks, it concatenates multiple test scripts, and distributes
+ * the test files to be executed according to their format.
+ * @param {string[]} testingFrameworks The list of testing framework(s) used within the SUT
+ * @param {string[]} testFiles The list of test files to be run
+ * @returns {string} Test script to be executed
+ * @throws {Error} If an invalid testing framework is selected or if there's an issue during script generation
  */
-function spawnNetwork(packageManager) {
-  var child;
-  const execute = (packageManager === "npm") ? "npx" : "yarn";
-  const executeCmd = (process.platform === "win32") ? execute + ".cmd" : execute;
-
-  if (sumoConfig.network === "ganache") {
-    console.log(chalk.yellow("\nStarting Ganache"))
-    child = spawn(executeCmd, ["ganache-cli"], { stdio: "pipe", cwd: rootDir });
-    child.unref();
-    const waitForNode = () => {
-      if (!isRunning(child)) {
-        console.log("Waiting for Ganache ...");
-        setTimeout(() => {
-          waitForNode();
-        }, 250);
-      } else {
-        resolve();
-      }
-    };
+function buildTestScript(testingFrameworks, testFiles) {
+  if (!testingFrameworks || testingFrameworks.length === 0) {
+    throw new Error("Error: The selected testing framework(s) is not valid.");
   }
-  return child;
-}
 
-/**
- * Kills a ganache process (port 8545)
- * @param {*} nodeChild 
- */
-function killNetwork(nodeChild) {
-  if (sumoConfig.network === "ganache") {
-    if (process.platform === "win32") {
-      spawn("taskkill", ["/pid", nodeChild.pid, "/f", "/t"]);
+  let testScript = "";
+  const isOnlyFramework = testingFrameworks.length === 1;
+  const runAllTests = utils.getSkipTests().length === 0;
+
+  testingFrameworks.forEach(framework => {
+    let testsForFramework = isOnlyFramework ? testFiles : utils.getTestsForFramework(framework, testFiles);
+    let concatCommand = testScript.length > 0;
+    let testCommand = "";
+
+    switch (framework) {
+      case 'brownie':
+        if (runAllTests) { testCommand = "brownie test --exitfirst"; }
+        else { testCommand = testsForFramework.length > 0 ? `brownie test ${testsForFramework.join(' ')} --exitfirst` : ''; }
+        break;
+      case 'hardhat':
+        if (runAllTests) { testCommand = "hardhat test --bail"; }
+        else { testCommand = testsForFramework.length > 0 ? `hardhat test --bail ${testsForFramework.join(' ')}` : ''; }
+        break;
+      case 'forge':
+        if (runAllTests) { testCommand = "forge t --fail-fast" }
+        else { testCommand = testsForFramework.length > 0 ? `forge t --fail-fast --match-path {${testsForFramework.map(tf => tf.split(rootDir + '/')[1]).join()}}` : ''; }
+        break;
+      case 'custom':
+        break;
+      default: throw new Error(`Error: Unsupported testing framework "${framework}".`);
     }
-    else if (process.platform === "linux") {
-      spawn("fuser", ["-k", "8545/tcp"]);
+
+    //Concat commands if needed (for hybrid test suites)
+    if (concatCommand && testCommand !== "") {
+      testScript += " && " + testCommand
     }
-    else if (process.platform === "darwin") {
-      let lsofProcess = spawnSync("lsof", ["-i:8545", "-t"]);
-      let ganachePid = lsofProcess.stdout.toString().trim();
-      spawn("kill", [ganachePid]);
+    else if (!concatCommand && testCommand !== "") {
+      testScript += testCommand
     }
-    utils.cleanTmp();
-  }
+  });
+
+  return testScript;
 }
 
 module.exports = {
   spawnCompile: spawnCompile,
-  spawnTest: spawnTest,
-  spawnNetwork: spawnNetwork,
-  killNetwork: killNetwork
+  spawnTest: spawnTest
 };

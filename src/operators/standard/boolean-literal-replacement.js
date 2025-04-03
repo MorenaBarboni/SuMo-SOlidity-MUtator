@@ -1,33 +1,55 @@
+const contextChecker = require("../contextChecker");
 const Mutation = require("../../mutation");
+const parser = require('@solidity-parser/parser');
 
-function BLROperator() {
-  this.ID = "BLR";
-  this.name = "boolean-literal-replacement";
+class BLROperator {
+    constructor() {
+        this.ID = "BLR";
+        this.name = "boolean-literal-replacement";
+    }
+    getMutations(file, source, visit) {
+        const mutations = [];
+ 
+        /**
+         * Visit and mutate each boolean literal value
+         */
+        visit({
+            BooleanLiteral: (node) => {
+                mutateBooleanValue(node);
+            }
+        });
+
+        /**
+        * Mutates a literal value into true or false
+        * @param {Object} node the boolean value node
+        */
+        function mutateBooleanValue(node) {
+            const start = node.range[0];
+            const end = node.range[1] + 1;
+            const startLine = node.loc.start.line;
+            const endLine = node.loc.end.line;
+            const functionName = contextChecker.getFunctionName(visit, startLine, endLine);
+            const original = source.slice(start, end);
+            if (node.value) {
+                pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, "false", "BLR"));
+            } else {
+                pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, "true", "BLR"));
+            }
+        }
+
+        /**
+           * Push a mutation to the generated mutations list
+           * @param {Object} mutation the mutation
+        */
+        function pushMutation(mutation) {
+            if (!mutations.find(m => m.id === mutation.id)) {
+                mutations.push(mutation);
+            }
+        }
+
+        return mutations;
+    }
 }
 
-BLROperator.prototype.getMutations = function(file, source, visit) {
-  const mutations = [];
-  var prevRange;
-
-  visit({
-    BooleanLiteral: (node) => {
-      const start = node.range[0]
-      const end = node.range[1] + 1
-      const startLine =  node.loc.start.line;
-      const endLine =  node.loc.end.line;
-      const original = source.slice(start, end)
-
-      if (prevRange != node.range) { //Avoid duplicate mutants
-        if (node.value) {
-          mutations.push(new Mutation(file, start, end, startLine, endLine, original, "false", this.ID));
-        } else {
-          mutations.push(new Mutation(file, start, end, startLine, endLine, original, "true", this.ID));
-        }
-      }
-      prevRange = node.range;
-    }
-  });
-  return mutations;
-};
 
 module.exports = BLROperator;

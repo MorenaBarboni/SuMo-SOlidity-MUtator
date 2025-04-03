@@ -1,165 +1,152 @@
+/** DISABLED */
+const contextChecker = require("../contextChecker");
 const Mutation = require("../../mutation");
 
-function MOIOperator() {
-  this.ID = "MOI";
-  this.name = "modifier-insertion";
-}
+class MOIOperator {
+  constructor() {
+    this.ID = "MOI";
+    this.name = "modifier-insertion";
+  }
+  getMutations(file, source, visit) {
+    const ID = this.ID;
+    const mutations = [];
+    const modifiersNodes = []; //Modifiers nodes attached to functions
 
-MOIOperator.prototype.getMutations = function (file, source, visit) {
-  const ID = this.ID;
-  const mutations = [];
-  var modifiers = []; //Modifiers attached to functions
-  var modifiersNodes = []; //Modifiers nodes attached to functions
+    visitModifiers(visitFunctions);
 
-  visitModifiers(visitFunctions);
-
-  /*Save attached modifiers */
-  function visitModifiers(callback) {
-    visit({
-      ModifierInvocation: (node) => {
-        var m = source.slice(node.range[0], node.range[1] + 1);
-        if (!modifiers.includes(m)) {
-          modifiers.push(m);
-          if (!modifiersNodes.includes(node)) {
-            modifiersNodes.push(node);
+    /*Save attached modifiers - only those starting with "only" */
+    function visitModifiers(callback) {
+      visit({
+        FunctionDefinition: (node) => {
+          if (!node.isConstructor && !node.isReceiveEther && !node.isFallback) {
+            node.modifiers.forEach(mNode => {
+              if (!modifiersNodes.includes(mNode) && mNode.name.startsWith("only")) {
+                modifiersNodes.push(mNode);
+              }
+            });
           }
         }
+      });
+      if (modifiersNodes.length > 0) {
+        callback();
       }
-    });
-    if (modifiers.length > 0) {
-      //Reverese modifiers to minimize chance of picking an invalid one
-      modifiers = modifiers.reverse()
-      modifiersNodes = modifiersNodes.reverse()
-      callback();
     }
-  }
 
-  /*Visit not decorated functions */
-  function visitFunctions() {
-    visit({
-      FunctionDefinition: (fNode) => {
-        /*If the function is not decorated */
-        if (fNode.modifiers.length === 0 && fNode.body) {
+    /*Visit functions to be mutated */
+    function visitFunctions() {
+      visit({
+        FunctionDefinition: (fNode) => {
+
           /*If the function is not special */
-          if (fNode.body && !fNode.isConstructor && !fNode.isReceiveEther && !fNode.isFallback
-            && (!fNode.stateMutability || (fNode.stateMutability !== "pure" && fNode.stateMutability !== "view"))) {
+          if (fNode.body &&
+            !fNode.isConstructor && !fNode.isReceiveEther && !fNode.isFallback &&
+            (!fNode.stateMutability || (fNode.stateMutability !== "pure" && fNode.stateMutability !== "view"))) {
+
+            const functionModifierNames = fNode.modifiers.map((mNode) => mNode.name);
 
             //Cycle the available modifiers nodes
             for (let i = 0; i < modifiersNodes.length; i++) {
               const mNode = modifiersNodes[i];
 
-              //If the modifier has parameters, they must be compatible with the function parameters
-              if (mNode.arguments) {
+              //If the function does not already include the modifier
+              if (functionModifierNames.length === 0 ||
+                (functionModifierNames.length > 0 && !functionModifierNames.includes(mNode.name))) {
 
-                //If the function has parameters
-                if (fNode && fNode.parameters) {
+                //If the modifier has parameters, they must be compatible with the function parameters
+                if (mNode.arguments) {
 
-                  var modArguments = [];
-                  var funcArguments = [];
+                  //If the function has parameters
+                  if (fNode && fNode.parameters) {
 
-                  //Save modifier parameters
-                  mNode.arguments.forEach(e => {
-                    if (e.name)
-                      modArguments.push(e.name);
-                  });
+                    //Save modifier parameters
+                    const modArguments = mNode.arguments.map((e) => e.name);
+                    //Save function parameters
+                    const funcArguments = fNode.parameters.map((e) => e.name);
 
-                  //Save function parameters
-                  fNode.parameters.forEach(e => {
-                    funcArguments.push(e.name);
-                  });
-
-                  //If the parameters of the modifier are included in the parameters of the function
-                  if (modArguments.length > 0) {
-                    var params_included = modArguments.every(function (element, index) {
-                      return element === funcArguments[index];
-                    });
-                    if (params_included) {
-                      const result = mutate(fNode, mNode);
-                      if (result) {
-                        mutations.push(result);
-                        break;
+                    //If the parameters of the modifier are included in the parameters of the function
+                    if (modArguments.length > 0) {
+                      var params_included = modArguments.every(function (element, index) {
+                        return element === funcArguments[index];
+                      });
+                      if (params_included) {
+                        const result = mutate(visit, fNode, mNode);
+                        if (result) {
+                          pushMutation(result);
+                          break; //push one modifier max
+                        }
                       }
                     }
                   }
+
+                  //If the function does not have arguments, skip the mutation
+                  else {
+                    break;
+                  }
                 }
-                //If the function does not have arguments, skip the mutation
+
+                //If the modifier does not have arguments
                 else {
-                  break;
-                }
-              }
-              //If the modifier does not have arguments
-              else {
-                const result = mutate(fNode, mNode);
-                if (result) {
-                  mutations.push(result);
-                  break;
+                  const result = mutate(visit, fNode, mNode);
+                  if (result) {
+                    pushMutation(result);
+                    break; //push one modifier max
+                  }
                 }
               }
             }
           }
         }
-      }
-    });
-  }
-
-
-  /**
-   * Applies a mutation to the function
-   * @param functionNode the function node to be mutated
-   * @param modifierNode the replacement node
-   *
-   */
-  function mutate(functionNode, modifierNode) {
-    if (contractContaining(functionNode) === contractContaining(modifierNode) && contractContaining(functionNode)) {
-
-      var startF = functionNode.range[0];
-      var endF = functionNode.body.range[0];
-      var original = source.substring(startF, endF);  //function signature
-      const startLine = functionNode.loc.start.line;
-      const endLine = functionNode.body.loc.start.line;
-
-      var startM = modifierNode.range[0];
-      var endM = modifierNode.range[1] + 1;
-      var modifier = source.substring(startM, endM);
-
-      //If the function has return parameters
-      if (functionNode.returnParameters && functionNode.returnParameters.length > 0) {
-        var slice1 = original.split("returns")[0];
-        var slice2 = " returns" + original.split("returns")[1];
-        var replacement = slice1 + modifier + slice2;
-        return new Mutation(file, startF, endF, startLine, endLine, original, replacement, ID);
-      }
-      //If the function has no return parameters
-      else {
-        var replacement = original + modifier + " ";
-        return new Mutation(file, startF, endF, startLine, endLine, original, replacement, ID);
-      }
-    } else {
-      return false;
+      });
     }
-  }
 
-  /**
- * Checks to which contract a node belongs to
- * @param node the input node
- * @returns the contract name (or false if no contract is found)
- */
-  function contractContaining(node) {
-    const nodeStart = node.range[0];
-    const nodeEnd = node.range[1];
-    let cName = false;
-    visit({
-      ContractDefinition: (cNode) => {
-        if (nodeStart >= cNode.range[0] && nodeEnd <= cNode.range[1]) {
-          cName = cNode.name;
+    /**
+      * Checks if the modifier is a valid mutation candidate for the function.
+      * The modifier must be used in the same contract in which the function is defined.
+      * @param {Function} visit the visitor
+      * @param functionNode the function node to be mutated
+      * @param modifierNode the potential modifier replacement node
+      * @returns a mutation if the modifier can be used, false otherwise
+   */
+    function mutate(visit, functionNode, modifierNode) {
+      const containingContract = contextChecker.contractContaining(visit, functionNode);
+      if (containingContract === contextChecker.contractContaining(visit, modifierNode) && containingContract) {
+        const startF = functionNode.range[0];
+        const endF = functionNode.body.range[0];
+        const original = source.substring(startF, endF); //function signature
+        const startLine = functionNode.loc.start.line;
+        const endLine = functionNode.body.loc.start.line;
+        const functionName = functionNode.name;
+        const startM = modifierNode.range[0];
+        const endM = modifierNode.range[1] + 1;
+        const modifier = source.substring(startM, endM);
+        let replacement;
+
+        //If the function has return parameters
+        if (functionNode.returnParameters && functionNode.returnParameters.length > 0) {
+          const slice1 = original.split("returns")[0];
+          const slice2 = " returns" + original.split("returns")[1];
+          replacement = slice1 + modifier + slice2;
+        } else {
+          replacement = original + modifier + " ";
         }
+        return new Mutation(file, functionName, startF, endF, startLine, endLine, original, replacement, ID);
+      } else {
+        return false;
       }
-    });
-    return cName;
+    }
+
+    /**
+     * Add a mutation to the mutations list
+     * @param {Object} mutation the mutation object
+     */
+    function pushMutation(mutation) {
+      if (!mutations.some(m => m.id === mutation.id)) {
+        mutations.push(mutation);
+      }
+    }
+
+    return mutations;
   }
-
-
-  return mutations;
-};
+}
 
 module.exports = MOIOperator;

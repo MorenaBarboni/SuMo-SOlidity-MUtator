@@ -1,90 +1,103 @@
-const Mutation = require("../../mutation");
+const contextChecker = require("../contextChecker");
+const Mutation = require('../../mutation')
 
-function GVROperator() {
-  this.ID = "GVR";
-  this.name = "global-variable-replacement";
-}
+class GVROperator {
+  constructor() {
+    this.ID = "GVR";
+    this.name = "global-variable-replacement";
+  }
 
-GVROperator.prototype.getMutations = function(file, source, visit) {
+  getMutations(file, source, visit) {
+    const ID = this.ID;
+    const mutations = [];
 
-  const ID = this.ID;
-  const mutations = [];
+    visit({
+      MemberAccess: (node) => {
+        var keywords = ['basefee', 'blockhash', 'chainid', 'coinbase', 'difficulty', 'gaslimit', 'gasprice', 'number', 'timestamp', 'value'];
 
-  visit({
-    MemberAccess: (node) => {
-      var keywords = ["timestamp", "number", "gasLimit", "difficulty", "gasprice", "value", "blockhash", "coinbase"];
-      if (keywords.includes(node.memberName)) {
+        if (keywords.includes(node.memberName)) {
+          const start = node.range[0];
+          const end = node.range[1] + 1;
+          const startLine = node.loc.start.line;
+          const endLine = node.loc.end.line;
+          const functionName = contextChecker.getFunctionName(visit, startLine, endLine);
+          const original = source.slice(start, end);
+
+          if (node.expression.name === 'msg' && node.memberName === 'value') {
+            pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, "msg.value+1", ID));
+          }
+          else if (node.expression.name === 'tx' && node.memberName === 'gasprice') {
+            pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, 'tx.gasprice+1', ID));
+          }
+          else if (node.expression.name === 'block') {
+            if (node.memberName === 'basefee') {
+              pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, 'block.basefee+1', ID));
+            } else if (node.memberName === 'chainid') {
+              pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, 'block.chainid-1', ID));
+            } else if (node.memberName === 'coinbase') {
+              pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, 'msg.sender', ID));
+            } else if (node.memberName === 'difficulty') {
+              pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, 'block.prevrandao', ID));
+            } else if (node.memberName === 'gaslimit') {
+              pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, 'block.gaslimit+1', ID));
+            } else if (node.memberName === 'number') {
+              pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, 'block.number+1', ID));
+            } else if (node.memberName === 'timestamp') {
+              pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, 'block.prevrandao', ID));
+            }
+          }
+        }
+      },
+    });
+
+    visit({
+      FunctionCall: (node) => {
         const start = node.range[0];
         const end = node.range[1] + 1;
         const startLine = node.loc.start.line;
         const endLine = node.loc.end.line;
-        const original = source.slice(start, end)
-
-  
-        if (node.memberName === "value") {
-          if (node.expression.name === "msg") {
-            mutations.push(new Mutation(file, start, end, startLine, endLine, original, "tx.gasprice", ID));
-          }
-        } else if (node.expression.name === "block") {
-          if (node.memberName === "difficulty") {
-            mutations.push(new Mutation(file, start, end, startLine, endLine, original, "block.number", ID));
-            mutations.push(new Mutation(file, start, end,  startLine, endLine, original, "block.timestamp", ID));
-          } else if (node.memberName === "number") {
-            mutations.push(new Mutation(file, start, end, startLine, endLine, original, "block.difficulty", ID));
-            mutations.push(new Mutation(file, start, end, startLine, endLine, original, "block.timestamp", ID));
-          } else if (node.memberName === "timestamp") {
-            mutations.push(new Mutation(file, start, end, startLine, endLine, original, "block.difficulty", ID));
-            mutations.push(new Mutation(file, start, end, startLine, endLine, original, "block.number", ID));
-          } else if (node.memberName === "coinbase") {
-            mutations.push(new Mutation(file, start, end, startLine, endLine, original, "tx.origin", ID));
-            mutations.push(new Mutation(file, start, end, startLine, endLine, original, "msg.sender", ID));
-          } else if (node.memberName === "gaslimit") {
-            mutations.push(new Mutation(file, start, end, startLine, endLine, original, "tx.gasprice", ID));
-            mutations.push(new Mutation(file, start, end, startLine, endLine, original, "gasleft()", ID));
-          }
-        } else if (node.expression.name === "tx" && node.memberName === "gasprice") {
-          mutations.push(new Mutation(file, start, end, startLine, endLine, original, "gasleft()", ID));
-          mutations.push(new Mutation(file, start, end, startLine, endLine, original, "block.gaslimit", ID));
-        }
-      }
-    }
-  });
-
-  visit({
-    FunctionCall: (node) => {
-      const start = node.range[0];
-      const end = node.range[1] +1;
-      const startLine = node.loc.start.line;
-      const endLine = node.loc.end.line;
-      const original = source.slice(start, end);
-      if (node.expression.name) {
-        if (node.expression.name === "gasleft") {
-          mutations.push(new Mutation(file, start, end, startLine, endLine, original, "tx.gasprice", ID));
-          mutations.push(new Mutation(file, start, end, startLine, endLine, original, "block.gaslimit", ID));
-        } else {
-          if (node.expression.name === "blockhash") {
-            mutations.push(new Mutation(file, start, end, startLine, endLine, original, "msg.sig", ID));
-          }
-        }
-      }
-    }
-  });
-
-  visit({
-    Identifier: (node) => {
-      //Alias for block.timestamp
-      if (node.name === "now") {
-        const start = node.range[0];
-        const end = node.range[1] +1;
-        const startLine = node.loc.start.line;
-        const endLine = node.loc.end.line;
+        const functionName = contextChecker.getFunctionName(visit, startLine, endLine);
         const original = source.slice(start, end);
-        mutations.push(new Mutation(file, start, end, startLine, endLine, original, "block.difficulty", ID));
-        mutations.push(new Mutation(file, start, end, startLine, endLine, original, "block.number", ID));
+
+        if (node.expression.name) {
+          if (node.expression.name === 'gasleft') {
+            pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, 'gasleft()+1', ID));
+          } else {
+            if (node.expression.name === 'blockhash') {
+              pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, '0', ID));
+            }
+          }
+        }
+      },
+    });
+
+    visit({
+      Identifier: (node) => {
+        //Alias for block.timestamp
+        if (node.name === 'now') {
+          const start = node.range[0];
+          const end = node.range[1] + 1;
+          const startLine = node.loc.start.line;
+          const endLine = node.loc.end.line;
+          const functionName = contextChecker.getFunctionName(visit, startLine, endLine);
+          const original = source.slice(start, end);
+          pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, 'now+1', ID));
+        }
+      },
+    });
+
+    /**
+    * Push a mutation to the generated mutations list
+    * @param {Object} mutation the mutation
+    */
+    function pushMutation(mutation) {
+      if (!mutations.find(m => m.id === mutation.id)) {
+        mutations.push(mutation);
       }
     }
-  });
 
-  return mutations;
-};
-module.exports = GVROperator;
+    return mutations;
+  }
+}
+
+module.exports = GVROperator

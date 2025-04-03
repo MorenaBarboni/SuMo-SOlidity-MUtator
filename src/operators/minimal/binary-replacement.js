@@ -1,104 +1,106 @@
+const contextChecker = require("../contextChecker");
 const Mutation = require("../../mutation");
 
-function BOROperator() {
-  this.ID = "BOR";
-  this.name = "binary-operator-replacement";
-}
+class BOROperator {
+  constructor() {
+    this.ID = "BOR";
+    this.name = "binary-operator-replacement";
+  }
 
-BOROperator.prototype.getMutations = function (file, source, visit) {
-  const mutations = [];
-  var ranges = []; //Visited node ranges
+  getMutations(file, source, visit) {
+    const mutations = [];
 
-  visit({
-    BinaryOperation: (node) => {
-      if (!ranges.includes(node.range)) {
-        ranges.push(node.range);
-        const start = node.left.range[1] + 1
-        const end = node.right.range[0]
+    visit({
+      BinaryOperation: (node) => {
+        const start = node.left.range[1] + 1;
+        const end = node.right.range[0];
         const startLine = node.left.loc.end.line;
         const endLine = node.right.loc.start.line;
-        const original = source.slice(start, end)
-        let replacement, replacement2;
+        const functionName = contextChecker.getFunctionName(visit, startLine, endLine);
+        const original = source.slice(start, end);
+        let replacement, replacement2, replacement3;
 
         switch (node.operator) {
           //BORa - Binary Operator Replacement (Arithmetic)
-          case "+":
-            replacement = original.replace("+", "-");
+          case '+':
+            replacement = original.replace('+', '-');
             break;
-          case "-":
-            replacement = original.replace("-", "+");
+          case '-':
+            replacement = original.replace('-', '+');
             break;
-          case "*":
-            replacement = original.replace("*", "/");
-            replacement2 = original.replace("*", "**");
+          case '*':
+            replacement = original.replace('*', '+');
             break;
-          case "**":
-            replacement = original.replace("**", "*");
+          case '**':
+            replacement = original.replace('**', '*');
             break;
-          case "/":
-            replacement = original.replace("/", "*");
+          case '/':
+            replacement = original.replace('/', '+');
             break;
-          case "%":
-            replacement = original.replace("%", "*");
+          case '%':
+            replacement = original.replace('%', '/');
             break;
-          case "<<":
-            replacement = original.replace("<<", ">>");
+          case '<<':
+            replacement = original.replace('<<', '>>');
             break;
-          case ">>":
-            replacement = original.replace(">>", "<<");
+          case '>>':
+            replacement = original.replace('>>', '<<');
             break;
-          case "|":
-            replacement = original.replace("|", "&");
+          case '|':
+            replacement = original.replace('|', '&');
             break;
-          case "&":
-            replacement = original.replace("&", "|");
+          case '&':
+            replacement = original.replace('&', '|');
             break;
-          case "^":
-            replacement = original.replace("^", "&");
+          case '^':
+            replacement = original.replace('^', '&');
             break;
           //BORc - Binary Operator Replacement (Conditional)
-          case "&&":
-            replacement = original.replace("&&", "||");
+          case '&&':
+            replacement = original.replace('&&', '||');
             break;
-          case "||":
-            replacement = original.replace("||", "&&");
+          case '||':
+            replacement = original.replace('||', '&&');
             break;
           //BORr - Binary Operator Replacement (Relational)
-          case "<":
-            replacement = original.replace("<", "<=");
-            replacement2 = original.replace("<", ">= ");
+          case '<':
+            replacement = original.replace('<', '<=');
             break;
-          case ">":
-            replacement = original.replace(">", ">= ");
-            replacement2 = original.replace(">", "<= ");
+          case '>':
+            replacement = original.replace('>', '>= ');
             break;
-          case "<=":
-            replacement = original.replace("<=", " <");
-            replacement2 = original.replace("<=", " >");
+          case '<=':
+            replacement = original.replace('<=', ' <');
             break;
-          case ">=":
-            replacement = original.replace(">=", " >");
-            replacement2 = original.replace(">=", " <");
+          case '>=':
+            replacement = original.replace('>=', ' >');
             break;
-          case "!=":
-            replacement = original.replace("!=", "==");
+          case '!=':
+            replacement = original.replace('!=', '==');
             break;
-          case "==":
-            replacement = original.replace("==", "!=");
+          case '==':
+            replacement = original.replace('==', '!=');
             break;
         }
-
         if (replacement) {
-          mutations.push(new Mutation(file, start, end, startLine, endLine, original, replacement, this.ID));
-        }
-        if (replacement2) {
-          mutations.push(new Mutation(file, start, end, startLine, endLine, original, replacement2, this.ID));
+          pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, replacement, this.ID));
         }
       }
+    });
+
+    /**
+     * Push a mutation to the generated mutations list
+     * @param {Object} mutation the mutation
+    */
+    function pushMutation(mutation) {
+      if (!mutations.find(m => m.id === mutation.id)) {
+        mutations.push(mutation);
+      }
     }
-  });
 
-  return mutations;
-};
+    return mutations;
+  }
+}
 
-module.exports = BOROperator;
+
+module.exports = BOROperator

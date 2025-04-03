@@ -1,35 +1,31 @@
-const Mutation = require('../../mutation')
+const contextChecker = require("../contextChecker");
+const Mutation = require("../../mutation");
 
+class UORDOperator {
+  constructor() {
+    this.ID = "UORD";
+    this.name = "unary-operator-replacement";
+  }
 
-function UORDOperator() {
-  this.ID = "UORD";
-  this.name = "unary-operator-replacement";
-}
+  getMutations(file, source, visit) {
+    const mutations = [];
 
-UORDOperator.prototype.getMutations = function(file, source, visit) {
-  const mutations = [];
-  var ranges = []; //Visited node ranges
+    visit({
+      UnaryOperation: (node) => {
 
-  visit({
-    UnaryOperation: (node) => {
-      if (!ranges.includes(node.range)) {
-        ranges.push(node.range);
-        let replacement;
-        let replacement2;
-
-        var start;
-        var end;
+        let replacement, replacement2;
+        let start, end;
 
         if (node.isPrefix) {
           start = node.range[0];
-          end = node.range[1];
+          end = node.range[1] + 1;
         } else {
           start = node.range[0] + 1;
           end = node.range[1] + 1;
         }
-
-        const startLine =  node.loc.end.line;
-        const endLine =  node.loc.start.line;
+        const startLine = node.loc.end.line;
+        const endLine = node.loc.start.line;
+        const functionName = contextChecker.getFunctionName(visit, startLine, endLine);
         const original = source.slice(start, end);
 
         switch (node.operator) {
@@ -55,14 +51,25 @@ UORDOperator.prototype.getMutations = function(file, source, visit) {
         }
 
         if (replacement)
-          mutations.push(new Mutation(file, start, end, startLine, endLine, original, replacement, this.ID));
+          pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, replacement, this.ID));
         if (replacement2)
-          mutations.push(new Mutation(file, start, end, startLine, endLine, original, replacement2, this.ID));
+          pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, replacement2, this.ID));
+      }
+    });
+
+    /**
+    * Add a mutation to the mutations list
+    * @param {Object} mutation the mutation object
+    */
+    function pushMutation(mutation) {
+      if (!mutations.find(m => m.id === mutation.id)) {
+        mutations.push(mutation);
       }
     }
-  });
 
-  return mutations;
-};
+    return mutations;
+  }
+}
+
 
 module.exports = UORDOperator;

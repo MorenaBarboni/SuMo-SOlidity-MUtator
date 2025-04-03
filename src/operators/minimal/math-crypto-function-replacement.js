@@ -69,16 +69,14 @@ class MCROperator {
           const functionName = contextChecker.getFunctionName(visit, startLine, endLine);
           const original = source.slice(start, end);
 
-          var replacement, replacement2;
+          var replacement;
 
           switch (node.memberName) {
             case 'add':
               replacement = original.replace('add', 'sub');
-              replacement2 = original.replace('add', 'mul');
               break;
             case 'sub':
               replacement = original.replace('sub', 'add');
-              replacement2 = original.replace('sub', 'div');
               break;
             case 'mul':
               replacement = original.replace('mul', 'add');
@@ -126,7 +124,6 @@ class MCROperator {
         }
       });
     }
-
 
     /**
     * Add a mutation to the mutations list
