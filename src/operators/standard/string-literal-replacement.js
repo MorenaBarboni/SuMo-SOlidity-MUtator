@@ -62,7 +62,7 @@ class SLRoperator {
       const endLine = node.loc.end.line;
       const functionName = (fName === null) ? contextChecker.getFunctionName(visit, start, end) : fName;
       const original = source.slice(start, end);
-      pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, "\"\"", "SVR"));
+      pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, "\"\"", "SLR"));
     }
 
     /**
