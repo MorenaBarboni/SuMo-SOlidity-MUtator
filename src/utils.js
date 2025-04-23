@@ -23,6 +23,7 @@ const staticConf = {
   mutationsJsonPath: rootDir + "/sumo/results/mutations.json",
   mutOpsConfigPath: libSumoDir + "/src/operators.config.json",
   sumoLogTxtPath: rootDir + "/sumo/results/sumo-log.txt",
+  coverageMatrixPath: rootDir + "/testMatrix.json",
   contractsGlob: '/**/*.sol',
   testsGlob: '/**/*.{js,sol,ts,py}',
   packageManagerGlob: ['/package-lock.json', '/yarn.lock'],
@@ -384,10 +385,10 @@ function getSkipContracts() {
  * @throws Error if the minimalOperators field is missing
  */
 function getMinimalOperators() {
-  if (sumoConfig.minimalOperators === null || sumoConfig.minimalOperators === undefined) {
+  if (sumoConfig.mutation.minimalOperators === null || sumoConfig.mutation.minimalOperators === undefined) {
     throw Error(chalk.red("Your sumo-config.js is incomplete: 'minimalOperators' field missing"));
   }
-  return sumoConfig.minimalOperators;
+  return sumoConfig.mutation.minimalOperators;
 }
 
 /**
@@ -396,10 +397,10 @@ function getMinimalOperators() {
  * @throws Error if the randomSampling field is missing
  */
 function getRandomSampling() {
-  if (sumoConfig.randomSampling === null || sumoConfig.randomSampling === undefined) {
+  if (sumoConfig.mutation.randomSampling === null || sumoConfig.mutation.randomSampling === undefined) {
     throw Error(chalk.red("Your sumo-config.js is incomplete: 'randomSampling' field missing"));
   }
-  return sumoConfig.randomSampling;
+  return sumoConfig.mutation.randomSampling;
 }
 
 /**
@@ -408,12 +409,23 @@ function getRandomSampling() {
  * @throws Error if the randomMutants field is missing
  */
 function getRandomMutants() {
-  if (sumoConfig.randomMutants === null || sumoConfig.randomMutants === undefined) {
+  if (sumoConfig.mutation.maxRandomMutants === null || sumoConfig.mutation.maxRandomMutants === undefined) {
     throw Error(chalk.red("Your sumo-config.js is incomplete: 'randomMutants' field missing"));
   }
-  return sumoConfig.randomMutants;
+  return sumoConfig.mutation.maxRandomMutants;
 }
 
+/**
+ * Get the pruneUncovered option from the sumo-config.js
+ * @returns the pruneUncovered option from the sumo-config.js
+ * @throws Error if the pruneUncovered field is missing
+ */
+function getPruneUncovered() {
+  if (sumoConfig.mutation.pruneUncovered === null || sumoConfig.mutation.pruneUncovered === undefined) {
+    throw Error(chalk.red("Your sumo-config.js is incomplete: 'pruneUncovered' field missing"));
+  }
+  return sumoConfig.mutation.pruneUncovered;
+}
 
 /**
  * Get the testing timeout in seconds from the sumo-config.js
@@ -543,6 +555,7 @@ module.exports = {
   getContractsDir: getContractsDir,
   getMinimalOperators: getMinimalOperators,
   getPackageManager: getPackageManager,
+  getPruneUncovered: getPruneUncovered,
   getRandomMutants: getRandomMutants,
   getRandomSampling: getRandomSampling,
   getSkipContracts: getSkipContracts,

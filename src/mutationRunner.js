@@ -16,7 +16,6 @@ const htmlReporter = require("./htmlReport")
 
 //SuMo static configuration
 const { sumoDir, baselineDir, mutantsDir, contractsGlob, testsGlob } = utils.staticConf;
-const randomSamplingEnabled = utils.getRandomSampling();
 var testingFrameworks = [];
 var contractsDir, testDir, buildDir;
 
@@ -133,7 +132,7 @@ function generateMutations(contractsUnderMutation, overwriteReports, testingStar
   }
 
   //Prune mutations if a reduction strategy is enabled
-  if (randomSamplingEnabled) {
+  if (utils.getRandomSampling() || utils.getPruneUncovered()) {
     mutations = testingStarted ? pruner.pruneMutations(mutations) : pruner.lookupPruneMutations(mutations)
   }
   if (overwriteReports) {
@@ -278,11 +277,8 @@ function runTest(mutations, testsToBeRun) {
     const isCompiled = testingInterface.spawnCompile(testingFrameworks);
 
     if (isCompiled) {
-      let testingResult;
       reporter.logTest(mutation);
-
-      testingResult = testingInterface.spawnTest(testingFrameworks, testsToBeRun)
-
+      const testingResult = testingInterface.spawnTest(testingFrameworks, testsToBeRun);
       switch (testingResult) {
         case 0: mutation.status = "live"; break;
         case 999: mutation.status = "timedout"; break;
@@ -293,8 +289,8 @@ function runTest(mutations, testsToBeRun) {
     }
 
     mutation.testingTime = ((Date.now() - startTestTime));
-    reporter.updateMutantStatus(mutation);
     mutation.restore();
+    reporter.updateMutantStatus(mutation);
   }
 }
 

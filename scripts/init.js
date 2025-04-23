@@ -9,10 +9,13 @@ const sumoconfig =
       testDir: "auto",
       skipContracts: ["interfaces", "mock", "test"],
       skipTests: [],
+      mutation: {
+         minimalOperators: false,      // Use minimal mutation operators
+         pruneUncovered: false,        // Prune uncovered mutants (hardhat-matrix only)
+         randomSampling: false,        // Enable random sampling
+         maxRandomMutants: 100         // Max number of randomly sampled mutants
+      },
       testingFramework: "auto",
-      minimalOperators: false,
-      randomSampling: false,
-      randomMutants: 100,
       testingTimeOutInSec: 500  
 }`;
 

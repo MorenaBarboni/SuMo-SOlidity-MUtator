@@ -139,6 +139,7 @@ function generateContractTemplate() {
           <option value="">All Statuses</option>
           <option value="killed">Killed</option>
           <option value="live">Live</option>
+          <option value="uncovered">Uncovered</option>
           <option value="stillborn">Stillborn</option>
           <option value="timedout">Timed Out</option>
           <option value="untested">Untested</option>
