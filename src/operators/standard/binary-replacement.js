@@ -72,13 +72,11 @@ class BOROperator {
           //BORr - Binary Operator Replacement (Relational)
           case '<':
             replacement = original.replace('<', '>');
-            replacement2 = original.replace('<', '!=');
-            replacement3 = original.replace('<', '<=');
+            replacement2 = original.replace('<', '<=');
             break;
           case '>':
             replacement = original.replace('>', '<');
-            replacement2 = original.replace('>', '!=');
-            replacement3 = original.replace('>', '>= ');
+            replacement2 = original.replace('>', '>= ');
             break;
           case '<=':
             replacement = original.replace('<=', ' <');
@@ -91,16 +89,16 @@ class BOROperator {
             replacement3 = original.replace('>=', '==');
             break;
           case '!=':
-            replacement = original.replace('!=', '<=');
-            replacement2 = original.replace('!=', '>=');
-            replacement3 = original.replace('!=', '==');
+            if (contextChecker.isAddressComparison(node.left, node.right)) {
+              replacement = original.replace('!=', '==');
+            } else {
+              replacement = original.replace('!=', '<=');
+              replacement2 = original.replace('!=', '>=');
+              replacement3 = original.replace('!=', '==');
+            }
             break;
           case '==':
-            //Suppression rules to limit false positives
-            if ((node.left.type === "FunctionCall" && node.left.expression?.name === "address") ||
-              (node.right.type === "FunctionCall" && node.right.expression?.name === "address") ||
-              (node.left.type === "NumberLiteral" && node.left.number === '0') ||
-              (node.right.type === "NumberLiteral" && node.right.number === '0')) {
+            if (contextChecker.isAddressComparison(node.left, node.right)) {
               replacement = original.replace('==', '!=');
             }
             else {

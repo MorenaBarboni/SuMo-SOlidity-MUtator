@@ -18,7 +18,7 @@ class BOROperator {
         const endLine = node.right.loc.start.line;
         const functionName = contextChecker.getFunctionName(visit, startLine, endLine);
         const original = source.slice(start, end);
-        let replacement, replacement2, replacement3;
+        let replacement;
 
         switch (node.operator) {
           //BORa - Binary Operator Replacement (Arithmetic)
