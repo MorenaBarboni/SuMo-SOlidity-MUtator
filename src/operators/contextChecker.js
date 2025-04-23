@@ -65,32 +65,38 @@ function isAddressComparison(left, right) {
 
 /**
  * Get the name of the function (or modifier) enclosing a mutation.
- * @param {Function} visit the visitor bound to the source file
- * @param {Number} mutantStartLine the mutation start line
- * @param {Number} mutantEndLine the mutation end line
- * @param {Object} mutantEnclosingNode (optional) the mutation's FunctionDefinition or ModifierDefinition node, if already available
+ * Handles special cases like constructors, fallback, and receive functions.
  * 
- * @returns {Object} - The name of the mutation's enclosing function or modifier ("stateVariable" if a state var).
+ * @param {Function} visit - The visitor bound to the source file.
+ * @param {Number} mutantStartLine - The mutation start line.
+ * @param {Number} mutantEndLine - The mutation end line.
+ * @param {Object} mutantEnclosingNode - Optional FunctionDefinition or ModifierDefinition node.
+ * 
+ * @returns {String} - The name of the enclosing function or modifier.
+ *                     Returns "<functionName>" "constructor", "fallback", "receive", "modifier:<name>", or "stateVariable".
  */
 function getFunctionName(visit, mutantStartLine, mutantEndLine, mutantEnclosingNode = null) {
+    let enclosingNode = mutantEnclosingNode || getEnclosingNode(visit, mutantStartLine, mutantEndLine);
 
-    let enclosingNodeName = null;
-
-    //Retrieve mutantEnclosingNode: the type and name of the function/modifier definition enclosing the mutant
-    if (mutantEnclosingNode !== null) {
-        enclosingNodeName = mutantEnclosingNode;
-    }
-    else {
-        let enclosingNode = getEnclosingNode(visit, mutantStartLine, mutantEndLine);
-        enclosingNodeName = (enclosingNode === null) ? null : enclosingNode.name;
-    }
-    if (enclosingNodeName === null) {
-        enclosingNodeName = "stateVariable"
+    if (!enclosingNode) {
+        return "stateVariable"; // Default fallback
     }
 
-    return enclosingNodeName;
+    // Handle different function types
+    switch (enclosingNode.type) {
+        case "FunctionDefinition":
+            if (enclosingNode.isConstructor) return "constructor";
+            if (enclosingNode.isFallback) return "fallback";
+            if (enclosingNode.isReceiveEther) return "receive";
+            return enclosingNode.name || "anonymousFunction";
+
+        case "ModifierDefinition":
+            return `modifier:${enclosingNode.name}`;
+
+        default:
+            return "stateVariable";
+    }
 }
-
 /**
  * Gets the function or modifier node including a certain mutantStartLine and mutantEndLine
  * @param {Function} visit the visitor bound to the source file
