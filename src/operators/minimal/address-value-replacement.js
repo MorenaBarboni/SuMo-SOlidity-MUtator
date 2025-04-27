@@ -145,7 +145,6 @@ class AVROperator {
       const original = source.slice(start, end)
       const functionName = contextChecker.getFunctionName(visit, startLine, endLine);
 
-      pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, "address(this)", "AVR"));
       pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, "address(0)", "AVR"));
 
       //Swap the literal address with each declared literal address
@@ -170,22 +169,17 @@ class AVROperator {
       var thisExpr = source.slice(node.range[0], node.range[1] + 1);
 
       //Mutate assignment to address(varName)
-      if (arg.type === "Identifier" && arg.name !== "this") {
-        pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, "this", "AVR"));
+      if (arg.type === "Identifier") {
         pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, "0", "AVR"));
       }
-      //Mutate assignment to address(this)
-      else if (arg.type === "Identifier" && arg.name === "this") {
-        pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, "0", "AVR"));
-      }
-
       //address(0x123)
       else if (arg.type === "NumberLiteral") {
         var addrValue = parseInt(arg.number);
         if (addrValue !== 0) {
           pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, "0", "AVR"));
+        } else {
+          pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, "this", "AVR"));
         }
-        pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, "this", "AVR"));
       }
       //Swap the function with each declared address
       literalAddress.forEach(a => {
