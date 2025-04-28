@@ -167,7 +167,7 @@ SuMo includes the following Traditional and Solidity-specific operators. Note th
 ## Solidity Mutation Operators
 | Operator | Name | Mutation Example |Enabled by Default | Minimal version available |
 | ------ | ------ |  ------ | ------ | :----: |
-| AVR | Address Value Replacement | ```0x67ED2e5dD3d0...``` &rarr; ``` address.this()```|   Y |  N |
+| AVR | Address Value Replacement | ```0x67ED2e5dD3d0...``` &rarr; ``` address.this()```|   Y |  Y |
 | CCD | Contract Constructor Deletion | ```constructor(){}``` &rarr; ``` ``` |   Y |  N |
 | DLR | Data Location Keyword Replacement | ```memory``` &rarr; ```storage``` | N | N |
 | DOD | Delete Operator Deletion | ```delete``` &rarr; |   Y |  N |

@@ -1,82 +1,81 @@
+const contextChecker = require("../contextChecker");
 const Mutation = require("../../mutation");
 
+
+/**
+ * Return Statement Deletion (RSD) Operator.
+ * This mutation operator targets return statements inside functions,
+ * commenting them out if safe.
+ */
 class RSDoperator {
   constructor() {
     this.ID = "RSD";
     this.name = "return-statement-deletion";
   }
+
+  /**
+   * Generate mutations by visiting ReturnStatements in the AST.
+   * 
+   * @param {string} file - Path or name of the file being mutated
+   * @param {string} source - Full source code of the file
+   * @param {function} visit - Function to traverse the AST nodes
+   * @returns {Mutation[]} - Array of generated Mutation objects
+   */
   getMutations(file, source, visit) {
     const mutations = [];
 
+    /**
+      * Handler for ReturnStatement nodes.
+      * Attempts to mutate return statements if conditions are met.
+    */
     visit({
-      FunctionDefinition: (node) => {
+      ReturnStatement: (returnNode) => {
+        const functionNode = contextChecker.getEnclosingNode(visit, returnNode.loc.start.line, returnNode.loc.end.line);
+        if (!functionNode || !functionNode.returnParameters) return;
 
-        //If the function has return parameters and is not empty
-        if (node.returnParameters && node.body?.statements) {
-          const functionName = node.name;
-          // Extract function return parameters (if any)
-          const functionReturnParameters = node.returnParameters;
-          // Extract function return parameter variable names (if any)
-          const functionReturnParametersNames = functionReturnParameters
-            .filter(e => e.name)
-            .map(e => e.name);
+        const functionName = functionNode.name;
+        const functionReturnParameters = functionNode.returnParameters;
+        const functionReturnParametersNames = functionReturnParameters
+          .filter(e => e.name)
+          .map(e => e.name);
 
-          // Find explicit return statement within the function body
-          const returnStatement = node.body.statements.find(statement => statement.type === "ReturnStatement");
+        const explicitReturnNode = returnNode.expression;
 
-          // If the function has an explicit return statement
-          if (returnStatement) {
-            const explicitReturnNode = returnStatement.expression;
-            const returnNodePosition = node.body.statements.indexOf(returnStatement);
-            const start = returnStatement.range[0];
-            const end = returnStatement.range[1] + 1;
-            const startLine = returnStatement.loc.start.line;
-            const endLine = returnStatement.loc.end.line;
-            const original = source.slice(start, end);
-            let replacement = "/* " + original + " */";
+        const start = returnNode.range[0];
+        const end = returnNode.range[1] + 1;
+        const startLine = returnNode.loc.start.line;
+        const endLine = returnNode.loc.end.line;
+        const original = source.slice(start, end);
+        let replacement = "/* " + original + " */";
 
-            //If the return statement is a standard function call remove the return but keep the call
-            if (explicitReturnNode.type === "FunctionCall") {
-              const functionCallString = original.replace(/^return\s*/, '');
-              replacement = functionCallString.trim();
+        // If the return value is a direct function call, remove 'return' but keep the call
+        if (explicitReturnNode?.type === "FunctionCall") {
+          const functionCallString = original.replace(/^return\s*/, '');
+          replacement = functionCallString.trim();
+          pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, replacement, this.ID));
+        }
+        // Check if it's safe to mutate the return without generating equivalent mutants
+        else {
+          const canMutate = canMutateReturnStatement(explicitReturnNode, functionReturnParameters);
+          if (canMutate) {
+            if (functionReturnParametersNames.length === 0 || (explicitReturnNode?.components && functionReturnParametersNames.length !== explicitReturnNode.components.length)) {
               pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, replacement, this.ID));
-
-            }
-            else {
-              // If the return statement is not the last statement in the function
-              if (node.body.statements.length - 1 !== returnNodePosition) {
-                pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, replacement, this.ID));
-              } else {
-                // Check if the return statement can be mutated
-                const canMutate = checkReturnStatement(explicitReturnNode, functionReturnParameters);
-                //If the return parameter(s) is not equal to the default value for its type
-                if (canMutate) {
-                  // If the function does not specify the return variable names / the lenghts don't match
-                  if (functionReturnParametersNames.length === 0 || (explicitReturnNode.components && functionReturnParametersNames.length !== explicitReturnNode.components.length) || node.body.statements.length - 1 !== returnNodePosition) {
-                    pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, replacement, this.ID));
-                  }
-
-                  // If the function specifies the return variable names AND the return statement is the last statement,
-                  // Ensure that removing the return value would not generate an equivalent mutant
-                  else if (!isEquivalentReturn(functionReturnParametersNames, explicitReturnNode)) {
-                    pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, replacement, this.ID));
-                  }
-                }
-              }
+            } else if (!isEquivalentReturn(functionReturnParametersNames, explicitReturnNode)) {
+              pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, replacement, this.ID));
             }
           }
         }
       }
     });
-
     /**
-     * Check if the return statement of a function can be mutated based on the returned value and type.
-     * If the statement already returns the default value for the return type(s), it must not be mutated.
-     * @param {Object} returnValueNode the return value node to be checked
-     * @param {Array} functionReturnParameters the return parameters of the function enclosing the return
-     * @returns true if the node can be mutated, false otherwise
+     * Check if a return statement can be mutated.
+     * A return should not be mutated if it already returns the default value for its type.
+     * 
+     * @param {Object} returnValueNode - The node representing the returned value
+     * @param {Array} functionReturnParameters - Array of return parameter nodes
+     * @returns {boolean} - True if it can be mutated, false otherwise
      */
-    function checkReturnStatement(returnValueNode, functionReturnParameters) {
+    function canMutateReturnStatement(returnValueNode, functionReturnParameters) {
       if (returnValueNode.components && returnValueNode.type === "TupleExpression") {
         return !returnValueNode.components.every((component, index) => isDefaultValue(component, functionReturnParameters[index])
         );
@@ -86,10 +85,11 @@ class RSDoperator {
     }
 
     /**
-     * Check if a return parameter is equal to the default value for its type.
-     * @param {Object} returnValueNode The return parameter value node
-     * @param {String} returnTypeNode The return parameter type node
-     * @returns true if the node corresponds to the default value for its type, false otherwise
+     * Check if a given value matches the default value for its type.
+     * 
+     * @param {Object} returnValueNode - The node representing the returned value
+     * @param {Object} returnTypeNode - The node representing the expected return type
+     * @returns {boolean} - True if value is the default, false otherwise
      */
     function isDefaultValue(returnValueNode, returnTypeNode) {
       const typeName = returnTypeNode.typeName?.name;
@@ -104,11 +104,14 @@ class RSDoperator {
       return false;
     }
 
+
     /**
-     * Check if implicit and explicit return statements are equivalent
-     * @param {Array} implicitReturnNames  variable names of the function return parameters
-     * @param {Object} explicitReturnNode variable names of the explicit return statement
-     * @returns true if removing the return statement would generate and equivalent mutant, false otherwise.
+     * Check if an explicit return is equivalent to an implicit return (by variable name).
+     * Avoids generating mutants that behave identically to the original.
+     * 
+     * @param {Array<string>} implicitReturnNames - Expected return variable names
+     * @param {Object} explicitReturnNode - Node representing the explicit return expression
+     * @returns {boolean} - True if returns are equivalent, false otherwise
      */
     function isEquivalentReturn(implicitReturnNames, explicitReturnNode) {
       if (!explicitReturnNode.components) {
@@ -118,7 +121,11 @@ class RSDoperator {
       );
     }
 
-    //Push mutations
+    /**
+    * Push a mutation into the mutations array if not already added.
+    * 
+    * @param {Mutation} mutation - Mutation instance to add
+    */
     function pushMutation(mutation) {
       if (!mutations.some(m => m.id === mutation.id)) {
         mutations.push(mutation);

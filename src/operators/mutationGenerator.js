@@ -9,13 +9,14 @@ const config = require(rootDir + '/sumo-config')
 
 
 //Init operator version
-var BOROperator, EROperator, FVROperator, GVROperator, HLROperator, ILROperator,
+var AVROperator, BOROperator, EROperator, FVROperator, GVROperator, HLROperator, ILROperator,
   MCROperator, MODOperator, MOIOperator, RVSOperator, UORDOperator, VVROperator;
 
 /**
  * Minimal rules
  */
 if (config.minimalOperators) {
+  AVROperator = require('./minimal/address-value-replacement')
   BOROperator = require('./minimal/binary-replacement')
   EROperator = require('./minimal/enum-replacement')
   FVROperator = require('./minimal/function-visibility-replacement')
@@ -29,6 +30,7 @@ if (config.minimalOperators) {
   UORDOperator = require('./minimal/unary-replacement')
   VVROperator = require('./minimal/variable-visibility-replacement')
 } else {
+  AVROperator = require('./standard/address-value-replacement')
   BOROperator = require('./standard/binary-replacement')
   EROperator = require('./standard/enum-replacement')
   FVROperator = require('./standard/function-visibility-replacement')
@@ -45,7 +47,6 @@ if (config.minimalOperators) {
 
 const ACMOperator = require('./standard/argument-change-overloaded-call')
 const AOROperator = require('./standard/assignment-replacement')
-const AVROperator = require('./standard/address-value-replacement')
 const BCRDOperator = require('./standard/break-continue-replacement')
 const BLROperator = require('./standard/boolean-literal-replacement')
 const CBDOperator = require('./standard/catch-block-deletion')
