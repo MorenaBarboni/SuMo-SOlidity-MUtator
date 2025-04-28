@@ -202,6 +202,7 @@ function getFunctionCallParentStatement(visit, functionCallNode) {
 
 module.exports = {
     contractContaining: contractContaining,
+    getEnclosingNode: getEnclosingNode,
     isAddressFunctionCall: isAddressFunctionCall,
     isZeroLiteral: isZeroLiteral,
     isAddressComparison: isAddressComparison,
