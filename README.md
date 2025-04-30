@@ -27,10 +27,12 @@ module.exports = {
       testDir: "auto",                                //test directory of the SUT (auto detect)
       skipContracts: ["interfaces", "mock", "test"],  // Relative paths from contractsDir
       skipTests: [],                                  // Relative paths from testsDir
+      mutation: {
+         minimalOperators: false,     // Use minimal mutation operators
+         randomSampling: false,       // Enable random sampling
+         maxRandomMutants: 100       // Max number of randomly sampled mutants
+      },
       testingFramework: "auto",                      //testing framework (auto detect)
-      minimalOperators: false,                       // use minimal mutation rules
-      randomSampling: false,                         //use random mutant sampling
-      randomMutants: 100,                            //if random sampling is enabled, generate 100 mutants max
       testingTimeOutInSec: 500                       //testing time-out for a mutant
 }
 ```
@@ -55,19 +57,6 @@ By default, ```testingFramework``` is set to ```auto```: SuMo will automatically
 | Field | Description | Available Options | Default Value | 
 | ------ | ------ | ------ |   :----: |
 | ```testingFramework```| the testing framework to be used for compiling and testing the smart contracts | ```auto```, ```brownie```, ```forge```, ```hardhat```, ```custom```  | ```auto``` |
-
-#### **Brownie**
-When choosing ```brownie```:
-* SuMo will rely on a local/global ```brownie``` installation;
-* The smart contracts will be compiled with a minimal compile command  (e.g., ```brownie compile``` );
-* The smart contracts will be tested with a minimal test command and (optionally) by a list of test files to be executed (e.g., ```brownie test ...testFiles --exitfirst```) .
-
-#### **Forge**
-When choosing ```forge``` :
-* SuMo will rely on the global installation of ```foundry```;
-* The smart contracts will be compiled with a minimal compile command  (e.g., ```forge build```);
-* The smart contracts will be tested with a minimal test command and (optionally) by a list of test files to be executed (e.g., ```forge test ...testFiles --fail-fast```).
-* Make sure that your ```forge``` installation is up-to-date to enable ```--fail-fast```.
 
 #### **Custom**
 
@@ -95,13 +84,18 @@ Additionally, you must also explicitly define a ```buildDir``` (matching your co
 ### 3) Mutation Testing Process Configuration
 These fields allow you to further customize the mutation testing process:
 
-
 | Field | Description | Default Value |
 | ------ | ------ |  :----: |
 | ```minimalOperators```| use minimal mutation rules | ```false``` |
 | ```randomSampling```| use Random Mutant Sampling | ```false``` |    
 | ```randomMutants```| the maximum number of mutants to be tested (only if ```randomSampling``` is enabled) | ```100``` |    
 | ```testingTimeOutInSec```| seconds after which a mutant is marked as timed-out during testing | ```500``` |  
+
+### 4) Using Coverage (for Hardhat users)
+If you are using ```hardhat``` with ```solidity-coverage```:
+* You can run ```hardhat coverage --matrix``` (See [solidity-coverage](https://github.com/sc-forks/solidity-coverage/blob/master/docs/advanced.md)).
+* This will generate a ```testMatrix.json``` file with coverage data for your project.
+* SuMo will use this file to mark uncovered mutants as live and speed up mutation testing.
 
 # CLI Usage
 

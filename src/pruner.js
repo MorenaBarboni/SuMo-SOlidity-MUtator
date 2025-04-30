@@ -12,19 +12,18 @@ const utils = require('./utils');
  * 
  * @param {Array<Object>} mutations - List of all generated mutations.
  * @param {Object} options - Strategy options.
- * @param {boolean} options.pruneUncovered - Whether to remove uncovered mutants.
  * @param {boolean} options.randomSampling - Whether to apply random pruning.
  * @param {number} [options.maxRandom] - Maximum number of mutants to keep if random sampling is enabled.
  * @returns {Array<Object>} Original unmodified list of mutations.
  */
-function lookupPruneMutations(mutations, options = { pruneUncovered: utils.getPruneUncovered(), randomSampling: utils.getRandomSampling(), maxRandom: utils.getRandomMutants() }) {
+function lookupPruneMutations(mutations, options = { randomSampling: utils.getRandomSampling(), maxRandom: utils.getRandomMutants() }) {
 
     //No pruning strategy selected
-    if (!options.pruneUncovered && !options.randomSampling) {
+    if (!options.randomSampling) {
         return mutations;
     }
     //No mutations available
-    if (mutations.length === 0) {        
+    if (mutations.length === 0) {
         return [];
     }
 
@@ -33,17 +32,15 @@ function lookupPruneMutations(mutations, options = { pruneUncovered: utils.getPr
 
     let result = [...mutations];
 
-    if (options.pruneUncovered) {
-        console.log(`-- Strategy: Prune uncovered mutants (using coverage matrix)`);
-        result = pruneUncoveredMutants(result);
-        console.log(`-- Mutants after pruning: `, result.length);
-    }  
-
     if (options.randomSampling) {
         console.log(`-- Strategy: Random sampling (keeping up to ${options.maxRandom} mutants)`);
         result = randomSampleMutants(result, options.maxRandom);
         console.log(`-- Mutants after pruning: `, result.length);
-    } 
+    }
+
+    //@dev - empty for other strategies
+    // ...
+
     //Return the original, unmodified list of mutations
     return mutations;
 }
@@ -53,40 +50,35 @@ function lookupPruneMutations(mutations, options = { pruneUncovered: utils.getPr
  * 
  * @param {Object[]} mutations - All generated mutations.
  * @param {Object} options - Strategy options.
- * @param {boolean} options.pruneUncovered - Remove uncovered mutants first.
  * @param {boolean} options.randomSampling - Apply random sampling after filtering.
  * @param {number} [options.maxRandom] - Max number of mutants to keep if random sampling is enabled.
  * @returns {Object[]} Pruned list of mutants.
  */
-function pruneMutations(mutations, options = { pruneUncovered: utils.getPruneUncovered(), randomSampling: utils.getRandomSampling(), maxRandom: utils.getRandomMutants() }) {
+function pruneMutations(mutations, options = { randomSampling: utils.getRandomSampling(), maxRandom: utils.getRandomMutants() }) {
 
     //No pruning strategy selected
-      if (!options.pruneUncovered && !options.randomSampling) {
+    if (!options.randomSampling) {
         return mutations;
     }
     //No mutations available
-    if (mutations.length === 0) {        
+    if (mutations.length === 0) {
         return [];
     }
 
     console.log(chalk.yellow("Pruning Mutations ✂️"));
 
-    let result = [...mutations];
-
-    if (options.pruneUncovered) {
-        console.log(`-- Strategy: Prune uncovered mutants (using coverage matrix)`);
-        result = pruneUncoveredMutants(result);
-        console.log(`-- Mutants after pruning: `, result.length);
-    }  
+    let prunedMutations = [...mutations];
 
     if (options.randomSampling) {
         console.log(`-- Strategy: Random sampling (keeping up to ${options.maxRandom} mutants)`);
-        result = randomSampleMutants(result, options.maxRandom);
-        console.log(`-- Mutants after pruning: `, result.length);
-    } 
- 
-    console.log(`- Total after pruning: ${result.length}\n`);
-    return result;
+        result = randomSampleMutants(prunedMutations, options.maxRandom);
+        console.log(`-- Mutants after pruning: `, prunedMutations.length);
+    }
+    //@dev - empty for other strategies
+    // ...
+
+    console.log(`- Total after pruning: ${prunedMutations.length}\n`);
+    return prunedMutations;
 }
 
 
@@ -132,13 +124,14 @@ function randomSampleMutants(mutations, maxCount) {
  * @returns {boolean} True if the mutant is covered or if the matrix file is missing/unreadable; otherwise, false.
  */
 function isMutantCovered(mutant) {
+    //Path to the hardhat coverage matrix (testMatrix.json)
     const matrixPath = utils.staticConf.coverageMatrixPath;
-
     let coverageMatrix;
     try {
         const matrixData = fs.readFileSync(matrixPath, 'utf8');
         coverageMatrix = JSON.parse(matrixData);
-    } catch (err) {
+    }
+    catch (err) {
         // Fail-safe: if the matrix doesn't exist or can't be parsed, assume coverage
         return true;
     }

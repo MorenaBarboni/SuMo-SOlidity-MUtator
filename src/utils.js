@@ -416,18 +416,6 @@ function getRandomMutants() {
 }
 
 /**
- * Get the pruneUncovered option from the sumo-config.js
- * @returns the pruneUncovered option from the sumo-config.js
- * @throws Error if the pruneUncovered field is missing
- */
-function getPruneUncovered() {
-  if (sumoConfig.mutation.pruneUncovered === null || sumoConfig.mutation.pruneUncovered === undefined) {
-    throw Error(chalk.red("Your sumo-config.js is incomplete: 'pruneUncovered' field missing"));
-  }
-  return sumoConfig.mutation.pruneUncovered;
-}
-
-/**
  * Get the testing timeout in seconds from the sumo-config.js
  * @returns the testingTimeOutInSec
  * @throws Error if the testingTimeOutInSec field is missing
@@ -555,7 +543,6 @@ module.exports = {
   getContractsDir: getContractsDir,
   getMinimalOperators: getMinimalOperators,
   getPackageManager: getPackageManager,
-  getPruneUncovered: getPruneUncovered,
   getRandomMutants: getRandomMutants,
   getRandomSampling: getRandomSampling,
   getSkipContracts: getSkipContracts,

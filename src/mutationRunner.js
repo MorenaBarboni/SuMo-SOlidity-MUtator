@@ -273,7 +273,9 @@ function runTest(mutations, testsToBeRun) {
     const startTestTime = Date.now();
     reporter.logMutationProgress(i + 1, mutations.length, mutation);
 
-    if (!pruner.isMutantCovered(mutation)) {
+    //If using hardhat-only, check if the mutant is covered in the coverage matrix
+    if (testingFrameworks.length === 0 && testingFrameworks.includes["hardhat"]
+      && !pruner.isMutantCovered(mutation)) {
       mutation.status = "live(uncovered)";
     }
     else {

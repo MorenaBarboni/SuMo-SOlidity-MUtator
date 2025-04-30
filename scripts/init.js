@@ -12,8 +12,7 @@ const sumoconfig =
       mutation: {
          minimalOperators: false,     // Use minimal mutation operators
          randomSampling: false,       // Enable random sampling
-         maxRandomMutants: 100,       // Max number of randomly sampled mutants
-         pruneUncovered: false        // Prune uncovered mutants (hardhat-matrix only)
+         maxRandomMutants: 100       // Max number of randomly sampled mutants
       },
       testingFramework: "auto",
       testingTimeOutInSec: 500  
