@@ -133,7 +133,8 @@ function generateMutations(contractsUnderMutation, overwriteReports, testingStar
 
   //Prune mutations if a reduction strategy is enabled
   if (utils.getRandomSampling() || utils.getPruneUncovered()) {
-    mutations = testingStarted ? pruner.pruneMutations(mutations) : pruner.lookupPruneMutations(mutations)
+    let prunedMutations = pruner.pruneMutations(mutations);
+    mutations = testingStarted ? prunedMutations : mutations;
   }
   if (overwriteReports) {
     reporter.logLookupSummary(mutations, generationTime);
@@ -272,24 +273,30 @@ function runTest(mutations, testsToBeRun) {
     const startTestTime = Date.now();
     reporter.logMutationProgress(i + 1, mutations.length, mutation);
 
-    mutation.apply();
-    reporter.logCompile(mutation);
-    const isCompiled = testingInterface.spawnCompile(testingFrameworks);
+    if (!pruner.isMutantCovered(mutation)) {
+      mutation.status = "live(uncovered)";
+    }
+    else {
+      mutation.apply();
+      reporter.logCompile(mutation);
+      const isCompiled = testingInterface.spawnCompile(testingFrameworks);
 
-    if (isCompiled) {
-      reporter.logTest(mutation);
-      const testingResult = testingInterface.spawnTest(testingFrameworks, testsToBeRun);
-      switch (testingResult) {
-        case 0: mutation.status = "live"; break;
-        case 999: mutation.status = "timedout"; break;
-        default: mutation.status = "killed";
+      if (isCompiled) {
+        reporter.logTest(mutation);
+        const testingResult = testingInterface.spawnTest(testingFrameworks, testsToBeRun);
+        switch (testingResult) {
+          case 0: mutation.status = "live"; break;
+          case 999: mutation.status = "timedout"; break;
+          default: mutation.status = "killed";
+        }
       }
-    } else {
-      mutation.status = "stillborn";
+      else {
+        mutation.status = "stillborn";
+      }
+      mutation.restore();
     }
 
     mutation.testingTime = ((Date.now() - startTestTime));
-    mutation.restore();
     reporter.updateMutantStatus(mutation);
   }
 }

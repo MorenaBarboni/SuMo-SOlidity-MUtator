@@ -10,10 +10,10 @@ const sumoconfig =
       skipContracts: ["interfaces", "mock", "test"],
       skipTests: [],
       mutation: {
-         minimalOperators: false,      // Use minimal mutation operators
-         pruneUncovered: false,        // Prune uncovered mutants (hardhat-matrix only)
-         randomSampling: false,        // Enable random sampling
-         maxRandomMutants: 100         // Max number of randomly sampled mutants
+         minimalOperators: false,     // Use minimal mutation operators
+         randomSampling: false,       // Enable random sampling
+         maxRandomMutants: 100,       // Max number of randomly sampled mutants
+         pruneUncovered: false        // Prune uncovered mutants (hardhat-matrix only)
       },
       testingFramework: "auto",
       testingTimeOutInSec: 500  

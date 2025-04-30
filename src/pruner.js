@@ -19,12 +19,12 @@ const utils = require('./utils');
  */
 function lookupPruneMutations(mutations, options = { pruneUncovered: utils.getPruneUncovered(), randomSampling: utils.getRandomSampling(), maxRandom: utils.getRandomMutants() }) {
 
+    //No pruning strategy selected
     if (!options.pruneUncovered && !options.randomSampling) {
         return mutations;
     }
-
-    if (mutations.length === 0) {
-        console.log(chalk.red("No mutations available to prune."));
+    //No mutations available
+    if (mutations.length === 0) {        
         return [];
     }
 
@@ -34,15 +34,17 @@ function lookupPruneMutations(mutations, options = { pruneUncovered: utils.getPr
     let result = [...mutations];
 
     if (options.pruneUncovered) {
-        console.log(`- Strategy: Prune uncovered mutants (using coverage matrix)`);
+        console.log(`-- Strategy: Prune uncovered mutants (using coverage matrix)`);
         result = pruneUncoveredMutants(result);
-    }
+        console.log(`-- Mutants after pruning: `, result.length);
+    }  
 
     if (options.randomSampling) {
-        console.log(`- Strategy: Random sampling (keeping up to ${options.maxRandom} mutants)`);
+        console.log(`-- Strategy: Random sampling (keeping up to ${options.maxRandom} mutants)`);
         result = randomSampleMutants(result, options.maxRandom);
-    }
-    console.log(`- Total after pruning: ${result.length}\n`);
+        console.log(`-- Mutants after pruning: `, result.length);
+    } 
+    //Return the original, unmodified list of mutations
     return mutations;
 }
 
@@ -58,12 +60,12 @@ function lookupPruneMutations(mutations, options = { pruneUncovered: utils.getPr
  */
 function pruneMutations(mutations, options = { pruneUncovered: utils.getPruneUncovered(), randomSampling: utils.getRandomSampling(), maxRandom: utils.getRandomMutants() }) {
 
-    if (!options.pruneUncovered && !options.randomSampling) {
+    //No pruning strategy selected
+      if (!options.pruneUncovered && !options.randomSampling) {
         return mutations;
     }
-
-    if (mutations.length === 0) {
-        console.log(chalk.red("No mutations available to prune."));
+    //No mutations available
+    if (mutations.length === 0) {        
         return [];
     }
 
@@ -72,35 +74,30 @@ function pruneMutations(mutations, options = { pruneUncovered: utils.getPruneUnc
     let result = [...mutations];
 
     if (options.pruneUncovered) {
+        console.log(`-- Strategy: Prune uncovered mutants (using coverage matrix)`);
         result = pruneUncoveredMutants(result);
-    }
+        console.log(`-- Mutants after pruning: `, result.length);
+    }  
 
     if (options.randomSampling) {
+        console.log(`-- Strategy: Random sampling (keeping up to ${options.maxRandom} mutants)`);
         result = randomSampleMutants(result, options.maxRandom);
-    }
-
+        console.log(`-- Mutants after pruning: `, result.length);
+    } 
+ 
     console.log(`- Total after pruning: ${result.length}\n`);
     return result;
 }
 
 
 /**
- * Update mutants status to `uncovered` a filter them out.
+ * Filters out uncovered mutations using HardHat's coverage matrix.
  * 
  * @param {Object[]} mutations - List of mutant objects
  * @returns {Object[]} Covered mutations
  */
 function pruneUncoveredMutants(mutations) {
     const filtered = mutations.filter(isMutantCovered);
-
-    for (const mutant of mutations) {
-        if (!isMutantCovered(mutant)) {
-            mutant.status = "uncovered";
-        }
-    }
-    /*fs.writeFileSync(utils.staticConf.mutationsJsonPath, JSON.stringify(mutations, null, '\t'), function (err) {
-        if (err) return console.log(err);
-    });*/
     return filtered;
 }
 
@@ -148,7 +145,7 @@ function isMutantCovered(mutant) {
 
     // Normalize the path to match matrix keys
     const fileName = path.basename(mutant.file); // e.g., CampusCoin.sol
-    const contractKey = `contracts\\${fileName}`;
+    const contractKey = path.join('contracts', fileName);
 
     const contractCoverage = coverageMatrix[contractKey];
     if (!contractCoverage) return false;

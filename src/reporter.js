@@ -13,6 +13,7 @@ class Reporter {
   constructor() {
     this.operators = Object.entries(mutOpsConfig);
     this.survived = [];
+    this.uncovered = [];
     this.killed = [];
     this.stillborn = [];
     this.timedout = [];
@@ -164,7 +165,8 @@ class Reporter {
       timeString = minutes + " minutes and " + timeString;
     }
     const killedMutants = this.killed.length;
-    const liveMutants = this.survived.length;
+    const uncoveredMutants = this.uncovered.length;
+    const liveMutants = this.survived.length + uncoveredMutants;
     const stillbornMutants = this.stillborn.length;
     const timedoutMutants = this.timedout.length;
     const validMutants = liveMutants + killedMutants;
@@ -172,14 +174,19 @@ class Reporter {
     const mutationScore = ((killedMutants / validMutants) * 100).toFixed(2);
 
     console.log("\n" + chalk.yellow.bold("Mutation Testing completed in " + timeString + " 👋"));
-    //console.log("\nTest Summary can be viewed on sumo/results/report-html/index.html");
-    console.log(
+
+    let message =
       "SuMo generated " + totalMutants + " mutants: \n" +
-      "- " + liveMutants + " live; \n" +
+      "- " + liveMutants + " live; \n";
+    if (uncoveredMutants > 0) {
+      message += "--- (of which " + uncoveredMutants + " uncovered) \n";
+    }
+    message +=
       "- " + killedMutants + " killed; \n" +
       "- " + stillbornMutants + " stillborn; \n" +
-      "- " + timedoutMutants + " timed-out. \n"
-    );
+      "- " + timedoutMutants + " timed-out. \n";
+    console.log(message);
+
     if (mutationScore >= 80) {
       console.log(chalk.bold("Mutation Score") + ": " + chalk.bold.green(mutationScore + " %"));
     } else if (mutationScore >= 60 && mutationScore < 80) {
@@ -193,7 +200,6 @@ class Reporter {
     var printString = "\n\n >>> TEST REPORT"
       + "\n\n - Generated mutants: " + totalMutants
       + "\n\n - Tested mutants: " + validMutants;
-
 
     printString = printString + "\n\n - Live mutants: " + liveMutants;
     if (liveMutants > 0)
@@ -235,6 +241,10 @@ class Reporter {
       case "live":
         this.survived.push(mutant);
         console.log("\n🐛 Mutant " + this.chalkMutant(mutant) + " survived testing");
+        break;
+      case "live(uncovered)":
+        this.uncovered.push(mutant);
+        console.log("\n🐛 Mutant " + this.chalkMutant(mutant) + " survived testing (uncovered)");
         break;
       case "stillborn":
         this.stillborn.push(mutant);
