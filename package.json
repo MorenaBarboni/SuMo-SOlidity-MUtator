@@ -17,6 +17,7 @@
     "smart contract"
   ],
   "scripts": {
+    "test": "node --test test/*.test.js",
     "postinstall": "node ./scripts/init.js"
   },
   "dependencies": {
