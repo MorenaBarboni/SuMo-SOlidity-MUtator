@@ -13,6 +13,7 @@ const sumoconfig =
       minimalOperators: false,
       randomSampling: false,
       randomMutants: 100,
+      tce: false,
       testingTimeOutInSec: 500  
 }`;
 

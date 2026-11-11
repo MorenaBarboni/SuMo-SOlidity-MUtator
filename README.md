@@ -1,6 +1,5 @@
 # SuMo
 SuMo is a mutation testing tool for Solidity Smart Contracts. 
-
 SuMo was designed to run mutation testing on Solidity projects in a NodeJS environment. It can run test using [Hardhat](https://hardhat.org/), [Brownie](https://github.com/eth-brownie/brownie)  and [Forge](https://github.com/foundry-rs/foundry), hybrid test suites, and custom test scripts.
 
 
@@ -31,6 +30,7 @@ module.exports = {
       minimalOperators: false,                       // use minimal mutation rules
       randomSampling: false,                         //use random mutant sampling
       randomMutants: 100,                            //if random sampling is enabled, generate 100 mutants max
+      tce: false,                                    //use trivial compiler equivalence
       testingTimeOutInSec: 500                       //testing time-out for a mutant
 }
 ```
@@ -100,7 +100,8 @@ These fields allow you to further customize the mutation testing process:
 | ------ | ------ |  :----: |
 | ```minimalOperators```| use minimal mutation rules | ```false``` |
 | ```randomSampling```| use Random Mutant Sampling | ```false``` |    
-| ```randomMutants```| the maximum number of mutants to be tested (only if ```randomSampling``` is enabled) | ```100``` |    
+| ```randomMutants```| the maximum number of mutants to be tested (only if ```randomSampling``` is enabled) | ```100``` |   
+| ```tce```| use trivial compiler equivalence to discard equivalent mutants | ```false``` |    
 | ```testingTimeOutInSec```| seconds after which a mutant is marked as timed-out during testing | ```500``` |  
 
 # CLI Usage
@@ -138,13 +139,14 @@ SuMo automatically creates a ```sumo\results``` folder in the root directory of 
 
 # Mutation Operators 👾
 
-SuMo includes the following Traditional and Solidity-specific operators. Note that not all mutation operators are enabled by default.
+SuMo includes the following Standard and Solidity-specific mutation operators. Some are disabled by default as they may generate a large number of mutants. 
+Operators can be viewed using `npx sumo list` and managed using `npx sumo enable [...ID]` or `npx sumo disable [...ID]`.
 
-## Traditional Mutation Operators
+## Standard Mutation Operators
 
-| Operator | Name | Mutation Example | Enabled by Default | Minimal Available |
+| Operator | Name | Example of Generated Mutation(s) | Enabled by Default | Minimal Available |
 | ------ | ------ |  ------ |  ------ | :----: |
-| ACM| Argument Change of overloaded Method call | ```overloadedFunc(a,b);``` &rarr; ```overloadedFunc(a,b,c);``` |   Y |  N |
+| ACM| Argument Change of overloaded Method call | ```overloadedFunc(a,b);``` &rarr; ```overloadedFunc(a,b,c);``` |   Y |  Y |
 | AOR | Assignment Operator Replacement | ```+= ``` &rarr;  ```=``` |   Y |  N |
 | BCRD | Break and Continue Replacement <br /> and Deletion | ```break``` &rarr; <br /> ```continue``` &rarr; ```break``` |   Y |  N |
 | BLR | Boolean Literal Replacement | ```true``` &rarr; ```false``` |   Y |  N |
@@ -152,42 +154,42 @@ SuMo includes the following Traditional and Solidity-specific operators. Note th
 | CBD | Catch Block Deletion | ```catch{}``` &rarr; ``` ``` |   Y |  N |
 | CSC | Conditional Statement Change | ```if(condition)``` &rarr; ```if(false)``` <br /> ```else{}``` &rarr; ``` ```  |   Y |  N |
 | ER | Enum Replacemet |  ```enum.member1``` &rarr; ```enum.member2``` |   Y | Y |
-| ECS | Explicit Conversion to Smaller type | ```uint256``` &rarr; ```uint8``` |   Y |  N |
+| ECS | Explicit Conversion to Smaller type | ```uint256(value)``` &rarr; ```uint128(value)``` |   Y |  N |
 | FCD | Function Call Deletion | ```foo()``` &rarr; ``` ```|  Y | N |
-| HLR | Hexadecimal Literal Replacement | ```hex\"01\"``` &rarr; ```hex\"random\"```|   Y |  N |
-| ILR | Integer Literal Replacement | ```1``` &rarr; ```0``` |   Y |  N |
+| HLR | Hexadecimal Literal Replacement | ```hex\"00\"``` &rarr; ```hex\"01\"```|   Y |  N |
+| ILR | Integer Literal Replacement | ```uint8 x = 1``` &rarr; ```uint8 x = 0``` <br />  ```getRole(OWNER, 0)``` &rarr; ```getRole(OWNER, 1)```|   Y |  N |
 | LCS | Loop Statement Change | ```while(condition)``` &rarr; ```while(false)``` |   Y |  N |
-| OLFD | Overloaded Function Deletion | ```function overloadedF(){}``` &rarr; ``` ``` |   Y |  N |
+| OLFD | Overloaded Function Deletion | ```function f() {}``` &rarr; ``` ``` |   Y |  N |
 | ORFD | Overridden Function Deletion | ```function f() override {}``` &rarr; ``` ``` |   Y |  N |
-| SKR | Super Keyword Replacement | ```x = getData()``` &rarr; ```x = super.getData()``` |   Y |  N |
-| SLR | String Literal Replacement | ```"string"``` &rarr; ```""```  |   Y |  N |
-| UORD | Unary Operator Replacement and Deletion | ```++``` &rarr; ```--```  <br /> ```!``` &rarr; ``` ``` |  Y | Y |
+| SKR | Super Keyword Replacement | ```x = getData()``` &rarr; ```x = super.getData()``` <br />  ```x = super.getData()``` &rarr; ```x = getData()```|   Y |  N |
+| SLR | String Literal Replacement | ```"USD"``` &rarr; ```""```  |   Y |  N |
+| UORD | Unary Operator Replacement and Deletion | ```++``` &rarr; ```--```   <br /> ```!``` &rarr; ``` ``` |  Y | Y |
 
 
 ## Solidity Mutation Operators
 | Operator | Name | Mutation Example |Enabled by Default | Minimal version available |
 | ------ | ------ |  ------ | ------ | :----: |
 | AVR | Address Value Replacement | ```0x67ED2e5dD3d0...``` &rarr; ``` address.this()```|   Y |  Y |
-| CCD | Contract Constructor Deletion | ```constructor(){}``` &rarr; ``` ``` |   Y |  N |
-| DLR | Data Location Keyword Replacement | ```memory``` &rarr; ```storage``` | N | N |
+| CCD | Constructor Deletion | ```constructor(){}``` &rarr; ``` ``` | Y |  N |
+| DLR | Data Location Keyword Replacement | ```uint[] storage vals = ... ``` &rarr; ```uint[] memory vals = ...``` | N | N |
 | DOD | Delete Operator Deletion | ```delete``` &rarr; |   Y |  N |
 | ETR | Ether Transfer function Replacement | ```delegatecall()``` &rarr; ```call()``` |   Y | Y |
 | EED |  Event Emission Deletion |  ```emit Deposit(...)``` &rarr; ```/*emit Deposit(...)*/``` |   Y |  N |
 | EHD | Exception Handling Deletion | ```require(...)``` &rarr; ```/*require(...)*/``` |  Y |  N |
 | FVR | Function Visibility Replacement | ```function f() public``` &rarr; ```function f() private``` |  N | Y |
-| GVR | Global Variable Replacement | ```msg.value()``` &rarr; ```tx.gasprice()``` |   Y | Y |
-| MCR | Mathematical and Cryptographic <br /> function Replacement | ```addmod``` &rarr; ```mulmod``` <br /> ```keccak256``` &rarr; ```sha256``` |   Y | Y |
+| GVR | Global Variable Replacement | ```msg.value()``` &rarr; ```msg.value() + 1``` |   Y | Y |
+| LFR | Library Function Replacement | ```SignedMath.max(...)``` &rarr; ```SignedMath.min(...)```  <br /> ```Math.Rounding.Floor``` &rarr; ```Math.Rounding.Ceil``` <br /> ```Arrays.lowerBound(...)``` &rarr; ```Arrays.upperBound(...)```  |   Y | Y |
+| MCR | Mathematical and Cryptographic <br /> function Replacement | ```addmod``` &rarr; ```mulmod``` <br /> ```keccak256``` &rarr; ```sha256``` |   Y | N |
+| MKR | Mapping Key Replacement | ```allowed[minter]``` &rarr; ```allowed[address(0)]``` |  N | N |
 | MOD | Modifier Deletion | ```function f() onlyOwner``` &rarr; ```function f()``` |   Y | Y |
 | MOI | Modifier Insertion | ```function f()``` &rarr; ```function f() onlyOwner``` |  N | Y |
 | OMD | Overridden Modifier Deletion | ```modifier m() override {}``` &rarr; ``` ``` |   Y |  N |
 | PKD | Payable Keyword Deletion | ```function f() payable``` &rarr; ```function f()``` |   Y |  N |
-| RSD | Return Statement Deletion | ```return amount;``` &rarr; ```//return amount;``` |   Y |  N |
+| RSD | Return Statement Deletion | ```return amount;``` &rarr; ```//return amount;``` <br /> ```return foo();``` &rarr; ```foo();``` |   Y |  N |
 | RVS | Return Values Swap | ```return (1, "msg", 100);``` &rarr; ```return (100, "msg", 1);``` |   Y | Y |
 | SCD | Selfdestruct Call Deletion |  ```selfdestruct();``` &rarr; ```//selfdestruct();``` |   Y |  N |
-| SFR | SafeMath Function Replacement | ```SafeMath.add``` &rarr; ```SafeMath.sub``` |   Y | Y |
-| SCEC | Switch Call Expression Casting | ```Contract c = Contract(0x86C9...);``` &rarr; ```Contract c = Contract(0x67ED...); ``` |   Y |  N |
 | TOR | Transaction Origin Replacement | ```msg.sender``` &rarr; ```tx.origin``` |   Y |  N |
-| VUR | Variable Unit Replacement | ```wei``` &rarr; ```ether```  <br /> ```minutes``` &rarr; ```hours``` |   Y | Y |
+| VUR | Variable Unit Replacement | ```wei``` &rarr; ```ether```  <br /> ```minutes``` &rarr; ```hours``` |   Y | N |
 | VVR | Variable Visibility Replacement | ```uint private data;``` &rarr; ```uint public data;``` |  N | Y |
 
 
