@@ -144,7 +144,7 @@ Operators can be viewed using `npx sumo list` and managed using `npx sumo enable
 
 ## Standard Mutation Operators
 
-| Operator | Name | Example of Generated Mutation(s) | Enabled by Default | Minimal Available |
+| Operator | Name | Example of Generated Mutation(s) | Enabled | Minimal Available |
 | ------ | ------ |  ------ |  ------ | :----: |
 | ACM| Argument Change of overloaded Method call | ```overloadedFunc(a,b);``` &rarr; ```overloadedFunc(a,b,c);``` |   Y |  Y |
 | AOR | Assignment Operator Replacement | ```+= ``` &rarr;  ```=``` |   Y |  N |
@@ -167,7 +167,7 @@ Operators can be viewed using `npx sumo list` and managed using `npx sumo enable
 
 
 ## Solidity Mutation Operators
-| Operator | Name | Mutation Example |Enabled by Default | Minimal version available |
+| Operator | Name | Mutation Example |Enabled | Minimal version available |
 | ------ | ------ |  ------ | ------ | :----: |
 | AVR | Address Value Replacement | ```0x67ED2e5dD3d0...``` &rarr; ``` address.this()```|   Y |  Y |
 | CCD | Constructor Deletion | ```constructor(){}``` &rarr; ``` ``` | Y |  N |
@@ -195,11 +195,11 @@ Operators can be viewed using `npx sumo list` and managed using `npx sumo enable
 
 ## Minimal Mutation Rules
 Some mutation operators foresee a **minimal** version:
-* The **extended** operators generate a more comprehensive set of mutants. These guarantee a more in-depth test adequacy assessment, but they can generate more than one replacement per target (e.g., 
+* The **standard** operators generate a more comprehensive set of mutants. These guarantee a more in-depth test adequacy assessment, but they can generate more than one replacement per target (e.g., 
 ```+``` is mutated in both ```-``` and ```*```), which can lead to longer execution times.
 * The **minimal** operators define simplified rules that only inject one replacement per target (e.g., ```+``` is mutated in ```-```), limiting the generation of subsumed mutants and speeding up the testing process.
 
-By default, SuMo employs the **extended** operators. However, you can enable the minimal rules in the ```sumo-config.js``` file.
+By default, SuMo employs the **standard** operators. However, you can enable the minimal rules in the ```sumo-config.js``` file.
 
 # Publications
 
