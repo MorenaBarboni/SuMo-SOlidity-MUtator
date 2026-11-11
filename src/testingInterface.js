@@ -4,7 +4,7 @@ const chalk = require('chalk')
 const { spawnSync } = require("child_process");
 // Internal modules
 const utils = require('./utils')
-const rootDir = utils.win32PathConverter(appRoot.toString());
+const rootDir = appRoot.toString().replaceAll("\\", "/");
 
 /**
  * Spawns a new compile process through the interface provided by the connected testing framework 
