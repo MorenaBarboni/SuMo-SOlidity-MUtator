@@ -1,10 +1,11 @@
 // External modules
 const fs = require("fs");
 const path = require("path");
-const utils = require('./utils');
+const utils = require('../utils');
 
 /**
- * Generates the mutation testing report in the SUT results folder.
+ * Generates the mutation-testing HTML report in the SUT results folder.
+ * @returns {void}
  */
 function generateReport() {
   const mutationsJsonPath = utils.staticConf.mutationsJsonPath;
@@ -88,7 +89,8 @@ function generateMainPage() {
             <th>Total Mutants</th>
             <th>Killed</th>
             <th>Live</th>
-            <th>Stillborn</th>
+            <th>Equivalent</th>
+            <th>Uncompilable</th>
             <th>Timed Out</th>
             <th>Untested</th>
             <th>Mutation Score</th>
@@ -139,7 +141,8 @@ function generateContractTemplate() {
           <option value="">All Statuses</option>
           <option value="killed">Killed</option>
           <option value="live">Live</option>
-          <option value="stillborn">Stillborn</option>
+          <option value="equivalent">Equivalent</option>
+          <option value="uncompilable">Uncompilable</option>
           <option value="timedout">Timed Out</option>
           <option value="untested">Untested</option>
         </select>
@@ -215,6 +218,7 @@ function getScriptFile() {
 
       let overallKilled = 0;
       let overallLive = 0;
+      let overallEquivalent = 0;
       let totalMutantsCount = 0;
       let contractsCount = 0;
 
@@ -224,12 +228,14 @@ function getScriptFile() {
         totalMutantsCount += mutants.length;
         const killed = mutants.filter(m => m.status === "killed").length;
         const live = mutants.filter(m => m.status === "live").length;
-        const stillborn = mutants.filter(m => m.status === "stillborn").length;
+        const equivalent = mutants.filter(m => m.status === "equivalent").length;
+        const uncompilable = mutants.filter(m => m.status === "uncompilable").length;
         const timedout = mutants.filter(m => m.status === "timedout").length;
         const untested = mutants.filter(m => !m.status).length;
 
         overallKilled += killed;
         overallLive += live;
+        overallEquivalent += equivalent;
 
         const scoreBase = live + killed;
         const mutationScore = scoreBase > 0 ? ((killed / scoreBase) * 100).toFixed(1) : "N/A";
@@ -241,7 +247,8 @@ function getScriptFile() {
             <td>${mutants.length}</td>
             <td>${killed}</td>
             <td>${live}</td>
-            <td>${stillborn}</td>
+            <td>${equivalent}</td>
+            <td>${uncompilable}</td>
             <td>${timedout}</td>
             <td>${untested}</td>
             <td><span style="color: ${scoreColor}">${mutationScore}%</span></td>
@@ -259,7 +266,8 @@ function getScriptFile() {
       scoreElem.style.color = getScoreColor(overallScore);
 
       // Display additional summary information.
-      document.getElementById("summaryInfo").innerText = `Total Contracts: ${contractsCount} | Total Mutants: ${totalMutantsCount}`;
+      document.getElementById("summaryInfo").innerText =
+        `Total Contracts: ${contractsCount} | Total Mutants: ${totalMutantsCount}`;
 
       // Update generated date in footer.
       document.getElementById("generatedDate").innerText = new Date().toLocaleString();
@@ -288,14 +296,27 @@ function getScriptFile() {
       mutants.forEach((m, index) => {
         const row = document.createElement("tr");
         row.classList.add(`status-${m.status || "untested"}`);
+
+        const reason = String(m.reason || m.llmReason || "").trim();
+
+        const reasonHtml = reason
+          ? `<div class="mutant-reason">
+         <strong>Reason:</strong> ${escapeHtml(reason)}
+       </div>`
+          : "";
+
         row.innerHTML = `
-                  <td>${m.id}</td>
-                  <td>${m.operator}</td>
-                  <td><pre><code class="diff">${m.functionName}</code></pre></td>
-                  <td>${m.startLine}-${m.endLine}</td>
-                  <td><pre><code class="diff">${highlightDiff(m.diff)}</code></pre></td>
-                  <td>${m.status || "untested"}</td>
-                `;
+            <td>${escapeHtml(String(m.id || ""))}</td>
+            <td>${escapeHtml(String(m.operator || ""))}</td>
+            <td><pre><code class="diff">${escapeHtml(String(m.functionName || ""))}</code></pre></td>
+            <td>${escapeHtml(String(m.startLine || ""))}-${escapeHtml(String(m.endLine || ""))}</td>
+            <td>
+              <pre><code class="diff">${highlightDiff(m.diff || "")}</code></pre>
+              ${reasonHtml}
+            </td>
+            <td>${escapeHtml(String(m.status || "untested"))}</td>
+          `;
+
         tableBody.appendChild(row);
       });
 
@@ -336,18 +357,19 @@ function getScriptFile() {
     fetch("mutations.json")
       .then(response => response.json())
       .then(data => {
-        let csvContent = "Contract,Total Mutants,Killed,Live,Stillborn,Timed Out,Untested,Mutation Score\n";
+        let csvContent = "Contract,Total Mutants,Killed,Live,Equivalent,uncompilable,Timed Out,Untested,Mutation Score\n";
         Object.keys(data).forEach(contract => {
           const mutants = data[contract];
           const total = mutants.length;
           const killed = mutants.filter(m => m.status === "killed").length;
           const live = mutants.filter(m => m.status === "live").length;
-          const stillborn = mutants.filter(m => m.status === "stillborn").length;
+          const equivalent = mutants.filter(m => m.status === "equivalent").length;
+          const uncompilable = mutants.filter(m => m.status === "uncompilable").length;
           const timedout = mutants.filter(m => m.status === "timedout").length;
           const untested = mutants.filter(m => !m.status).length;
           const scoreBase = live + killed;
           const mutationScore = scoreBase > 0 ? ((killed / scoreBase) * 100).toFixed(1) : "N/A";
-          csvContent += `"${contract}",${total},${killed},${live},${stillborn},${timedout},${untested},${mutationScore}\n`;
+          csvContent += `"${contract}",${total},${killed},${live},${equivalent},${uncompilable},${timedout},${untested},${mutationScore}\n`;
         });
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
@@ -396,8 +418,8 @@ function getScriptFile() {
           return `"${fieldStr}"`;
         };
 
-        // CSV header including all fields: id, file, functionName, start, end, startLine, endLine, original, replace, operator, status, testingTime
-        let csvContent = "id,file,functionName,start,end,startLine,endLine,original,replace,operator,status,testingTime\n";
+        // CSV header including all fields
+        let csvContent = "id,file,functionName,start,end,startLine,endLine,original,replace,operator,status,compilationTime,testingTime,totalTime\n";
 
         mutants.forEach(m => {
           const row = [
@@ -412,7 +434,9 @@ function getScriptFile() {
             escapeCSV(m.replace),
             escapeCSV(m.operator),
             escapeCSV(m.status || "untested"),
-            escapeCSV(m.testingTime)
+            escapeCSV(m.compilationTime),
+            escapeCSV(m.testingTime),
+            escapeCSV(m.totalTime)
           ];
           csvContent += row.join(",") + "\n";
         });
@@ -614,21 +638,16 @@ tbody tr:nth-child(even) {
 tbody tr:hover {
   background: #e9ecef;
 }
-
-/* Status styling */
-/*.status-killed {
-  color: #28a745;
-}*/
-
-.status-live {
-  color: #860915;
+/*Reason*/
+.mutant-reason {
+  margin-top: 10px;
+  padding: 8px 10px;
+  background: #f8f9fa;
+  border-left: 3px solid #6c757d;
+  color: #495057;
+  font-size: 0.9rem;
+  line-height: 1.4;
 }
-
-
-.status-untested {
-  color: #6c757d;
-}
-
 /* Filters container styling for contract page */
 .filters-container {
   display: flex;
