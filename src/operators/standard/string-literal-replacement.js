@@ -6,6 +6,16 @@ class SLRoperator {
     this.ID = "SLR";
     this.name = "string-literal-replacement";
   }
+  
+  /**
+  * Generates SLR mutations for string literals
+  * 
+  * @param {string} file - The path of the Solidity source file
+  * @param {string} source - The Solidity source code
+  * @param {Function} visit - The solidity-parser-ast visitor function
+  * 
+  * @returns {Mutation[]} The generated mutations
+  */
   getMutations(file, source, visit) {
     const mutations = [];
     const ignoreFunctions = ["require", "assert", "revert", "keccak256", "sha256", "ripemd160"]; //Do not mutate hashing functions and exception handling messages

@@ -7,6 +7,15 @@ class BOROperator {
     this.name = "binary-operator-replacement";
   }
 
+  /**
+  * Generates BOR mutations for binary operators.
+  *
+  * @param {string} file - The path of the Solidity source file
+  * @param {string} source - The Solidity source code
+  * @param {Function} visit - The solidity-parser-ast visitor function
+  * 
+  * @returns {Mutation[]} The generated mutations
+  */
   getMutations(file, source, visit) {
     const mutations = [];
 
@@ -100,8 +109,7 @@ class BOROperator {
           case '==':
             if (contextChecker.isAddressComparison(node.left, node.right)) {
               replacement = original.replace('==', '!=');
-            }
-            else {
+            } else {
               replacement = original.replace('==', '<=');
               replacement2 = original.replace('==', '>=');
               replacement3 = original.replace('==', '!=');

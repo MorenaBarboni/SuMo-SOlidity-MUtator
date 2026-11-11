@@ -6,7 +6,15 @@ class CSCOperator {
     this.ID = "CSC";
     this.name = "conditional-statement-change";
   }
-
+  /**
+  * Generates CSC mutations for conditional statements.
+  *
+  * @param {string} file - The path of the Solidity source file
+  * @param {string} source - The Solidity source code
+  * @param {Function} visit - The solidity-parser-ast visitor function
+  * 
+  * @returns {Mutation[]} The generated mutations
+  */
   getMutations(file, source, visit) {
     const mutations = [];
 
@@ -18,7 +26,7 @@ class CSCOperator {
         var endLine = node.condition.loc.end.line;
         const functionName = contextChecker.getFunctionName(visit, startLine, endLine);
         var original = source.slice(start, end);
-        
+
         mutations.push(new Mutation(file, functionName, start, end, startLine, endLine, original, "true", this.ID));
         mutations.push(new Mutation(file, functionName, start, end, startLine, endLine, original, "false", this.ID));
 

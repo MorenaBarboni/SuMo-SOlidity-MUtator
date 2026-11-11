@@ -1,25 +1,35 @@
 const contextChecker = require("../contextChecker");
-const Mutation = require('../../mutation')
+const Mutation = require('../../mutation');
 
 class ETROperator {
     constructor() {
         this.ID = "ETR";
         this.name = "ether-transfer-function-replacement";
     }
-
+    /**
+    * Generates ETR mutations for Solidity-native ether transfer functions.
+    *
+    * @param {string} file - The path of the Solidity source file
+    * @param {string} source - The Solidity source code
+    * @param {Function} visit - The solidity-parser-ast visitor function
+    * 
+    * @returns {Mutation[]} The generated mutations
+    */
     getMutations(file, source, visit) {
         const mutations = [];
+        const functions = ["transfer", "transferFrom", "send", "call"];
 
         visit({
             FunctionCall: (node) => {
+                if (node.expression.type === "MemberAccess" ||
+                    (node.expression.expression && node.expression.expression.type === "MemberAccess")) {
+                    if (functions.includes(node.expression.memberName) ||
+                        (node.expression.expression && functions.includes(node.expression.expression.memberName))) {
 
-                if ((node.expression.type == "MemberAccess" || (node.expression.expression && node.expression.expression.type == "MemberAccess"))) {
-                    if (functions.includes(node.expression.memberName) || functions.includes(node.expression.expression.memberName)) {
-
-                        //Call methods with gas or value - ex: call{value:...,gas:...}("")
-                        if (node.expression.expression && functions.includes(node.expression.expression.memberName)) {
-
-                            var replacement, replacement2;
+                        // Calls with gas or value options, e.g. call{value: ..., gas: ...}("")
+                        if (node.expression.expression &&
+                            functions.includes(node.expression.expression.memberName)) {
+                            let replacement;
                             const start = node.range[0];
                             const end = node.range[1] + 1;
                             const startLine = node.loc.start.line;
@@ -30,105 +40,92 @@ class ETROperator {
                             const addressStart = node.expression.expression.expression.range[0];
                             const addressEnd = node.expression.expression.expression.range[1];
                             const address = source.slice(addressStart, addressEnd + 1);
-                            const callArguments = source.slice(node.arguments[0].range[0], node.arguments[0].range[1] + 1);
+                            const callArguments = node.arguments.map(argument =>
+                                source.slice(argument.range[0], argument.range[1] + 1)
+                            ).join(", ");
 
-                            //Exclude old call() syntax
-                            if (node.expression.arguments) {
-                                const valueArguments = source.slice(node.expression.arguments.range[0], node.expression.arguments.range[1] + 1);
-                                if (node.expression.expression.memberName === "call") {
-
-                                    const nameValueList = node.expression.arguments.names;
-                                    var gas;
-                                    gasIndex = nameValueList.indexOf("gas");
-                                    if (gasIndex != -1) { //If the call has a gas argument
-                                        gas = node.expression.arguments.arguments[gasIndex].number;
-                                    }
-
-                                    replacement = address + ".staticcall";
-                                    if (gas) {
-                                        replacement = replacement + "{gas:" + gas + "}";
-                                    }
-                                    replacement = replacement + "(" + callArguments + ")";
-                                    pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, replacement, this.ID));
+                            // Exclude old call() syntax.
+                            if (node.expression.arguments &&
+                                node.expression.expression.memberName === "call") {
+                                const nameValueList = node.expression.arguments.names;
+                                let gas;
+                                const gasIndex = nameValueList.indexOf("gas");
+                                if (gasIndex !== -1) {
+                                    const gasArg = node.expression.arguments.arguments[gasIndex];
+                                    gas = source.slice(gasArg.range[0], gasArg.range[1] + 1);
                                 }
+
+                                replacement = address + ".staticcall";
+                                if (gas) {
+                                    replacement += "{gas:" + gas + "}";
+                                }
+                                replacement += "(" + callArguments + ")";
+                                pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, replacement, this.ID));
                             }
                         }
-                        //Send, transfer, and call methods with no Ether value or Gas value supplied - ex: call("")
+                        // Calls without gas or value options.
                         else {
+                            // Native Ether send/transfer take exactly one amount argument.
+                            // Skip custom calls such as ERC-20 transfer(recipient, amount).
+                            if ((node.expression.memberName === "send" || node.expression.memberName === "transfer") &&
+                                node.arguments.length !== 1) {
+                                return;
+                            }
 
-                            var start = node.expression.range[0];
-                            var end = node.expression.range[1] + 1;
-                            var startLine = node.expression.loc.start.line;
-                            var endLine = node.expression.loc.end.line;
+                            let start = node.expression.range[0];
+                            let end = node.expression.range[1] + 1;
+                            let startLine = node.expression.loc.start.line;
+                            let endLine = node.expression.loc.end.line;
                             let original = source.slice(start, end);
                             let replacement, replacement2;
-                            var functionName = contextChecker.getFunctionName(visit, startLine, endLine);
+                            let functionName = contextChecker.getFunctionName(visit, startLine, endLine);
 
                             const addressStart = node.expression.expression.range[0];
                             const addressEnd = node.expression.expression.range[1];
                             const address = source.slice(addressStart, addressEnd + 1);
 
-                            var arg;
-                            if (node.arguments[0]) {
-                                if (node.arguments[0].type === "NumberLiteral") {
-                                    arg = node.arguments[0].number;
-                                } else if (node.arguments[0].type === "Identifier") {
-                                    arg = node.arguments[0].name;
-                                } else if (node.arguments[0].type === "MemberAccess" || node.arguments[0].type === "FunctionCall") {
-                                    var argStart = node.arguments[0].range[0];
-                                    var argEnd = node.arguments[0].range[1];
-                                    arg = source.slice(argStart, argEnd + 1);
-                                }
-                            }
+                            const firstArg = node.arguments[0];
+                            const arg = firstArg ? source.slice(firstArg.range[0], firstArg.range[1] + 1) : undefined;
+                            const subdenomination = firstArg && firstArg.subdenomination;
 
-                            const subdenomination = node.arguments[0].subdenomination;
-
-                            //call
-                            if (node.expression.memberName == "call") {
+                            if (node.expression.memberName === "call") {
                                 replacement = address + ".staticcall";
-
                                 pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, replacement, this.ID));
-                            }                           
-                            //send
-                            else if (node.expression.memberName == "send") {
-
+                            }
+                            else if (node.expression.memberName === "send") {
                                 replacement = address + ".transfer";
                                 pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, replacement, this.ID));
 
                                 start = node.range[0];
                                 end = node.range[1] + 1;
-
+                                original = source.slice(start, end);
                                 startLine = node.loc.start.line;
                                 endLine = node.loc.end.line;
-
                                 functionName = contextChecker.getFunctionName(visit, startLine, endLine);
 
                                 replacement2 = address + ".call{value: " + arg;
-                                if (subdenomination)
-                                    replacement2 = replacement2 + " " + subdenomination + "}(\"\")";
-                                else
-                                    replacement2 = replacement2 + "}(\"\")";
-
+                                if (subdenomination && !source.slice(firstArg.range[0], firstArg.range[1] + 1).includes(subdenomination)) {
+                                    replacement2 += " " + subdenomination;
+                                }
+                                replacement2 += "}(\"\")";
                                 pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, replacement2, this.ID));
-
                             }
-                            //transfer
-                            else if (node.expression.memberName == "transfer") {
-
+                            else if (node.expression.memberName === "transfer") {
                                 replacement = address + ".send";
                                 pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, replacement, this.ID));
 
                                 start = node.range[0];
                                 end = node.range[1] + 1;
+                                original = source.slice(start, end);
                                 startLine = node.loc.start.line;
                                 endLine = node.loc.end.line;
                                 functionName = contextChecker.getFunctionName(visit, startLine, endLine);
 
                                 replacement2 = address + ".call{value: " + arg;
-                                if (subdenomination)
-                                    replacement2 = replacement2 + " " + subdenomination + "}(\"\")";
-                                else
-                                    replacement2 = replacement2 + "}(\"\")";
+                                if (subdenomination && !source.slice(firstArg.range[0], firstArg.range[1] + 1).includes(subdenomination)) {
+                                    replacement2 += " " + subdenomination;
+                                }
+                                replacement2 += "}(\"\")";
                                 pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, replacement2, this.ID));
                             }
                         }
@@ -138,8 +135,8 @@ class ETROperator {
         });
 
         /**
-        * Push a mutation to the generated mutations list
-        * @param {Object} mutation the mutation
+         * Push a mutation to the generated mutations list
+         * @param {Object} mutation the mutation
         */
         function pushMutation(mutation) {
             if (!mutations.find(m => m.id === mutation.id)) {
@@ -151,4 +148,4 @@ class ETROperator {
     }
 }
 
-module.exports = ETROperator
+module.exports = ETROperator;

@@ -7,6 +7,16 @@ class VVRoperator {
     this.ID = "VVR";
     this.name = "variable-visibility-replacement";
   }
+
+  /**
+  * Generates VVR mutations for variable visibility keywords.
+  *
+  * @param {string} file - The path of the Solidity source file
+  * @param {string} source - The Solidity source code
+  * @param {Function} visit - The solidity-parser-ast visitor function
+  * 
+  * @returns {Mutation[]} The generated mutations
+  */
   getMutations(file, source, visit) {
     const mutations = [];
 

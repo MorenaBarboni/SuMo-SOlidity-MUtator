@@ -1,15 +1,23 @@
 const contextChecker = require("../contextChecker");
 const Mutation = require("../../mutation");
-const parser = require('@solidity-parser/parser');
 
 class BLROperator {
     constructor() {
         this.ID = "BLR";
         this.name = "boolean-literal-replacement";
     }
+    /**
+     * Generates BLR mutations for boolean literal values.
+     *
+     * @param {string} file - The path of the Solidity source file
+     * @param {string} source - The Solidity source code
+     * @param {Function} visit - The solidity-parser-ast visitor function
+     * 
+     * @returns {Mutation[]} The generated mutations
+     */
     getMutations(file, source, visit) {
         const mutations = [];
- 
+
         /**
          * Visit and mutate each boolean literal value
          */

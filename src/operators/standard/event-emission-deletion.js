@@ -6,6 +6,15 @@ class EEDOperator {
     this.ID = "EED";
     this.name = "event-emission-deletion";
   }
+  /**
+  * Generates EED mutations for event emission statements.
+  *
+  * @param {string} file - The path of the Solidity source file
+  * @param {string} source - The Solidity source code
+  * @param {Function} visit - The solidity-parser-ast visitor function
+  * 
+  * @returns {Mutation[]} The generated mutations
+  */
   getMutations(file, source, visit) {
     const mutations = [];
 

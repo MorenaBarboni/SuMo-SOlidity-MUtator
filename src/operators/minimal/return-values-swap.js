@@ -6,6 +6,15 @@ class RVSOperator {
     this.name = "return-values-swap";
   }
 
+  /**
+  * Generates RSV mutations for compatible return values
+  * 
+  * @param {string} file - The path of the Solidity source file
+  * @param {string} source - The Solidity source code
+  * @param {Function} visit - The solidity-parser-ast visitor function
+  * 
+  * @returns {Mutation[]} The generated mutations
+  */
   getMutations(file, source, visit) {
     const mutations = [];
 

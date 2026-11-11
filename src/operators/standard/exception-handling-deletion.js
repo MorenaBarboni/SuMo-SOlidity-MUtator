@@ -6,7 +6,15 @@ class EHDOperator {
     this.ID = "EHD";
     this.name = "exception-handling-statement-deletion";
   }
-
+  /**
+  * Generates EHD mutations for Solidity-native exception handling statements.
+  *
+  * @param {string} file - The path of the Solidity source file
+  * @param {string} source - The Solidity source code
+  * @param {Function} visit - The solidity-parser-ast visitor function
+  * 
+  * @returns {Mutation[]} The generated mutations
+  */
   getMutations(file, source, visit) {
     const mutations = [];
     const functions = ["require", "assert", "revert"];

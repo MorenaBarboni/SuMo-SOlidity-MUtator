@@ -9,13 +9,14 @@ const config = require(rootDir + '/sumo-config')
 
 
 //Init operator version
-var AVROperator, BOROperator, EROperator, FVROperator, GVROperator, HLROperator, ILROperator,
-  MCROperator, MODOperator, MOIOperator, RVSOperator, UORDOperator, VVROperator;
+var ACMOperator, AVROperator, BOROperator, EROperator, FVROperator, GVROperator, HLROperator,
+  ILROperator, LFROperator, MODOperator, MOIOperator, RVSOperator, UORDOperator, VVROperator;
 
 /**
  * Minimal rules
  */
 if (config.minimalOperators) {
+  ACMOperator = require('./minimal/argument-change-overloaded-call')
   AVROperator = require('./minimal/address-value-replacement')
   BOROperator = require('./minimal/binary-replacement')
   EROperator = require('./minimal/enum-replacement')
@@ -23,13 +24,14 @@ if (config.minimalOperators) {
   GVROperator = require('./minimal/global-variable-replacement')
   HLROperator = require('./minimal/hex-literal-replacement')
   ILROperator = require('./minimal/integer-literal-replacement')
-  MCROperator = require('./minimal/math-crypto-function-replacement')
+  LFROperator = require('./minimal/library-function-replacement')
   MODOperator = require('./minimal/modifier-deletion')
   MOIOperator = require('./minimal/modifier-insertion')
   RVSOperator = require('./minimal/return-values-swap')
   UORDOperator = require('./minimal/unary-replacement')
   VVROperator = require('./minimal/variable-visibility-replacement')
 } else {
+  ACMOperator = require('./standard/argument-change-overloaded-call')
   AVROperator = require('./standard/address-value-replacement')
   BOROperator = require('./standard/binary-replacement')
   EROperator = require('./standard/enum-replacement')
@@ -37,7 +39,7 @@ if (config.minimalOperators) {
   GVROperator = require('./standard/global-variable-replacement')
   HLROperator = require('./standard/hex-literal-replacement')
   ILROperator = require('./standard/integer-literal-replacement')
-  MCROperator = require('./standard/math-crypto-function-replacement')
+  LFROperator = require('./standard/library-function-replacement')
   MODOperator = require('./standard/modifier-deletion')
   MOIOperator = require('./standard/modifier-insertion')
   RVSOperator = require('./standard/return-values-swap')
@@ -45,7 +47,6 @@ if (config.minimalOperators) {
   VVROperator = require('./standard/variable-visibility-replacement')
 }
 
-const ACMOperator = require('./standard/argument-change-overloaded-call')
 const AOROperator = require('./standard/assignment-replacement')
 const BCRDOperator = require('./standard/break-continue-replacement')
 const BLROperator = require('./standard/boolean-literal-replacement')
@@ -60,6 +61,8 @@ const EHDOperator = require('./standard/exception-handling-deletion')
 const ETROperator = require('./standard/ether-transfer-function-replacement')
 const FCDOperator = require('./standard/function-call-deletion')
 const LSCOperator = require('./standard/loop-statement-change')
+const MCROperator = require('./standard/math-crypto-function-replacement')
+const MKROperator = require('./standard/mapping-key-replacement')
 const OLFDOperator = require('./standard/overloaded-function-deletion')
 const OMDOperator = require('./standard/overridden-modifier-deletion')
 const ORFDOperator = require('./standard/overridden-function-deletion')
@@ -77,20 +80,20 @@ const VUROperator = require('./standard/variable-unit-replacement')
  */
 class MutationGenerator {
 
-   /**
-   * Constructs a MutationGenerator instance.
-   * @param {Array<object>} operators - Array of mutation operator instances.
-   */
+  /**
+  * Constructs a MutationGenerator instance.
+  * @param {Array<object>} operators - Array of mutation operator instances.
+  */
   constructor(operators) {
     this.operators = operators;
   }
-   /**
-   * Applies enabled mutation operators to a smart contract.
-   * @param {string} file - Path to the contract source file.
-   * @param {string} source - Source code of the contract.
-   * @param {Function} visit - Visitor function for traversing the AST.
-   * @returns {Array<object>} - Array of generated mutation objects.
-   */
+  /**
+  * Applies enabled mutation operators to a smart contract.
+  * @param {string} file - Path to the contract source file.
+  * @param {string} source - Source code of the contract.
+  * @param {Function} visit - Visitor function for traversing the AST.
+  * @returns {Array<object>} - Array of generated mutation objects.
+  */
   getMutations(file, source, visit) {
     let mutations = [];
 
@@ -106,40 +109,60 @@ class MutationGenerator {
     }
     return mutations;
   }
+
   /**
-   * Returns a formatted string listing all currently enabled mutation operators.
-   * Includes their IDs and readable names.
-   * @returns {string} - Formatted output of enabled mutation operators.
+   * Returns a formatted string listing all mutation operators,
+   * including their IDs, names, and enabled/disabled status.
+   *
+   * @returns {string} Formatted output of all mutation operators.
    */
-  getEnabledOperators() {
-    var printString;
-    var enabled = Object.entries(mutOpsConfig)
-      .filter(pair => pair[1] === true);
+  logOperatorsStatus() {
+    let printString = chalk.bold("\nMutation Operators:\n\n");
 
-    if (enabled.length > 0) {
-      //Print enabled operators info
-      printString = chalk.bold("\nEnabled Mutation Operators:\n\n");
+    // Find the longest operator label
+    const maxLength = Math.max(
+      ...this.operators.map(op => `${op.ID} (${op.name})`.length)
+    );
 
-      for (const entry of enabled) {
-        for (let i = 0; i < this.operators.length; i++) {
-          const operator = this.operators[i];
-          if (operator.ID === entry[0]) {
-            printString = printString + "> " + chalk.bold.yellow(operator.ID) + " (" + operator.name + ") \n";
-            break;
-          }
-        }
-      }
-    } else {
-      printString = chalk.red("Warning: No mutation operators enabled.\n");
+    for (const operator of this.operators) {
+      const enabled = mutOpsConfig[operator.ID] === true;
+
+      const status = enabled
+        ? chalk.green("[ENABLED]")
+        : chalk.red("[DISABLED]");
+
+      const label = `${operator.ID} (${operator.name})`;
+
+      // Align all status labels to the same column
+      const padding = " ".repeat(maxLength - label.length + 3);
+
+      printString +=
+        "> " +
+        chalk.bold.yellow(operator.ID) +
+        ` (${operator.name})` +
+        padding +
+        status + "\n";
     }
+
     return printString;
   }
- /**
-   * Enables a specific mutation operator by its ID.
-   * Updates the mutation operator config file accordingly.
-   * @param {string} ID - Mutation operator ID to enable.
-   * @returns {boolean} - True if enabled successfully, false if ID not found.
-   */
+
+  /**
+ * Returns a list of IDs for all currently enabled mutation operators.
+ * @returns {string[]} - IDs of enabled mutation operators.
+ */
+  getEnabledOperators() {
+    return Object.entries(mutOpsConfig)
+      .filter(([operatorId, isEnabled]) => isEnabled === true)
+      .map(([operatorId]) => operatorId);
+  }
+
+  /**
+    * Enables a specific mutation operator by its ID.
+    * Updates the mutation operator config file accordingly.
+    * @param {string} ID - Mutation operator ID to enable.
+    * @returns {boolean} - True if enabled successfully, false if ID not found.
+    */
   enable(ID) {
     var exists = Object.entries(mutOpsConfig)
       .find(pair => pair[0] === ID);
@@ -153,11 +176,11 @@ class MutationGenerator {
     }
     return false;
   }
-   /**
-   * Enables all mutation operators listed in the configuration.
-   * Updates the config file to reflect changes.
-   * @returns {boolean} - True if successful, false otherwise.
-   */
+  /**
+  * Enables all mutation operators listed in the configuration.
+  * Updates the config file to reflect changes.
+  * @returns {boolean} - True if successful, false otherwise.
+  */
   enableAll() {
     Object.entries(mutOpsConfig).forEach(pair => {
       mutOpsConfig[pair[0]] = true;
@@ -186,11 +209,11 @@ class MutationGenerator {
     }
     return false;
   }
-   /**
-   * Disables all mutation operators listed in the configuration.
-   * Updates the config file to reflect changes.
-   * @returns {boolean} - True if successful, false otherwise.
-   */
+  /**
+  * Disables all mutation operators listed in the configuration.
+  * Updates the config file to reflect changes.
+  * @returns {boolean} - True if successful, false otherwise.
+  */
   disableAll() {
     Object.entries(mutOpsConfig).forEach(pair => {
       mutOpsConfig[pair[0]] = false;
@@ -202,43 +225,45 @@ class MutationGenerator {
   }
 }
 module.exports = {
-  ACMOperator: ACMOperator,
-  AOROperator: AOROperator,
-  AVROperator: AVROperator,
-  BCRDOperator: BCRDOperator,
-  BLROperator: BLROperator,
-  BOROperator: BOROperator,
-  CBDOperator: CBDOperator,
-  CCDOperator: CCDOperator,
-  CSCOperator: CSCOperator,
-  DLROperator: DLROperator,
-  DODOperator: DODOperator,
-  ECSOperator: ECSOperator,
-  EEDOperator: EEDOperator,
-  EHDOperator: EHDOperator,
-  EROperator: EROperator,
-  ETROperator: ETROperator,
-  FCDOperator: FCDOperator,
-  FVROperator: FVROperator,
-  GVROperator: GVROperator,
-  HLROperator: HLROperator,
-  ILROperator: ILROperator,
-  LSCOperator: LSCOperator,
-  MCROperator: MCROperator,
-  MODOperator: MODOperator,
-  MOIOperator: MOIOperator,
-  OLFDOperator: OLFDOperator,
-  OMDOperator: OMDOperator,
-  ORFDOperator: ORFDOperator,
-  PKDOperator: PKDOperator,
-  RSDOperator: RSDOperator,
-  RVSOperator: RVSOperator,
-  SCDOperator: SCDOperator,
-  SKROperator: SKROperator,
-  SLROperator: SLROperator,
-  TOROperator: TOROperator,
-  UORDOperator: UORDOperator,
-  VUROperator: VUROperator,
-  VVROperator: VVROperator,
-  MutationGenerator: MutationGenerator,
+  ACMOperator,
+  AOROperator,
+  AVROperator,
+  BCRDOperator,
+  BLROperator,
+  BOROperator,
+  CBDOperator,
+  CCDOperator,
+  CSCOperator,
+  DLROperator,
+  DODOperator,
+  ECSOperator,
+  EEDOperator,
+  EHDOperator,
+  EROperator,
+  ETROperator,
+  FCDOperator,
+  FVROperator,
+  GVROperator,
+  HLROperator,
+  ILROperator,
+  LSCOperator,
+  LFROperator,
+  MCROperator,
+  MKROperator,
+  MODOperator,
+  MOIOperator,
+  OLFDOperator,
+  OMDOperator,
+  ORFDOperator,
+  PKDOperator,
+  RSDOperator,
+  RVSOperator,
+  SCDOperator,
+  SKROperator,
+  SLROperator,
+  TOROperator,
+  UORDOperator,
+  VUROperator,
+  VVROperator,
+  MutationGenerator,
 }

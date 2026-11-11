@@ -6,6 +6,17 @@ class AOROperator {
     this.ID = "AOR";
     this.name = "assignment-operator-replacement";
   }
+
+
+  /**
+  * Generates AOR mutations for compound assignment operators.
+  *
+  * @param {string} file - The path of the Solidity source file
+  * @param {string} source - The Solidity source code
+  * @param {Function} visit - The solidity-parser-ast visitor function
+  * 
+  * @returns {Mutation[]} The generated mutations
+  */
   getMutations(file, source, visit) {
     const mutations = [];
     const targets = ["+=", "-=", "*=", "/=", "%=", "<<=", ">>=", "|=", "&=", "^="];

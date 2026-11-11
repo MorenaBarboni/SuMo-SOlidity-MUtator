@@ -7,7 +7,15 @@ class MODOperator {
   }
   getMutations(file, source, visit) {
     const mutations = [];
-
+    /**
+    * Generates MOD mutations for function modifiers
+    * 
+    * @param {string} file - The path of the Solidity source file
+    * @param {string} source - The Solidity source code
+    * @param {Function} visit - The solidity-parser-ast visitor function
+    * 
+    * @returns {Mutation[]} The generated mutations
+    */
     visit({
       FunctionDefinition: (node) => {
         let replacement;

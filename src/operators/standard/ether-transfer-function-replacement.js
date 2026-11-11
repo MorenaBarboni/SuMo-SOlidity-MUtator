@@ -1,23 +1,30 @@
 const contextChecker = require("../contextChecker");
-const Mutation = require('../../mutation')
+const Mutation = require('../../mutation');
 
 class ETROperator {
   constructor() {
     this.ID = "ETR";
     this.name = "ether-transfer-function-replacement";
   }
-
+  /**
+  * Generates ETR mutations for Solidity-native ether transfer functions.
+  *
+  * @param {string} file - The path of the Solidity source file
+  * @param {string} source - The Solidity source code
+  * @param {Function} visit - The solidity-parser-ast visitor function
+  * 
+  * @returns {Mutation[]} The generated mutations
+  */
   getMutations(file, source, visit) {
     const mutations = [];
     const functions = ["transfer", "transferFrom", "send", "call"];
 
     visit({
       FunctionCall: (node) => {
-
         if ((node.expression.type == "MemberAccess" || (node.expression.expression && node.expression.expression.type == "MemberAccess"))) {
           if (functions.includes(node.expression.memberName) || functions.includes(node.expression.expression.memberName)) {
 
-            //Call methods with gas or value - ex: call{value:...,gas:...}("")
+            // Call methods with gas or value - ex: call{value:...,gas:...}("")
             if (node.expression.expression && functions.includes(node.expression.expression.memberName)) {
 
               var replacement, replacement2;
@@ -27,13 +34,13 @@ class ETROperator {
               const endLine = node.loc.end.line;
               const original = source.slice(start, end);
               const functionName = contextChecker.getFunctionName(visit, startLine, endLine);
-              
+
               const addressStart = node.expression.expression.expression.range[0];
               const addressEnd = node.expression.expression.expression.range[1];
               const address = source.slice(addressStart, addressEnd + 1);
               const callArguments = source.slice(node.arguments[0].range[0], node.arguments[0].range[1] + 1);
 
-              //Exclude old call() syntax
+              // Exclude old call() syntax
               if (node.expression.arguments) {
                 const valueArguments = source.slice(node.expression.arguments.range[0], node.expression.arguments.range[1] + 1);
                 if (node.expression.expression.memberName === "call") {
@@ -41,7 +48,7 @@ class ETROperator {
                   const nameValueList = node.expression.arguments.names;
                   let gas;
                   let gasIndex = nameValueList.indexOf("gas");
-                  if (gasIndex != -1) { //If the call has a gas argument
+                  if (gasIndex != -1) {
                     gas = node.expression.arguments.arguments[gasIndex].number;
                   }
 
@@ -57,7 +64,6 @@ class ETROperator {
                   pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, replacement, this.ID));
                   pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, replacement2, this.ID));
 
-
                 } else if (node.expression.expression.memberName === "delegatecall") {
 
                   replacement = address + ".call" + "{" + valueArguments + "}" + "(" + callArguments + ")";
@@ -71,13 +77,20 @@ class ETROperator {
                   replacement = address + ".call" + "{" + valueArguments + "}" + "(" + callArguments + ")";
                   replacement2 = address + ".delegatecall" + "{" + valueArguments + "}" + "(" + callArguments + ")";
 
-                  pushMutation(new Mutation(file, functionName, start, startLine, endLine, original, end, replacement, this.ID));
-                  pushMutation(new Mutation(file, functionName, start, startLine, endLine, original, end, replacement2, this.ID));
+                  // Fixed constructor argument order.
+                  pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, replacement, this.ID));
+                  pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, replacement2, this.ID));
                 }
               }
             }
-            //Send, transfer, and call methods with no Ether value or Gas value supplied - ex: call("")
+            // Send, transfer, and call methods without Ether value or gas options - ex: call("")
             else {
+              // Native Ether send/transfer accept one amount argument. Skip
+              // custom functions such as ERC-20 transfer(recipient, amount).
+              if ((node.expression.memberName === "send" || node.expression.memberName === "transfer") &&
+                node.arguments.length !== 1) {
+                return;
+              }
 
               var start = node.expression.range[0];
               var end = node.expression.range[1] + 1;
@@ -104,47 +117,43 @@ class ETROperator {
                 }
               }
 
-              const subdenomination = node.arguments[0].subdenomination;
+              const subdenomination = node.arguments[0] && node.arguments[0].subdenomination;
 
-              //call
+              // call
               if (node.expression.memberName == "call") {
-
                 replacement = address + ".delegatecall";
                 replacement2 = address + ".staticcall";
 
                 pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, replacement, this.ID));
                 pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, replacement2, this.ID));
               }
-              //delegatecall
+              // delegatecall
               else if (node.expression.memberName == "delegatecall") {
-
                 replacement = address + ".call";
                 replacement2 = address + ".staticcall";
 
                 pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, replacement, this.ID));
                 pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, replacement2, this.ID));
               }
-              //staticcall
+              // staticcall
               else if (node.expression.memberName == "staticcall") {
-
                 replacement = address + ".call";
                 replacement2 = address + ".delegatecall";
 
                 pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, replacement, this.ID));
                 pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, replacement2, this.ID));
               }
-              //send
+              // send
               else if (node.expression.memberName == "send") {
-
                 replacement = address + ".transfer";
                 pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, replacement, this.ID));
 
                 start = node.range[0];
                 end = node.range[1] + 1;
+                original = source.slice(start, end); // Match the updated full-call range.
 
                 startLine = node.loc.start.line;
                 endLine = node.loc.end.line;
-
                 functionName = contextChecker.getFunctionName(visit, startLine, endLine);
 
                 replacement2 = address + ".call{value: " + arg;
@@ -154,16 +163,16 @@ class ETROperator {
                   replacement2 = replacement2 + "}(\"\")";
 
                 pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, replacement2, this.ID));
-
-              }  
-              //transfer
+              }
+              // transfer
               else if (node.expression.memberName == "transfer") {
-
                 replacement = address + ".send";
                 pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, replacement, this.ID));
 
                 start = node.range[0];
                 end = node.range[1] + 1;
+                original = source.slice(start, end); // Match the updated full-call range.
+
                 startLine = node.loc.start.line;
                 endLine = node.loc.end.line;
                 functionName = contextChecker.getFunctionName(visit, startLine, endLine);
@@ -173,6 +182,7 @@ class ETROperator {
                   replacement2 = replacement2 + " " + subdenomination + "}(\"\")";
                 else
                   replacement2 = replacement2 + "}(\"\")";
+
                 pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, replacement2, this.ID));
               }
             }
@@ -195,4 +205,4 @@ class ETROperator {
   }
 }
 
-module.exports = ETROperator
+module.exports = ETROperator;

@@ -7,6 +7,15 @@ class TOROperator {
     this.name = "transaction-origin-replacement";
   }
 
+  /**
+  * Generates TOR mutations for tx.origin member access
+  * 
+  * @param {string} file - The path of the Solidity source file
+  * @param {string} source - The Solidity source code
+  * @param {Function} visit - The solidity-parser-ast visitor function
+  * 
+  * @returns {Mutation[]} The generated mutations
+  */
   getMutations(file, source, visit) {
     const mutations = [];
 

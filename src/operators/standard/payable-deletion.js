@@ -6,6 +6,15 @@ class PKDOperator {
     this.name = "payable-keyword-deletion";
   }
 
+  /**
+  * Generates PKD mutations for deleting the payable keyword from function definitions
+  * 
+  * @param {string} file - The path of the Solidity source file
+  * @param {string} source - The Solidity source code
+  * @param {Function} visit - The solidity-parser-ast visitor function
+  * 
+  * @returns {Mutation[]} The generated mutations
+  */
   getMutations(file, source, visit) {
     const mutations = [];
 

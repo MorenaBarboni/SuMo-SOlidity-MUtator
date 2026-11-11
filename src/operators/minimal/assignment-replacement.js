@@ -5,17 +5,26 @@ function AOROperator() {
   this.name = "assignment-operator-replacement";
 }
 
-AOROperator.prototype.getMutations = function(file, source, visit) {
+/**
+* Generates AOR mutations for compound assignment operators.
+*
+* @param {string} file - The path of the Solidity source file
+* @param {string} source - The Solidity source code
+* @param {Function} visit - The solidity-parser-ast visitor function
+* 
+* @returns {Mutation[]} The generated mutations
+*/
+AOROperator.prototype.getMutations = function (file, source, visit) {
   const mutations = [];
 
   visit({
     BinaryOperation: (node) => {
       const start = node.left.range[1] + 1;
       const end = node.right.range[0];
-      const startLine =  node.left.loc.end.line;
-      const endLine =  node.right.loc.start.line;
+      const startLine = node.left.loc.end.line;
+      const endLine = node.right.loc.start.line;
       const original = source.slice(start, end);
-       let replacement, replacement2;
+      let replacement, replacement2;
 
       switch (node.operator) {
         case "+=":
@@ -63,8 +72,8 @@ AOROperator.prototype.getMutations = function(file, source, visit) {
       if (replacement)
         mutations.push(new Mutation(file, start, end, startLine, endLine, original, replacement, this.ID));
       if (replacement2)
-        mutations.push(new Mutation(file, start, end,  startLine, endLine, original, replacement2, this.ID));
- 
+        mutations.push(new Mutation(file, start, end, startLine, endLine, original, replacement2, this.ID));
+
     }
   });
 

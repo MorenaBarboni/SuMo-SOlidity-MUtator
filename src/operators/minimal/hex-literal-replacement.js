@@ -6,53 +6,85 @@ class HLRoperator {
         this.ID = "HLR";
         this.name = "hexadecimal-literal-replacement";
     }
-
+    /**
+    * Generates HLR mutations for hex string literals
+    * 
+    * @param {string} file - The path of the Solidity source file
+    * @param {string} source - The Solidity source code
+    * @param {Function} visit - The solidity-parser-ast visitor function
+    * 
+    * @returns {Mutation[]} The generated mutations
+    */
     getMutations(file, source, visit) {
         const mutations = [];
 
         visit({
             HexLiteral: (node) => {
-                if (node.value) {
-                    const start = node.range[0];
-                    const end = node.range[1] + 1;
-                    const startLine = node.loc.start.line;
-                    const endLine = node.loc.end.line;
-                    const functionName = contextChecker.getFunctionName(visit, startLine, endLine);
-                    const original = source.slice(start, end);
-                    let hexToDecimal = parseInt(node.value, 16);
-                    let hexToDecimalIncrement = (hexToDecimal + 1).toString(16);
-                    let hexToDecimalDecrement = (hexToDecimal - 1).toString(16);
+                // Ignore nodes without a valid source range or location.
+                if (!contextChecker.hasSourceLocation(node)) {
+                    return;
+                }
 
-                    //Even hex- nibbles
-                    if (hexToDecimalIncrement.length % 2 !== 0) {
-                        hexToDecimalIncrement = "0" + hexToDecimalIncrement;
-                    }
-                    if (hexToDecimalDecrement.length % 2 !== 0) {
-                        hexToDecimalDecrement = "0" + hexToDecimalDecrement;
-                    }
+                const start = node.range[0];
+                const end = node.range[1] + 1;
 
-                    let replacement = original.replace(node.value, hexToDecimalIncrement);
-                    let replacement2 = original.replace(node.value, hexToDecimalDecrement);
+                if (start < 0 || end > source.length || start >= end) {
+                    return;
+                }
 
-                    if (hexToDecimal === 0) {
-                        pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, replacement, this.ID));
-                    } else {
-                        pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, replacement, this.ID));
-                        pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, replacement2, this.ID));
-                    }
+                const startLine = node.loc.start.line;
+                const endLine = node.loc.end.line;
+                const original = source.slice(start, end);
+
+                const literal = contextChecker.parseHexStringLiteral(original);
+                if (!literal) {
+                    return;
+                }
+                const { digits, quote: startQuote } = literal;
+
+                // Hex strings consist of complete bytes; empty hex strings are not mutated.
+                if (digits.length === 0 || digits.length % 2 !== 0) {
+                    return;
+                }
+
+                const value = BigInt("0x" + digits);
+                const maximum = (1n << BigInt(digits.length * 4)) - 1n;
+                const functionName = contextChecker.getFunctionName(visit, startLine, endLine);
+
+                // Preserve the original number of bytes to avoid changing fixed-bytes types.
+                if (value < maximum) {
+                    const increment = (value + 1n).toString(16).padStart(digits.length, "0");
+                    const replacement = "hex" + startQuote + increment + startQuote;
+
+                    pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, replacement, this.ID));
+                }
+
+                // At the maximum value, decrement instead to preserve the literal width.
+                else if (value > 0n) {
+                    const decrement = (value - 1n).toString(16).padStart(digits.length, "0");
+                    const replacement = "hex" + startQuote + decrement + startQuote;
+
+                    pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, replacement, this.ID));
                 }
             }
         });
 
         /**
-        * Push a mutation to the generated mutations list
-        * @param {Object} mutation the mutation
-       */
+         * Adds a mutation only if it changes the source and has a unique ID.
+         *
+         * @param {Mutation} mutation Mutation to add.
+         */
         function pushMutation(mutation) {
+            // Ignore unchanged replacements, which would produce equivalent mutants.
+            if (mutation.original === mutation.replace) {
+                return;
+            }
+
             if (!mutations.find(m => m.id === mutation.id)) {
                 mutations.push(mutation);
             }
         }
+
         return mutations;
     }
 }

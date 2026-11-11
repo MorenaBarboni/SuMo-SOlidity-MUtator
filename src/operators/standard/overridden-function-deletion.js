@@ -1,3 +1,4 @@
+const contextChecker = require("../contextChecker");
 const Mutation = require("../../mutation");
 
 class ORFDOperator {
@@ -5,43 +6,71 @@ class ORFDOperator {
     this.ID = "ORFD";
     this.name = "overridden-function-deletion";
   }
+
+  /**
+  * Generates ORFD mutations for deleting overriden functions
+  * 
+  * @param {string} file - The path of the Solidity source file
+  * @param {string} source - The Solidity source code
+  * @param {Function} visit - The solidity-parser-ast visitor function
+  * 
+  * @returns {Mutation[]} The generated mutations
+  */
   getMutations(file, source, visit) {
+    const ID = this.ID;
     const mutations = [];
 
+    // Visit all function definitions and check if they are overridden functions
+    // An overridden function has the 'override' keyword and is defined in a contract that inherits from another contract.
     visit({
-      ContractDefinition: (node) => {
+      FunctionDefinition: (node) => {
+        if (node.override) {
+          const containingContract = contextChecker.contractNodeContaining(visit, node);
 
-        if (node.baseContracts.length > 0)
-          visit({
-            FunctionDefinition: (node) => {
-
-              if (node.override) {
-                const start = node.range[0];
-                const end = node.range[1] + 1;
-                const startLine = node.loc.start.line;
-                const endLine = node.loc.end.line;
-                const functionName = node.name;
-                const original = source.slice(start, end);
-                pushMutation(new Mutation(file, functionName, start, end, startLine, endLine, original, "", this.ID));
-              }
-            }
-          });
+          if (containingContract && containingContract.baseContracts.length > 0) {
+            pushMutation(createMutation(node));
+          }
+        }
       }
     });
 
+    return mutations;
+
     /**
-    * Add a mutation to the mutations list
-    * @param {Object} mutation the mutation object
-    */
+     * Creates a mutation that comments out the complete function declaration.
+     *
+     * Each line is prefixed separately so block comments inside the function
+     * cannot accidentally terminate the mutation comment. A line break is
+     * added when needed to keep following code active if it shares the same line.
+     *
+     * @param {Object} functionNode the function to comment out
+     * @returns {Object} the generated mutation
+     */
+    function createMutation(functionNode) {
+      const start = functionNode.range[0];
+      const end = functionNode.range[1] + 1;
+      const startLine = functionNode.loc.start.line;
+      const endLine = functionNode.loc.end.line;
+      const functionName = functionNode.name;
+      const original = source.slice(start, end);
+
+      const commentSafeFunction = original.replace(/\*\//g, "* /");
+      const replacement = `/* ${commentSafeFunction} */`;
+
+      return new Mutation(file, functionName, start, end, startLine, endLine, original, replacement, ID);
+    }
+
+    /**
+     * Adds a mutation unless an equivalent mutation is already present.
+     *
+     * @param {Object} mutation the mutation to add
+     */
     function pushMutation(mutation) {
-      if (!mutations.find(m => m.id === mutation.id)) {
+      if (!mutations.some(existingMutation => existingMutation.id === mutation.id)) {
         mutations.push(mutation);
       }
     }
-
-    return mutations;
   }
 }
-
 
 module.exports = ORFDOperator;
