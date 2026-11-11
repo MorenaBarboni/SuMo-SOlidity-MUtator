@@ -28,11 +28,13 @@ class Mutation {
  * @param {string} replace - Mutated code replacing the original.
  * @param {string} operator - ID of the mutation operator used.
  * @param {string|null} [status=null] - Result of mutation testing (e.g., killed, live).
+ * @param {number|null} [compilationTime=null] - Time taken to compile this mutant in ms.  
  * @param {number|null} [testingTime=null] - Time taken to test this mutant in ms.
+ * @param {number|null} [totalTime=null] - Total time taken to test this mutant in ms. 
  * @param {string|null} [diff=null] - Diff summary for this mutation.
  * @param {string|null} [id=null] - Unique hash ID of the mutation.
  */
-  constructor(file, functionName, start, end, startLine, endLine, original, replace, operator, status = null, testingTime = null, diff = null, id = null) {
+  constructor(file, functionName, start, end, startLine, endLine, original, replace, operator, status = null, compilationTime = 0, testingTime = 0, totalTime = 0, diff = null, id = null) {
     this.file = file
     this.functionName = functionName
     this.start = start
@@ -43,7 +45,9 @@ class Mutation {
     this.replace = replace
     this.operator = operator
     this.status = status
+    this.compilationTime = compilationTime
     this.testingTime = testingTime
+    this.totalTime = totalTime
     this.id = this.hash()
     this.diff = this.diff()
   }
@@ -282,9 +286,22 @@ class Mutation {
    * @returns {string} - JSON representation of the mutation.
    */
   toJson() {
-    var m = new Mutation(this.file, this.functionName, this.start, this.end, this.startLine, this.endLine, this.original, this.replace, this.operator, this.status, this.testingTime, this.id)
+    var m = new Mutation(this.file, this.functionName, this.start, this.end, this.startLine, this.endLine, this.original, this.replace, this.operator, this.status, this.compilationTime, this.testingTime, this.totalTime, this.id)
     return JSON.stringify(m, null, "\t")
   }
+
+  /**
+     * Creates a Mutation instance from a plain JSON mutant object.
+     *
+     * @param {Object} rawMutant - Plain mutant object read from mutations.json.
+     * @returns {Mutation} Rehydrated Mutation instance.
+     */
+  static fromJSON(rawMutant) {
+    return Object.assign(
+      new Mutation(rawMutant.file, rawMutant.functionName, rawMutant.start, rawMutant.end, rawMutant.startLine, rawMutant.endLine, rawMutant.original, rawMutant.replace, rawMutant.operator), rawMutant
+    );
+  }
+
   /**
    * Creates a unified diff patch string between the baseline and mutated contract.
    * @returns {string} - Patch string in unified diff format.
