@@ -171,7 +171,7 @@ Operators can be viewed using `npx sumo list` and managed using `npx sumo enable
 | ------ | ------ |  ------ | ------ | :----: |
 | AVR | Address Value Replacement | ```0x67ED2e5dD3d0...``` &rarr; ``` address.this()```|   Y |  Y |
 | CCD | Constructor Deletion | ```constructor(){}``` &rarr; ``` ``` | Y |  N |
-| DLR | Data Location Keyword Replacement | ```uint[] storage vals = ... ``` &rarr; ```uint[] memory vals = ...``` | N | N |
+| DLR | Data Location Keyword Replacement | ```uint[] storage vals = ... ``` &rarr; ```uint[] memory vals = ...``` | Y | N |
 | DOD | Delete Operator Deletion | ```delete``` &rarr; |   Y |  N |
 | ETR | Ether Transfer function Replacement | ```delegatecall()``` &rarr; ```call()``` |   Y | Y |
 | EED |  Event Emission Deletion |  ```emit Deposit(...)``` &rarr; ```/*emit Deposit(...)*/``` |   Y |  N |
