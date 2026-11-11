@@ -6,7 +6,7 @@ const project = require('./helpers/project');
 
 for (const [status, compiles, testResult] of [
     ['live', true, 0], ['killed', true, 1],
-    ['timedout', true, 999], ['stillborn', false, null]
+    ['timedout', true, 999], ['uncompilable', false, null]
 ]) {
     test(`mutation workflow reports ${status} and restores sources between mutants`, { timeout: 10000 }, async t => {
         const p = project(t, { skipTests: ['ignored.js'] });
@@ -26,11 +26,11 @@ for (const [status, compiles, testResult] of [
             assert.deepEqual(files.map(f => path.basename(f)), ['counter.js']);
             return testCalls++ === 0 ? 0 : testResult;
         });
-        const Reporter = p.load('reporter');
+        const Reporter = p.load('reporting/reporter');
         const summary = Reporter.prototype.logTestSummary;
         const done = new Promise(resolve => {
-            t.mock.method(Reporter.prototype, 'logTestSummary', function (time) {
-                summary.call(this, time);
+            t.mock.method(Reporter.prototype, 'logTestSummary', function (...times) {
+                summary.apply(this, times);
                 resolve();
             });
         });
@@ -54,7 +54,7 @@ for (const [status, compiles, testResult] of [
         }
         assert.ok(fs.existsSync(path.join(p.root, 'sumo/results/index.html')));
         const log = fs.readFileSync(path.join(p.root, 'sumo/results/sumo-log.txt'), 'utf8');
-        if (status === 'live') assert.match(log, /MUTATION SCORE = 0\.00/);
-        if (status === 'killed') assert.match(log, /MUTATION SCORE = 100\.00/);
+        if (status === 'live') assert.match(log, /^Mutation score\s*: 0\.00%$/m);
+        if (status === 'killed') assert.match(log, /^Mutation score\s*: 100\.00%$/m);
     });
 }

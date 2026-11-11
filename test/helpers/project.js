@@ -15,10 +15,8 @@ contract Counter {
 `;
 
 // A disposable installed-package layout exercises SuMo's real path resolution.
-// Keeping it under test/ lets Node resolve dependencies from the repository.
 module.exports = function project(t, overrides = {}) {
-    // Silence routine SuMo logs only for this test. Node restores these mocks
-    // automatically; stderr and test-runner diagnostics stay visible.
+    // Silence routine SuMo logs oonly for this test 
     t.mock.method(console, 'log', () => {});
     const root = fs.mkdtempSync(path.join(repository, 'test', '.tmp-'));
     const packageDir = path.join(root, 'node_modules', '@morenabarboni', 'sumo');
@@ -53,9 +51,8 @@ module.exports = function project(t, overrides = {}) {
     // Enable just BLR and BOR so expected mutations remain small and explicit.
     fs.writeFileSync(path.join(packageDir, 'src/operators.config.json'), JSON.stringify({ BLR: true, BOR: true }));
     appRoot.setPath(root);
-    // This presentation-only method writes diffs directly to stdout. Stub it
-    // rather than stdout itself, which also carries Node's test results.
-    const Reporter = require(path.join(packageDir, 'src/reporter'));
+    // This presentation-only method writes diffs directly to stdout.
+    const Reporter = require(path.join(packageDir, 'src/reporting/reporter'));
     t.mock.method(Reporter.prototype, 'logCompile', () => {});
     return {
         root, file, source,

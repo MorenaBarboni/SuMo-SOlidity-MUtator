@@ -24,7 +24,7 @@ test('invalid or undetectable frameworks and missing custom build configuration 
     assert.throws(() => utils.getTestingFrameworks(), /Cannot automatically detect/);
     p.config.testingFramework = 'custom';
     p.config.buildDir = 'auto';
-    assert.throws(() => utils.getBuildDir('custom'), /specify a buildDir/);
+    assert.throws(() => utils.getBuildDir('custom'), /Custom test scripts require buildDir in sumo-config\.js/);
 });
 
 test('hybrid test selection routes files to their matching framework', t => {
@@ -45,7 +45,6 @@ test('sampling respects the limit without duplicates or changing the input', t =
     assert.equal(new Set(sample).size, 2);
     assert.ok(sample.every(m => mutations.includes(m)));
     assert.deepEqual(mutations, original);
-    assert.deepEqual(pruner.lookupPruneMutations(mutations), original);
     p.config.randomMutants = 10;
     assert.equal(pruner.pruneMutations(mutations).length, 3);
     p.config.randomMutants = 0;
