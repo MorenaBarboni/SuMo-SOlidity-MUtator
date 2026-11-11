@@ -1,24 +1,24 @@
 // External modules
 const chalk = require('chalk');
 const fs = require('fs');
-const fse = require('fs-extra');
 const glob = require('glob');
 const parser = require('@solidity-parser/parser');
+const { performance } = require("node:perf_hooks");
 
-// Internal modules
+// Internal SuMo modules
 const mutationGenerator = require("./operators/mutationGenerator");
-const Reporter = require('./reporter');
-const reporter = new Reporter()
-const utils = require('./utils');
-const pruner = require('./pruner')
+const pruner = require('./pruner');
+const Reporter = require('./reporting/reporter');
+const htmlReporter = require("./reporting/htmlReport");
+const reporter = new Reporter();
 const testingInterface = require("./testingInterface");
-const htmlReporter = require("./htmlReport")
+const TCE = require("./tce");
+const utils = require('./utils');
 
 //SuMo static configuration
-const { sumoDir, baselineDir, mutantsDir, contractsGlob, testsGlob } = utils.staticConf;
+const { mutantsDir, contractsGlob, testsGlob } = utils.staticConf;
 const randomSamplingEnabled = utils.getRandomSampling();
-var testingFrameworks = [];
-var contractsDir, testDir, buildDir;
+var tce;
 
 /**
  * Creates a MutationGenerator instance with an array of mutation operators.
@@ -27,172 +27,176 @@ var contractsDir, testDir, buildDir;
 const mutGen = new mutationGenerator.MutationGenerator([
   "ACM", "AOR", "AVR", "BCRD", "BOR", "BLR", "CBD", "CCD", "CSC", "DLR",
   "DOD", "EED", "ECS", "EHD", "ER", "ETR", "FCD", "FVR", "GVR", "HLR", "ILR", "LSC",
-  "MCR", "MOI", "MOD", "OLFD", "OMD", "ORFD", "PKD", "RSD", "RVS", "SCD",
+  "LFR", "MCR", "MKR", "MOI", "MOD", "OLFD", "OMD", "ORFD", "PKD", "RSD", "RVS", "SCD",
   "SKR", "SLR", "TOR", "UORD", "VUR", "VVR"
 ].map(operator => new mutationGenerator[`${operator}Operator`]()));
 
 
+
+/* ============================================================
+ * MUTATION TESTING CONTEXT AND WORKSPACE
+ * ============================================================
+*/
+
 /**
- * Performs initial setup steps required for mutation testing.
- * Creates necessary directories, reads user configuration, and copies original contracts/tests to a baseline directory.
- * @param {Function} callback - A function to execute after setup is complete.
- * @returns {void}
+ * Prepares the mutation testing context and workspace.
+ * It ensures that all SuMo directories exist and it refreshes the baseline
+ * without deleting existing mutation testing results
+ *
+ * @returns {{
+ *   testingFrameworks: string[],
+ *   contractsDir: string,
+ *   testDir: string,
+ *   buildDir: string,
+ *   packageManager: string
+ * }} The resolved command environment.
  */
-function setup(callback) {
+function setup() {
   reporter.logSetupCheck();
+  reporter.resetMutationResults();
 
-  //Setup sumo dir
-  if (!fs.existsSync(sumoDir)) { fs.mkdirSync(sumoDir); }
-  utils.setupResultsDir();
+  utils.setupSumoDirs();
 
-  //Get configurable directories and testing frameworks
-  //If multiple testing frameworks, only the first one is used for compilation
-  testingFrameworks = utils.getTestingFrameworks();
-  contractsDir = utils.getContractsDir();
-  testDir = utils.getTestDir();
-  buildDir = utils.getBuildDir(testingFrameworks[0]);
-  utils.getPackageManager()
+  const testingFrameworks = utils.getTestingFrameworks();
+  const contractsDir = utils.getContractsDir();
+  const testDir = utils.getTestDir();
+  const buildDir = utils.getBuildDir(testingFrameworks[0]);
+  const packageManager = utils.getPackageManager();
 
-  reporter.logAndSaveSetup(contractsDir, testDir, buildDir, testingFrameworks);
+  utils.createBaseline(contractsDir, testDir);
+  tce = new TCE(buildDir);
 
-  //Restore baseline
-  if (fs.existsSync(baselineDir)) { fse.emptyDirSync(baselineDir); }
-  fse.copySync(testDir, baselineDir + "/test", { overwrite: true });
-  fse.copySync(contractsDir, baselineDir + "/contracts", { overwrite: true });
+  const context = { testingFrameworks, contractsDir, testDir, buildDir, packageManager };
 
-  callback();
+  reporter.logAndSaveSetup(contractsDir, testDir, buildDir, testingFrameworks, packageManager);
+
+  return context;
 }
 
+/* ============================================================
+ * MUTANT GENERATION
+ * ============================================================
+*/
+
 /**
- * Lists available mutants for the selected contracts without saving them or running tests.
- * @throws {Error} If contract or test files cannot be retrieved.
+ * Generates and reports mutations without writing mutated source files.
+ * Cleans existing SuMo results directory.
+ *
  * @returns {void}
  */
 function lookup() {
-  setup(() =>
-    glob(contractsDir + contractsGlob, (err, contracts) => {
-      if (err) throw err;
-      glob(testDir + testsGlob, (err, tests) => {
-        if (err) throw err;
-        let contractsUnderMutation = contractSelection(contracts);
-        let testsToBeRun = testSelection(tests);
-        reporter.logSelectedFiles(contractsUnderMutation, testsToBeRun, testingFrameworks);
-        generateMutations(contractsUnderMutation, testsToBeRun, false);
-      })
-    })
-  );
+  utils.cleanResultsDir();
+  const context = setup();
+
+  withSelectedFiles(context, (contracts, tests) => {
+    reporter.logSelectedFiles(contracts, tests, context.testingFrameworks);
+
+    const { mutations } = generateMutations(contracts);
+    htmlReporter.generateReport();
+  });
 }
 
 /**
- * Generates and saves mutants for selected contracts without running tests.
- * @throws {Error} If contract or test files cannot be retrieved.
+ * Generates and reports mutations, then writes each mutated source to disk.
+ * Cleans existing SuMo results directory.
+ * 
  * @returns {void}
  */
 function mutate() {
-  setup(() =>
-    glob(contractsDir + contractsGlob, (err, contracts) => {
-      if (err) throw err;
-      glob(testDir + testsGlob, (err, tests) => {
-        if (err) throw err;
-        let contractsUnderMutation = contractSelection(contracts);
-        let testsToBeRun = testSelection(tests);
-        reporter.logSelectedFiles(contractsUnderMutation, testsToBeRun, testingFrameworks);
-        const mutations = generateMutations(contractsUnderMutation, testsToBeRun, false);
-        for (const mutation of mutations) {
-          mutation.save();
-        }
-        console.log("Mutants saved to " + mutantsDir);
-      })
+  utils.cleanResultsDir();
+  const context = setup();
+
+  withSelectedFiles(context, (contracts, tests) => {
+    reporter.logSelectedFiles(contracts, tests, context.testingFrameworks);
+
+    const { mutations } = generateMutations(contracts);
+    mutations.forEach(mutation => mutation.save());
+
+    console.log("Mutants saved to " + mutantsDir);
+    htmlReporter.generateReport();
+  });
+}
+
+/**
+ * Generates mutations for the selected contracts, applies configured pruning,
+ * and persists the generation reports.
+ *
+ * @param {string[]} contracts - Contract files selected for mutation.
+ * @returns {{mutations: Object[], mutantGenerationTime: number}}
+ *   Final mutations and generation duration in milliseconds.
+ */
+function generateMutations(contracts) {
+  reporter.logLookup(mutGen.logOperatorsStatus());
+
+  const { result: generatedMutations, duration } = measureExecutionTime(() =>
+    contracts.flatMap(file => {
+      const source = fs.readFileSync(file, "utf8");
+      const ast = parser.parse(source, { range: true, loc: true });
+      const visit = parser.visit.bind(parser, ast);
+
+      return mutGen.getMutations(file, source, visit);
     })
   );
+
+  const mutations = randomSamplingEnabled
+    ? pruner.pruneMutations(generatedMutations)
+    : generatedMutations;
+
+  reporter.logLookupSummary(mutations, duration);
+  reporter.saveMutantGenerationReports(mutations);
+
+  return { mutations, mutantGenerationTime: duration };
 }
 
-/**
- * Generates mutants for given contracts using enabled mutation operators.
- * Optionally prunes mutants and saves mutation reports.
- * 
- * @param {Array<string>} contractsUnderMutation - Paths to smart contracts to mutate.
- * @param {Array<string>} testsToBeRun - List of test file paths to consider.
- * @param {boolean} testingStarted - Whether mutation testing has already started (affects pruning/reporting).
- * @returns {Array<object>} Array of generated mutant objects.
- */
-function generateMutations(contractsUnderMutation, overwriteReports, testingStarted) {
-  const enabledOperators = mutGen.getEnabledOperators();
-  reporter.logLookup(enabledOperators);
-
-  let mutations = []
-  let generationTime;
-  const startTime = Date.now()
-
-  for (const file of contractsUnderMutation) {
-    const source = fs.readFileSync(file, 'utf8');
-    const ast = parser.parse(source, { range: true, loc: true });
-    const visit = parser.visit.bind(parser, ast);
-    mutations.push(...mutGen.getMutations(file, source, visit));
-    generationTime = (Date.now() - startTime) / 1000;
-  }
-
-  //Prune mutations if a reduction strategy is enabled
-  if (randomSamplingEnabled) {
-    mutations = testingStarted ? pruner.pruneMutations(mutations) : pruner.lookupPruneMutations(mutations)
-  }
-  if (overwriteReports) {
-    reporter.logLookupSummary(mutations, generationTime);
-    reporter.saveMutantGenerationReports(mutations);
-    htmlReporter.generateReport();
-  }
-  return mutations;
-}
+/* ============================================================
+ * PRETEST
+ * ============================================================
+*/
 
 /**
- * Runs the original unmodified test suite to ensure it passes.
- * Serves as a sanity check before mutation testing.
- * 
- * @throws {Error} If tests or contracts fail to compile or pass.
+ * Executes the standalone pre-test command against the unmodified project.
+ *
+ * @throws {Error} If compilation fails or the original test suite does not pass.
  * @returns {void}
  */
 function runPreTest() {
-  setup(() =>
-    glob(contractsDir + contractsGlob, (err, contracts) => {
-      if (err) throw err;
-      glob(testDir + testsGlob, (err, tests) => {
-        if (err) throw err;
-        //Select contracts to mutate and test files to evaluate
-        let contractsUnderMutation = contractSelection(contracts);
-        let testsToBeRun = testSelection(tests);
-        preTest(contractsUnderMutation, testsToBeRun)
-      })
-    })
-  );
+  const context = setup();
+
+  withSelectedFiles(context, (contracts, tests) => {
+    preTest(contracts, tests, context.testingFrameworks);
+  });
 }
 
 /**
- * Runs the pre-test phase with selected contracts and test files.
- * @param {string[]} contractsUnderMutation - Array of contract file paths to be mutated.
- * @param {string[]} testsToBeRun - Array of test file paths to be run.
- * @throws {Error} If tests or contracts fail to compile or pass.
+ * Validates the unmodified project by compiling it and running the selected tests.
+ * When TCE is enabled, the successful compilation becomes its comparison baseline.
+ *
+ * @param {string[]} contracts - Selected contract files
+ * @param {string[]} tests - Selected test files
+ * @param {string[]} testingFrameworks - Detected testing framework(s).
+ * 
+ * @throws {Error} If compilation fails or the original tests do not pass
  * @returns {void}
  */
-function preTest(contractsUnderMutation, testsToBeRun) {
+function preTest(contracts, tests, testingFrameworks) {
 
   reporter.logPretest();
 
-  utils.cleanBuildDir(buildDir);
-  utils.cleanResultsDir(); //Remove old results directory
-
-  reporter.logSelectedFiles(contractsUnderMutation, testsToBeRun, testingFrameworks);
-
-  if (contractsUnderMutation.length === 0) {
+  if (contracts.length === 0) {
     console.log(chalk.red("Error: No contracts to be mutated")); process.exit(1);
   }
-  if (testsToBeRun.length === 0) {
+  if (tests.length === 0) {
     console.log(chalk.red("Error: No tests to be evaluated")); process.exit(1);
   }
 
   const isCompiled = testingInterface.spawnCompile(testingFrameworks);
 
   if (isCompiled) {
-    const status = testingInterface.spawnTest(testingFrameworks, testsToBeRun);
+    // The pre-test compilation is the canonical original-program baseline
+    if (utils.getTCE()) {
+      tce.captureBaseline();
+    }
+    const status = testingInterface.spawnTest(testingFrameworks, tests);
     if (status === 0) {
       console.log(chalk.green("\nPre-test OK.\n"));
     } else {
@@ -203,106 +207,180 @@ function preTest(contractsUnderMutation, testsToBeRun) {
   }
 }
 
+
+/* ============================================================
+ * MUTATION TESTING
+ * ============================================================
+*/
+
 /**
- * Main mutation testing command.
- * Runs the original tests, generates mutations, applies them one-by-one, and tracks mutant survival.
- * 
- * @param {string} [startHash] - Optional hash ID of the first mutant to test.
- * @param {string} [endHash] - Optional hash ID of the last mutant to test.
- * @throws {Error} If hash is invalid or compilation/testing fails.
+ * Runs the complete mutation-testing workflow: pre-test, mutant generation, and mutant execution.
+ *
+ * @param {string} [startHash] - ID of the first mutant to test.
+ * @param {string} [endHash] - ID of the last mutant to test, inclusive.
  * @returns {void}
  */
 function test(startHash, endHash) {
-  setup(() =>
-    glob(contractsDir + contractsGlob, (err, contracts) => {
-      if (err) throw err;
-      glob(testDir + testsGlob, (err, tests) => {
-        if (err) throw err;
+  utils.cleanResultsDir();
+  const context = setup();
 
-        //Select contracts to mutate and test files to evaluate
-        let contractsUnderMutation = contractSelection(contracts);
-        let testsToBeRun = testSelection(tests);
+  withSelectedFiles(context, (contracts, tests) => {
 
-        //Run the pre-test and compile the original contracts
-        preTest(contractsUnderMutation, testsToBeRun);
+    // Generate the mutations
+    const { mutations: generatedMutations, mutantGenerationTime } = generateMutations(contracts);
+    htmlReporter.generateReport();
 
-        //Generate mutations
-        var mutations = generateMutations(contractsUnderMutation, testsToBeRun, true)
-        if (startHash) {
-          let startIndex = mutations.indexOf(mutations.find(m => m.id === startHash));
-          if (startIndex === -1) {
-            throw new Error(chalk.red("Error: The specified start hash does not corrispond to any generated mutant."));
-          }
-          let endIndex = startIndex;
-          if (endHash) {
-            endIndex = mutations.indexOf(mutations.find(m => m.id === endHash));
-            if (endIndex === -1) {
-              throw new Error(chalk.red("Error: The specified end hash does not corrispond to any generated mutant."));
-            }
-          }
-          mutations = mutations.slice(startIndex, endIndex + 1);
-        }
-        //Compile and test each mutant
-        reporter.logStartMutationTesting();
-        var startTime = Date.now();
+    // Run the original test suite before mutation testing
+    const { duration: pretestTime } = measureExecutionTime(() => {
+      preTest(contracts, tests, context.testingFrameworks);
+    });
 
-        runTest(mutations, testsToBeRun);
+    // Restrict mutation testing to the requested range.
+    const mutations = selectMutationRange(generatedMutations, startHash, endHash);
 
-        // testing time in seconds
-        const testTime = ((Date.now() - startTime) / 1000);
-        reporter.logTestSummary(testTime);
-      })
-    })
-  )
+    reporter.logStartMutationTesting();
+    const { duration: mutationTestingTime } = measureExecutionTime(() => {
+      runTest(mutations, tests, context.testingFrameworks);
+    });
+
+    reporter.logTestSummary(pretestTime, mutantGenerationTime, mutationTestingTime);
+    reporter.saveResultsHistory();
+  })
 }
 
 /**
- * Applies and tests each mutant.
- * Sets mutant status based on compilation and test results (killed, live, timedout, stillborn).
+ * Applies each mutant in sequence, records compilation and test timings, assigns
+ * its final status, updates reports, and restores the original source.
+ *
+ * @param {Object[]} mutations - Mutations to execute
+ * @param {string[]} tests - Tests to run against each mutant
+ * @param {string[]} testingFrameworks - Detected testing framework(s) * 
  * 
- * @param {Object[]} mutations - Array of mutant objects to apply and test.
- * @param {string[]} testsToBeRun - Array of test file paths.
  * @returns {void}
  */
-function runTest(mutations, testsToBeRun) {
-
+function runTest(mutations, tests, testingFrameworks) {
   for (let i = 0; i < mutations.length; i++) {
+    const mutation = mutations[i];
 
-    let mutation = mutations[i];  //Mutant Under Test
-
-    const startTestTime = Date.now();
     reporter.logMutationProgress(i + 1, mutations.length, mutation);
-
     mutation.apply();
+
+    //Compile the mutant
     reporter.logCompile(mutation);
-    const isCompiled = testingInterface.spawnCompile(testingFrameworks);
+
+    const { result: isCompiled, duration: compilationTime } = measureExecutionTime(() =>
+      testingInterface.spawnCompile(testingFrameworks));
+    mutation.compilationTime = compilationTime;
 
     if (isCompiled) {
-      let testingResult;
-      reporter.logTest(mutation);
 
-      testingResult = testingInterface.spawnTest(testingFrameworks, testsToBeRun)
+      // Run TCE on the mutant.
+      if (utils.getTCE()) {
+        const tceBytecodeKind = mutation.functionName === "constructor" ? "creation" : "runtime";
+
+        if (tce.hasBaseline(tceBytecodeKind)) {
+          const tceResult = tce.compareWithBaseline(tceBytecodeKind);
+          if (tceResult.equivalent) {
+            mutation.status = "equivalent";
+            mutation.totalTime = mutation.compilationTime;
+            reporter.updateMutantStatus(mutation);
+            mutation.restore();
+            continue;
+          }
+        }
+      }
+
+      // Test the mutant
+      reporter.logTest(mutation);
+      const { result: testingResult, duration: testingTime } = measureExecutionTime(() =>
+        testingInterface.spawnTest(testingFrameworks, tests));
+      mutation.testingTime = testingTime;
+      mutation.totalTime = mutation.compilationTime + mutation.testingTime;
 
       switch (testingResult) {
         case 0: mutation.status = "live"; break;
         case 999: mutation.status = "timedout"; break;
         default: mutation.status = "killed";
       }
-    } else {
-      mutation.status = "stillborn";
+      reporter.updateMutantStatus(mutation);
+      mutation.restore();
     }
-
-    mutation.testingTime = ((Date.now() - startTestTime));
-    reporter.updateMutantStatus(mutation);
-    mutation.restore();
+    else {
+      mutation.status = "uncompilable";
+      mutation.totalTime = mutation.compilationTime;
+      reporter.updateMutantStatus(mutation);
+      mutation.restore();
+    }
   }
 }
 
 /**
- * Filters out contracts excluded by the user in the config and returns the rest.
- * 
- * @param {Array<string>} files - Array of all smart contract file paths.
- * @returns {Array<string>} Contracts eligible for mutation.
+ * Selects an inclusive mutant range. With only a start ID, selection continues
+ * through the final mutant.
+ *
+ * @param {Object[]} mutations - Ordered mutations to filter.
+ * @param {string} [startHash] - First mutant ID to include.
+ * @param {string} [endHash] - Last mutant ID to include.
+ * @returns {Object[]} Selected mutations in their original order.
+ * @throws {Error} If either ID is unknown or the range is reversed.
+ */
+function selectMutationRange(mutations, startHash, endHash) {
+  if (!startHash) {
+    return mutations;
+  }
+
+  const startIndex = mutations.findIndex(mutation => mutation.id === startHash);
+  if (startIndex === -1) {
+    throw new Error(chalk.red("Error: The specified start hash does not correspond to any generated mutant."));
+  }
+
+  let endIndex = mutations.length - 1;
+  if (endHash) {
+    endIndex = mutations.findIndex(mutation => mutation.id === endHash);
+    if (endIndex === -1) {
+      throw new Error(chalk.red("Error: The specified end hash does not correspond to any generated mutant."));
+    }
+    if (endIndex < startIndex) {
+      throw new Error(chalk.red("Error: The specified end hash occurs before the start hash."));
+    }
+  }
+
+  return mutations.slice(startIndex, endIndex + 1);
+}
+
+/* ============================================================
+ * CONTRACT AND TEST SELECTION
+ * ============================================================
+*/
+
+/**
+ * Resolves and selects the configured contract and test files.
+ * @param {Object} context - The mutation testing context (includes contractsDir, testDir, and testingFrameworks )
+ * @param {(contracts: string[], tests: string[]) => void} callback -  Workflow that consumes the selected files.
+ * @returns {void}
+ */
+function withSelectedFiles({ contractsDir, testDir, testingFrameworks }, callback) {
+
+  glob(contractsDir + contractsGlob, (contractsError, contracts) => {
+    if (contractsError) {
+      throw contractsError;
+    }
+
+    glob(testDir + testsGlob, (testsError, tests) => {
+      if (testsError) {
+        throw testsError;
+      }
+
+      callback(contractSelection(contracts), testSelection(tests, testingFrameworks));
+    });
+  });
+}
+
+/**
+ * Removes contracts excluded by the configured skip list.
+ *
+ * @param {string[]} files - Discovered contract files.
+ * @returns {string[]} Contracts eligible for mutation.
  */
 function contractSelection(files) {
   const skipContracts = utils.getSkipContracts();
@@ -325,12 +403,12 @@ function contractSelection(files) {
 }
 
 /**
- * Filters out test files not compatible with selected frameworks or skipped in config.
- * 
- * @param {Array<string>} files - Array of all test file paths.
- * @returns {Array<string>} Test files to be executed.
+ * Removes skipped tests and files incompatible with the active test frameworks.
+ *
+ * @param {string[]} files - Discovered test files.
+ * @returns {string[]} Tests eligible for execution.
  */
-function testSelection(files) {
+function testSelection(files, testingFrameworks) {
   const skipTests = utils.getSkipTests();
   let testsToBeRun = [];
 
@@ -362,11 +440,15 @@ function testSelection(files) {
   return testsToBeRun;
 }
 
+/* ============================================================
+ * MUTATION OPERATORS
+ * ============================================================
+*/
+
 /**
- * Enables one or more mutation operators by ID.
- * If no IDs are provided, enables all available operators.
- * 
- * @param {Array<string>} args - Operator IDs to enable.
+ * Enables the requested mutation operators, or all operators when none are given.
+ *
+ * @param {string[]} args - Operator IDs to enable.
  * @returns {void}
  */
 function enableOperator(args) {
@@ -385,10 +467,9 @@ function enableOperator(args) {
 }
 
 /**
- * Disables one or more mutation operators by ID or cluster name.
- * If no IDs are provided, disables all operators.
- * 
- * @param {Array<string>} args - Operator IDs or group names to disable.
+ * Disables the requested operators or operator groups, or all when none are given.
+ *
+ * @param {string[]} args - Operator IDs or group names to disable.
  * @returns {void}
  */
 function disableOperator(args) {
@@ -407,50 +488,33 @@ function disableOperator(args) {
 }
 
 /**
- * Logs the currently enabled mutation operators to the console.
+ * Prints the list of all mutation operators together with their
+ * status (i.e., enabled or disabled).
+ *
  * @returns {void}
  */
-function enabledOperators() {
-  console.log(mutGen.getEnabledOperators());
+function logOperators() {
+  console.log(mutGen.logOperatorsStatus());
 }
 
-/**
- * Displays a colorized diff between the original contract and a specified mutant.
- * 
- * @param {Object} argv - CLI arguments object.
- * @param {string} argv.hash - Hash of the mutant to compare.
- * @throws {Error} If the hash does not match any known mutant.
- * @returns {void}
- */
-function diff(argv) {
-  setup(() =>
-    glob(contractsDir + contractsGlob, (err, contracts) => {
-      if (err) {
-        console.log(err);
-        process.exit(0);
-      }
-      const mutations = generateMutations(contracts, null, false)
-      const index = mutationsByHash(mutations)
-      if (!index[argv.hash]) {
-        console.error(chalk.red('\nError: Mutation ' + argv.hash + ' not found.'))
-        process.exit(1)
-      }
-      console.log(index[argv.hash].diffColor())
-    })
-  )
-}
+
+/**********************************************************
+ * TIMING HELPERS
+ **********************************************************/
 
 /**
- * Creates a hash-indexed lookup object for a list of mutants.
- * 
- * @param {Array<object>} mutations - Array of mutant objects.
- * @returns {Object} Mutant hash map: { [hash]: mutationObject }
+ * Executes a synchronous function and measures its duration.
+ *
+ * @template T
+ * @param {() => T} operation - Operation to execute.
+ * @returns {{ result: T, duration: number }} - The operation result and elapsed time in milliseconds.
  */
-function mutationsByHash(mutations) {
-  return mutations.reduce((obj, mutation) => {
-    obj[mutation.hash()] = mutation
-    return obj
-  }, {})
+function measureExecutionTime(operation) {
+  const startTime = performance.now();
+  const result = operation();
+  const duration = Math.round(performance.now() - startTime);
+
+  return { result, duration };
 }
 
 module.exports = {
@@ -458,8 +522,7 @@ module.exports = {
   mutate: mutate,
   pretest: runPreTest,
   test: test,
-  diff: diff,
-  list: enabledOperators,
+  list: logOperators,
   enable: enableOperator,
   disable: disableOperator
 }
