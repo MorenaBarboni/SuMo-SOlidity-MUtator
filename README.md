@@ -156,7 +156,7 @@ Operators can be viewed using `npx sumo list` and managed using `npx sumo enable
 | ER | Enum Replacemet |  ```enum.member1``` &rarr; ```enum.member2``` |   Y | Y |
 | ECS | Explicit Conversion to Smaller type | ```uint256(value)``` &rarr; ```uint128(value)``` |   Y |  N |
 | FCD | Function Call Deletion | ```foo()``` &rarr; ``` ```|  Y | N |
-| HLR | Hexadecimal Literal Replacement | ```hex\"00\"``` &rarr; ```hex\"01\"```|   Y |  N |
+| HLR | Hexadecimal Literal Replacement | ```hex"00"``` &rarr; ```hex"01"```|   Y |  N |
 | ILR | Integer Literal Replacement | ```uint8 x = 1``` &rarr; ```uint8 x = 0``` <br />  ```getRole(OWNER, 0)``` &rarr; ```getRole(OWNER, 1)```|   Y |  N |
 | LCS | Loop Statement Change | ```while(condition)``` &rarr; ```while(false)``` |   Y |  N |
 | OLFD | Overloaded Function Deletion | ```function f() {}``` &rarr; ``` ``` |   Y |  N |
